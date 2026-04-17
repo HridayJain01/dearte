@@ -10,13 +10,13 @@ import { forgotPasswordSchema, loginSchema, registerSchema } from '../utils/vali
 function AuthShell({ title, description, children }) {
   return (
     <section className="page-shell section-gap">
-      <div className="grid overflow-hidden rounded-[36px] border border-white/10 bg-black/30 lg:grid-cols-2">
-        <div className="relative min-h-[620px] bg-[radial-gradient(circle_at_top_left,rgba(201,149,108,0.45),transparent_24%),linear-gradient(180deg,#251c17,#0f0f0f)] p-10">
-          <p className="lux-label mb-5">DeArte Access</p>
-          <h1 className="lux-heading max-w-md text-6xl">{title}</h1>
-          <p className="mt-6 max-w-md text-[var(--color-muted)]">{description}</p>
+      <div className="grid overflow-hidden border border-[var(--color-border)] lg:grid-cols-2">
+        <div className="relative min-h-[620px] bg-[var(--color-primary)] p-10">
+          <p className="lux-label mb-5 !text-[var(--color-accent)]">De Arté Access</p>
+          <h1 className="lux-heading max-w-md text-6xl !text-white">{title}</h1>
+          <p className="mt-6 max-w-md text-white/60">{description}</p>
         </div>
-        <div className="p-8 md:p-12">{children}</div>
+        <div className="p-8 md:p-12 bg-[var(--color-surface)]">{children}</div>
       </div>
     </section>
   );
@@ -42,8 +42,8 @@ export function LoginPage() {
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
         <Input label="Password" type="password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <div className="flex items-center justify-between text-sm">
-          <Link to="/forgot-password" className="text-[var(--color-champagne)]">Forgot Password?</Link>
-          <Link to="/register" className="text-[var(--color-muted)]">Create account</Link>
+          <Link to="/forgot-password" className="text-[var(--color-primary)] hover:underline">Forgot Password?</Link>
+          <Link to="/register" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Create account</Link>
         </div>
         <Button className="w-full" type="submit">Login</Button>
       </form>
@@ -79,7 +79,7 @@ export function RegisterPage() {
   });
 
   return (
-    <AuthShell title="Apply for a DeArte trade account." description="Buyer registrations stay inactive until reviewed and approved by the admin team.">
+    <AuthShell title="Apply for a De Arté trade account." description="Buyer registrations stay inactive until reviewed and approved by the admin team.">
       <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
         <Input label="Customer Name" error={form.formState.errors.customerName?.message} {...form.register('customerName')} />
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
@@ -93,7 +93,7 @@ export function RegisterPage() {
         <Input label="GST Number" {...form.register('gstNumber')} />
         <Input label="Password" type="password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <Input label="Confirm Password" type="password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
-        <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-muted)]">
+        <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
           <input type="checkbox" {...form.register('acceptedTerms')} />
           I accept the terms and conditions.
         </label>

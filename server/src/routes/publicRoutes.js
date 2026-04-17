@@ -1,5 +1,6 @@
 import express from 'express';
 import { db, getCategories, getCollections, getProductByStyleCode } from '../services/store.js';
+import { sortBannersByOrder } from '../utils/inventory.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 
 const router = express.Router();
@@ -31,14 +32,23 @@ router.get('/site/home', (req, res) => {
     .sort((a, b) => b.orderCount - a.orderCount)
     .slice(0, 10);
 
+  const activeBanners = db.banners.filter((banner) => banner.active);
+  const banners = sortBannersByOrder(activeBanners, db.promotions.bannersOrder || []);
+  const today = new Date().toISOString().slice(0, 10);
+  const popupAds = db.promotions.popupAds.filter((entry) => {
+    if (!entry.active) return false;
+    if (!entry.startDate || !entry.endDate) return true;
+    return entry.startDate <= today && entry.endDate >= today;
+  });
+
   return sendSuccess(res, {
-    banners: db.banners.filter((banner) => banner.active),
+    banners,
     newArrivals,
     bestSellers,
     companyInfo: db.companyInfo,
     testimonials: db.testimonials.filter((testimonial) => testimonial.status === 'Approved'),
     siteSettings: db.siteSettings,
-    popupAds: db.promotions.popupAds.filter((entry) => entry.active),
+    popupAds,
   });
 });
 

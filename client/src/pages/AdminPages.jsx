@@ -18,10 +18,10 @@ import toast from 'react-hot-toast';
 import { adminService } from '../services/adminService';
 import { Button, LoadingBlock, Panel, SectionHeading, StatCard } from '../components/ui/Primitives';
 
-const COLORS = ['#c9956c', '#d4af6a', '#8a9b8e', '#f5f0eb'];
+const COLORS = ['#6B0F2E', '#8B1A3A', '#D4A82A', '#9A7080'];
 
 const textInput =
-  'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-[var(--color-rose-gold)]';
+  'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--color-border-active)]';
 const textareaInput = `${textInput} min-h-[120px]`;
 
 const emptyProduct = {
@@ -34,10 +34,17 @@ const emptyProduct = {
   metalColor: 'Yellow Gold',
   diamondWeight: 0,
   goldWeight: 0,
+  kt18GrossWt: 0,
+  kt18NetWt: 0,
+  kt14GrossWt: 0,
+  kt14NetWt: 0,
+  kt9GrossWt: 0,
+  kt9NetWt: 0,
   diamondQuality: 'VS-GH',
   settingType: '',
   occasion: '',
   stockType: 'Ready Stock',
+  stockQuantity: 10,
   status: 'Active',
   description: '',
   imagesText: '',
@@ -49,6 +56,7 @@ const emptyProduct = {
 const emptyBanner = {
   title: '',
   subtitle: '',
+  offerBadge: '',
   ctaLabel: '',
   ctaLink: '',
   image: '',
@@ -91,12 +99,12 @@ function DataTable({ columns, rows }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="text-[var(--color-muted)]">
+        <thead className="text-[var(--color-text-muted)]">
           <tr>{columns.map((column) => <th key={column.key} className="pb-4">{column.label}</th>)}</tr>
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={row.id || index} className="border-t border-white/10">
+            <tr key={row.id || index} className="border-t border-[var(--color-border)]">
               {columns.map((column) => (
                 <td key={column.key} className="py-4 align-top">
                   {column.render ? column.render(row[column.key], row) : row[column.key]}
@@ -113,7 +121,7 @@ function DataTable({ columns, rows }) {
 function Field({ label, children }) {
   return (
     <label className="flex flex-col gap-2 text-sm">
-      <span className="text-[var(--color-muted)]">{label}</span>
+      <span className="text-[var(--color-text-muted)]">{label}</span>
       {children}
     </label>
   );
@@ -124,6 +132,34 @@ function linesToArray(value) {
     .split('\n')
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+
+function buildProductSpecifications(form) {
+  const fmt = (n) => `${Number(n || 0).toFixed(2)}`;
+  const rows = [
+    { attribute: 'Metal', value: form.metal },
+    { attribute: 'Diamond Weight', value: `${fmt(form.diamondWeight)} ct` },
+    { attribute: 'Gold Weight (filter)', value: `${fmt(form.goldWeight)} g` },
+  ];
+  const pairs = [
+    ['18kt Gross Wt', form.kt18GrossWt],
+    ['18kt Net Wt', form.kt18NetWt],
+    ['14kt Gross Wt', form.kt14GrossWt],
+    ['14kt Net Wt', form.kt14NetWt],
+    ['9kt Gross Wt', form.kt9GrossWt],
+    ['9kt Net Wt', form.kt9NetWt],
+  ];
+  pairs.forEach(([label, val]) => {
+    if (Number(val) > 0) rows.push({ attribute: label, value: `${fmt(val)} g` });
+  });
+  rows.push(
+    { attribute: 'Diamond Quality', value: form.diamondQuality },
+    { attribute: 'Setting Type', value: form.settingType },
+    { attribute: 'Occasion', value: form.occasion },
+    { attribute: 'SKU', value: form.sku || `${form.styleCode}-SKU` },
+  );
+  return rows;
 }
 
 function csvToArray(value) {
@@ -146,11 +182,18 @@ function ProductEditor({ form, setForm, onSave, onDelete, saveLabel = 'Save Prod
         <Field label="SKU"><input className={textInput} value={form.sku} onChange={(event) => setForm((current) => ({ ...current, sku: event.target.value }))} /></Field>
         <Field label="Metal"><input className={textInput} value={form.metal} onChange={(event) => setForm((current) => ({ ...current, metal: event.target.value }))} /></Field>
         <Field label="Metal Color"><input className={textInput} value={form.metalColor} onChange={(event) => setForm((current) => ({ ...current, metalColor: event.target.value }))} /></Field>
-        <Field label="Diamond Weight"><input type="number" className={textInput} value={form.diamondWeight} onChange={(event) => setForm((current) => ({ ...current, diamondWeight: Number(event.target.value) }))} /></Field>
-        <Field label="Gold Weight"><input type="number" className={textInput} value={form.goldWeight} onChange={(event) => setForm((current) => ({ ...current, goldWeight: Number(event.target.value) }))} /></Field>
+        <Field label="Diamond Weight (ct)"><input type="number" step="0.01" className={textInput} value={form.diamondWeight} onChange={(event) => setForm((current) => ({ ...current, diamondWeight: Number(event.target.value) }))} /></Field>
+        <Field label="Gold Weight (derived filter, g)"><input type="number" step="0.01" className={textInput} value={form.goldWeight} onChange={(event) => setForm((current) => ({ ...current, goldWeight: Number(event.target.value) }))} /></Field>
+        <Field label="18kt Gross Wt (g)"><input type="number" step="0.01" className={textInput} value={form.kt18GrossWt ?? 0} onChange={(event) => setForm((current) => ({ ...current, kt18GrossWt: Number(event.target.value) }))} /></Field>
+        <Field label="18kt Net Wt (g)"><input type="number" step="0.01" className={textInput} value={form.kt18NetWt ?? 0} onChange={(event) => setForm((current) => ({ ...current, kt18NetWt: Number(event.target.value) }))} /></Field>
+        <Field label="14kt Gross Wt (g)"><input type="number" step="0.01" className={textInput} value={form.kt14GrossWt ?? 0} onChange={(event) => setForm((current) => ({ ...current, kt14GrossWt: Number(event.target.value) }))} /></Field>
+        <Field label="14kt Net Wt (g)"><input type="number" step="0.01" className={textInput} value={form.kt14NetWt ?? 0} onChange={(event) => setForm((current) => ({ ...current, kt14NetWt: Number(event.target.value) }))} /></Field>
+        <Field label="9kt Gross Wt (g)"><input type="number" step="0.01" className={textInput} value={form.kt9GrossWt ?? 0} onChange={(event) => setForm((current) => ({ ...current, kt9GrossWt: Number(event.target.value) }))} /></Field>
+        <Field label="9kt Net Wt (g)"><input type="number" step="0.01" className={textInput} value={form.kt9NetWt ?? 0} onChange={(event) => setForm((current) => ({ ...current, kt9NetWt: Number(event.target.value) }))} /></Field>
         <Field label="Diamond Quality"><input className={textInput} value={form.diamondQuality} onChange={(event) => setForm((current) => ({ ...current, diamondQuality: event.target.value }))} /></Field>
         <Field label="Setting Type"><input className={textInput} value={form.settingType} onChange={(event) => setForm((current) => ({ ...current, settingType: event.target.value }))} /></Field>
         <Field label="Occasion"><input className={textInput} value={form.occasion} onChange={(event) => setForm((current) => ({ ...current, occasion: event.target.value }))} /></Field>
+        <Field label="Stock quantity (units)"><input type="number" min="0" className={textInput} value={form.stockQuantity ?? 0} onChange={(event) => setForm((current) => ({ ...current, stockQuantity: Number(event.target.value) }))} /></Field>
         <Field label="Stock Type">
           <select className={textInput} value={form.stockType} onChange={(event) => setForm((current) => ({ ...current, stockType: event.target.value }))}>
             <option>Ready Stock</option>
@@ -171,7 +214,7 @@ function ProductEditor({ form, setForm, onSave, onDelete, saveLabel = 'Save Prod
           <textarea className={textareaInput} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
         </Field>
       </div>
-      <div className="flex flex-wrap gap-4 text-sm text-[var(--color-muted)]">
+      <div className="flex flex-wrap gap-4 text-sm text-[var(--color-text-muted)]">
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.isNewArrival} onChange={(event) => setForm((current) => ({ ...current, isNewArrival: event.target.checked }))} /> New Arrival</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.isBestSeller} onChange={(event) => setForm((current) => ({ ...current, isBestSeller: event.target.checked }))} /> Best Seller</label>
       </div>
@@ -196,19 +239,19 @@ export function AdminDashboardPage() {
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel className="h-[360px]">
-          <p className="mb-4 text-sm text-[var(--color-muted)]">Orders over last 30 days</p>
+          <p className="mb-4 text-sm text-[var(--color-text-muted)]">Orders over last 30 days</p>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data.orderTrend}>
-              <CartesianGrid stroke="rgba(255,255,255,0.08)" />
-              <XAxis dataKey="day" stroke="#c7beb6" />
-              <YAxis stroke="#c7beb6" />
+              <CartesianGrid stroke="rgba(107,15,46,0.08)" />
+              <XAxis dataKey="day" stroke="#9A7080" />
+              <YAxis stroke="#9A7080" />
               <Tooltip />
-              <Line type="monotone" dataKey="orders" stroke="#c9956c" strokeWidth={3} />
+              <Line type="monotone" dataKey="orders" stroke="#6B0F2E" strokeWidth={3} />
             </LineChart>
           </ResponsiveContainer>
         </Panel>
         <Panel className="h-[360px]">
-          <p className="mb-4 text-sm text-[var(--color-muted)]">Order type split</p>
+          <p className="mb-4 text-sm text-[var(--color-text-muted)]">Order type split</p>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={data.orderTypeSplit} dataKey="value" innerRadius={70} outerRadius={110}>
@@ -220,14 +263,14 @@ export function AdminDashboardPage() {
         </Panel>
       </div>
       <Panel className="h-[360px]">
-        <p className="mb-4 text-sm text-[var(--color-muted)]">Top categories by order volume</p>
+        <p className="mb-4 text-sm text-[var(--color-text-muted)]">Top categories by order volume</p>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data.categoryChart}>
             <CartesianGrid stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="name" stroke="#c7beb6" />
-            <YAxis stroke="#c7beb6" />
+            <XAxis dataKey="name" stroke="#9A7080" />
+            <YAxis stroke="#9A7080" />
             <Tooltip />
-            <Bar dataKey="value" fill="#d4af6a" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill="#D4A82A" radius={[0, 0, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Panel>
@@ -245,9 +288,21 @@ export function AdminPromotionsPage() {
   const [eventForm, setEventForm] = useState(emptyEvent);
   const [editingEventId, setEditingEventId] = useState(null);
 
-  if (isLoading) return <LoadingBlock />;
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-promotions'] });
+    queryClient.invalidateQueries({ queryKey: ['home'] });
+  };
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-promotions'] });
+  const displayBannerOrder = useMemo(() => {
+    if (!data) return [];
+    const o = [...(data.bannersOrder || [])];
+    data.banners.forEach((b) => {
+      if (!o.includes(b.id)) o.push(b.id);
+    });
+    return o.filter((id) => data.banners.some((b) => b.id === id));
+  }, [data]);
+
+  if (isLoading) return <LoadingBlock />;
 
   return (
     <div className="space-y-8">
@@ -258,14 +313,14 @@ export function AdminPromotionsPage() {
           {data.banners.map((banner) => (
             <button
               key={banner.id}
-              className="w-full rounded-3xl border border-white/10 p-4 text-left"
+              className="w-full border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)] transition"
               onClick={() => {
                 setEditingBannerId(banner.id);
                 setBannerForm(banner);
               }}
             >
               <p className="font-semibold">{banner.title}</p>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">{banner.ctaLabel}</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">{banner.ctaLabel}</p>
             </button>
           ))}
         </Panel>
@@ -274,14 +329,14 @@ export function AdminPromotionsPage() {
           {data.popupAds.map((popup) => (
             <button
               key={popup.id}
-              className="w-full rounded-3xl border border-white/10 p-4 text-left"
+              className="w-full border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)] transition"
               onClick={() => {
                 setEditingPopupId(popup.id);
                 setPopupForm(popup);
               }}
             >
               <p className="font-semibold">{popup.frequency}</p>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">{popup.startDate} to {popup.endDate}</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">{popup.startDate} to {popup.endDate}</p>
             </button>
           ))}
         </Panel>
@@ -290,28 +345,73 @@ export function AdminPromotionsPage() {
           {data.events.map((event) => (
             <button
               key={event.id}
-              className="w-full rounded-3xl border border-white/10 p-4 text-left"
+              className="w-full border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)] transition"
               onClick={() => {
                 setEditingEventId(event.id);
                 setEventForm(event);
               }}
             >
               <p className="font-semibold">{event.title}</p>
-              <p className="mt-1 text-xs text-[var(--color-muted)]">{event.date}</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">{event.date}</p>
             </button>
           ))}
         </Panel>
       </div>
+
+      <Panel className="space-y-4">
+        <p className="lux-label">Home hero — banner order</p>
+        <p className="text-sm text-[var(--color-text-muted)]">First item appears first on the home page slider.</p>
+        <div className="space-y-2">
+          {displayBannerOrder.map((id, index) => {
+            const b = data.banners.find((x) => x.id === id);
+            if (!b) return null;
+            return (
+              <div key={id} className="flex flex-wrap items-center justify-between gap-2 border border-[var(--color-border)] px-4 py-3">
+                <span className="text-sm font-medium">{b.title}</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      if (index === 0) return;
+                      const next = [...displayBannerOrder];
+                      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                      await adminService.updateBannerOrder(next);
+                      toast.success('Banner order updated');
+                      refresh();
+                    }}
+                  >
+                    Up
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      if (index >= displayBannerOrder.length - 1) return;
+                      const next = [...displayBannerOrder];
+                      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                      await adminService.updateBannerOrder(next);
+                      toast.success('Banner order updated');
+                      refresh();
+                    }}
+                  >
+                    Down
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Panel>
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Panel className="space-y-4">
           <p className="lux-label">{editingBannerId ? 'Edit Banner' : 'Create Banner'}</p>
           <Field label="Title"><input className={textInput} value={bannerForm.title} onChange={(event) => setBannerForm((current) => ({ ...current, title: event.target.value }))} /></Field>
           <Field label="Subtitle"><textarea className={textareaInput} value={bannerForm.subtitle} onChange={(event) => setBannerForm((current) => ({ ...current, subtitle: event.target.value }))} /></Field>
+          <Field label="Offer badge (optional)"><input className={textInput} placeholder="e.g. 20% off bridal edit" value={bannerForm.offerBadge || ''} onChange={(event) => setBannerForm((current) => ({ ...current, offerBadge: event.target.value }))} /></Field>
           <Field label="CTA Label"><input className={textInput} value={bannerForm.ctaLabel} onChange={(event) => setBannerForm((current) => ({ ...current, ctaLabel: event.target.value }))} /></Field>
           <Field label="CTA Link"><input className={textInput} value={bannerForm.ctaLink} onChange={(event) => setBannerForm((current) => ({ ...current, ctaLink: event.target.value }))} /></Field>
           <Field label="Image URL"><input className={textInput} value={bannerForm.image} onChange={(event) => setBannerForm((current) => ({ ...current, image: event.target.value }))} /></Field>
-          <label className="flex items-center gap-2 text-sm text-[var(--color-muted)]"><input type="checkbox" checked={bannerForm.active} onChange={(event) => setBannerForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
+          <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]"><input type="checkbox" checked={bannerForm.active} onChange={(event) => setBannerForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
           <div className="flex gap-3">
             <Button onClick={async () => {
               if (editingBannerId) await adminService.updateBanner(editingBannerId, bannerForm);
@@ -337,7 +437,7 @@ export function AdminPromotionsPage() {
           <Field label="Frequency"><input className={textInput} value={popupForm.frequency} onChange={(event) => setPopupForm((current) => ({ ...current, frequency: event.target.value }))} /></Field>
           <Field label="Start Date"><input type="date" className={textInput} value={popupForm.startDate} onChange={(event) => setPopupForm((current) => ({ ...current, startDate: event.target.value }))} /></Field>
           <Field label="End Date"><input type="date" className={textInput} value={popupForm.endDate} onChange={(event) => setPopupForm((current) => ({ ...current, endDate: event.target.value }))} /></Field>
-          <label className="flex items-center gap-2 text-sm text-[var(--color-muted)]"><input type="checkbox" checked={popupForm.active} onChange={(event) => setPopupForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
+          <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]"><input type="checkbox" checked={popupForm.active} onChange={(event) => setPopupForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
           <div className="flex gap-3">
             <Button onClick={async () => {
               if (editingPopupId) await adminService.updatePopupAd(editingPopupId, popupForm);
@@ -444,16 +544,9 @@ export function AdminProductsPage() {
       goldCarats: ['14K', '18K', '22K'],
       diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
     },
-    specifications: [
-      { attribute: 'Metal', value: form.metal },
-      { attribute: 'Diamond Weight', value: `${Number(form.diamondWeight).toFixed(2)} ct` },
-      { attribute: 'Gold Weight', value: `${Number(form.goldWeight).toFixed(2)} g` },
-      { attribute: 'Diamond Quality', value: form.diamondQuality },
-      { attribute: 'Setting Type', value: form.settingType },
-      { attribute: 'Occasion', value: form.occasion },
-      { attribute: 'SKU', value: form.sku || `${form.styleCode}-SKU` },
-    ],
+    specifications: buildProductSpecifications(form),
   };
+  delete payload.imagesText;
 
   return (
     <div className="space-y-8">
@@ -471,7 +564,7 @@ export function AdminProductsPage() {
             {data.map((product) => (
               <button
                 key={product.id}
-                className="w-full rounded-3xl border border-white/10 p-4 text-left"
+                className="w-full border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)] transition"
                 onClick={() => {
                   setEditingId(product.id);
                   setForm({
@@ -481,7 +574,8 @@ export function AdminProductsPage() {
                 }}
               >
                 <p className="font-semibold">{product.styleCode}</p>
-                <p className="mt-1 text-sm text-[var(--color-muted)]">{product.name}</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">{product.name}</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Stock: {product.stockType === 'Ready Stock' ? product.stockQuantity ?? 0 : '—'} ({product.stockType})</p>
               </button>
             ))}
           </div>
@@ -529,18 +623,24 @@ export function AdminOrdersPage() {
             { key: 'user', label: 'Buyer', render: (value) => value?.name || '-' },
             {
               key: 'actions',
-              label: 'Action',
+              label: 'Status',
               render: (_, row) => (
-                <Button
-                  variant="secondary"
-                  onClick={async () => {
-                    await adminService.updateOrder(row.id, { status: 'Approved' });
-                    toast.success('Order approved and ready for ERP import');
+                <select
+                  className={textInput}
+                  value={row.status}
+                  onChange={async (event) => {
+                    await adminService.updateOrder(row.id, { status: event.target.value });
+                    toast.success('Order updated');
                     queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
                   }}
                 >
-                  Approve
-                </Button>
+                  <option>Pending</option>
+                  <option>Reviewed</option>
+                  <option>Approved</option>
+                  <option>Processing</option>
+                  <option>Shipped</option>
+                  <option>Cancelled</option>
+                </select>
               ),
             },
           ]}
@@ -577,7 +677,7 @@ export function AdminCataloguesPage() {
             {data.map((catalogue) => (
               <button
                 key={catalogue.id}
-                className="w-full rounded-3xl border border-white/10 p-4 text-left"
+                className="w-full border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)] transition"
                 onClick={() => {
                   setEditingId(catalogue.id);
                   setForm({
@@ -588,7 +688,7 @@ export function AdminCataloguesPage() {
                 }}
               >
                 <p className="font-semibold">{catalogue.name}</p>
-                <p className="mt-1 text-sm text-[var(--color-muted)]">{catalogue.description}</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">{catalogue.description}</p>
               </button>
             ))}
           </div>
@@ -605,10 +705,10 @@ export function AdminCataloguesPage() {
           <Field label="Assigned User IDs (comma separated)">
             <textarea className={textareaInput} value={form.assignedUserIdsText} onChange={(event) => setForm((current) => ({ ...current, assignedUserIdsText: event.target.value }))} />
           </Field>
-          <div className="rounded-3xl border border-white/10 p-4 text-sm text-[var(--color-muted)]">
-            <p className="mb-2 text-white">Available product IDs</p>
+          <div className="border border-[var(--color-border)] p-4 text-sm text-[var(--color-text-muted)]">
+            <p className="mb-2 text-[var(--color-text)]">Available product IDs</p>
             <p>{products.map((product) => product.id).join(', ')}</p>
-            <p className="mb-2 mt-4 text-white">Available user IDs</p>
+            <p className="mb-2 mt-4 text-[var(--color-text)]">Available user IDs</p>
             <p>{users.map((user) => user.id).join(', ')}</p>
           </div>
           <div className="flex gap-3">
@@ -768,14 +868,14 @@ export function AdminTestimonialsPage() {
           {data.map((testimonial) => (
             <button
               key={testimonial.id}
-              className="w-full rounded-3xl border border-white/10 p-4 text-left"
+              className="w-full border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)] transition"
               onClick={() => {
                 setEditingId(testimonial.id);
                 setForm(testimonial);
               }}
             >
               <p className="font-semibold">{testimonial.name}</p>
-              <p className="mt-1 text-sm text-[var(--color-muted)]">{testimonial.company}</p>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{testimonial.company}</p>
             </button>
           ))}
         </Panel>
@@ -878,12 +978,12 @@ export function AdminSyncPage() {
         <div>
           <p className="lux-label mb-3">ERP</p>
           <p>{data.integrationSettings.erpName}</p>
-          <p className="mt-2 text-sm text-[var(--color-muted)]">{data.integrationSettings.erpBaseUrl}</p>
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">{data.integrationSettings.erpBaseUrl}</p>
         </div>
         <div>
           <p className="lux-label mb-3">Sync Controls</p>
-          <p className="text-sm text-[var(--color-muted)]">Interval: every {data.integrationSettings.syncIntervalHours} hours</p>
-          <p className="text-sm text-[var(--color-muted)]">Order Import: {data.integrationSettings.orderImportEnabled ? 'Enabled' : 'Disabled'}</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Interval: every {data.integrationSettings.syncIntervalHours} hours</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Order Import: {data.integrationSettings.orderImportEnabled ? 'Enabled' : 'Disabled'}</p>
         </div>
       </Panel>
       <Button

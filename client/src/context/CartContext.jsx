@@ -35,9 +35,14 @@ export function CartProvider({ children }) {
   }, [isAuthenticated]);
 
   const syncAction = async (promise, message) => {
-    const cart = await promise;
-    dispatch({ type: 'SET', payload: cart });
-    if (message) toast.success(message);
+    try {
+      const cart = await promise;
+      dispatch({ type: 'SET', payload: cart });
+      if (message) toast.success(message);
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Request failed';
+      toast.error(msg);
+    }
   };
 
   const value = useMemo(

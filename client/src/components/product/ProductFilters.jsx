@@ -45,7 +45,7 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
             <button
               key={metalColor}
               onClick={() => setFilter('metalColor', toggleArrayValue(activeFilters.metalColor, metalColor))}
-              className={`rounded-full border px-3 py-2 text-xs ${activeFilters.metalColor.includes(metalColor) ? 'border-[var(--color-rose-petal)] bg-[var(--color-card-bg)] text-[var(--color-deep-ruby)]' : 'border-[var(--color-border)] text-[var(--color-muted)]'}`}
+              className={`border px-3 py-2 text-xs ${activeFilters.metalColor.includes(metalColor) ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)] text-[var(--color-primary)]' : 'border-[var(--color-border)] text-[var(--color-text-muted)]'}`}
             >
               {metalColor}
             </button>
@@ -55,49 +55,49 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
-          <span className="mb-2 block text-[var(--color-muted)]">Diamond Min</span>
+          <span className="mb-2 block text-[var(--color-text-muted)]">Diamond Min</span>
           <input
             type="number"
             value={activeFilters.diamondMin}
             onChange={(event) => setFilter('diamondMin', event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-bg)] px-3 py-2 text-[var(--color-heading)]"
+            className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none"
           />
         </label>
         <label className="text-sm">
-          <span className="mb-2 block text-[var(--color-muted)]">Diamond Max</span>
+          <span className="mb-2 block text-[var(--color-text-muted)]">Diamond Max</span>
           <input
             type="number"
             value={activeFilters.diamondMax}
             onChange={(event) => setFilter('diamondMax', event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-bg)] px-3 py-2 text-[var(--color-heading)]"
+            className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none"
           />
         </label>
         <label className="text-sm">
-          <span className="mb-2 block text-[var(--color-muted)]">Gold Min</span>
+          <span className="mb-2 block text-[var(--color-text-muted)]">Gold Min</span>
           <input
             type="number"
             value={activeFilters.goldMin}
             onChange={(event) => setFilter('goldMin', event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-bg)] px-3 py-2 text-[var(--color-heading)]"
+            className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none"
           />
         </label>
         <label className="text-sm">
-          <span className="mb-2 block text-[var(--color-muted)]">Gold Max</span>
+          <span className="mb-2 block text-[var(--color-text-muted)]">Gold Max</span>
           <input
             type="number"
             value={activeFilters.goldMax}
             onChange={(event) => setFilter('goldMax', event.target.value)}
-            className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-bg)] px-3 py-2 text-[var(--color-heading)]"
+            className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none"
           />
         </label>
       </div>
 
       <div>
-        <p className="mb-2 text-sm text-[var(--color-muted)]">Order Type</p>
+        <p className="mb-2 text-sm text-[var(--color-text-muted)]">Order Type</p>
         <select
           value={activeFilters.stockType}
           onChange={(event) => setFilter('stockType', event.target.value)}
-          className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-primary-bg)] px-3 py-3 text-[var(--color-heading)]"
+          className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none"
         >
           <option value="">All</option>
           <option value="Ready Stock">Ready Stock</option>

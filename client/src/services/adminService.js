@@ -18,6 +18,7 @@ export const adminService = {
   createBanner: (payload) => unwrap(api.post('/admin/promotions/banners', payload)),
   updateBanner: (id, payload) => unwrap(api.put(`/admin/promotions/banners/${id}`, payload)),
   deleteBanner: (id) => unwrap(api.delete(`/admin/promotions/banners/${id}`)),
+  updateBannerOrder: (order) => unwrap(api.put('/admin/promotions/banners-order', { order })),
   createPopupAd: (payload) => unwrap(api.post('/admin/promotions/popup-ads', payload)),
   updatePopupAd: (id, payload) => unwrap(api.put(`/admin/promotions/popup-ads/${id}`, payload)),
   deletePopupAd: (id) => unwrap(api.delete(`/admin/promotions/popup-ads/${id}`)),

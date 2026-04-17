@@ -350,7 +350,14 @@
       ],
       "views": 124,
       "cartAdds": 41,
-      "orderCount": 19
+      "orderCount": 19,
+      "kt18GrossWt": 4.41,
+      "kt18NetWt": 4.2,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 10
     },
     {
       "id": "prod-2",
@@ -430,7 +437,14 @@
       ],
       "views": 98,
       "cartAdds": 20,
-      "orderCount": 11
+      "orderCount": 11,
+      "kt18GrossWt": 5.3549999999999995,
+      "kt18NetWt": 5.1,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 0
     },
     {
       "id": "prod-3",
@@ -438,7 +452,7 @@
       "name": "Heirloom Bloom Necklace",
       "category": "Necklaces",
       "subCategory": "Pendant Sets",
-      "collection": "Heirloom Bloom",
+      "collection": "Princess Style",
       "metal": "18K White Gold",
       "metalColor": "White Gold",
       "diamondWeight": 1.1,
@@ -450,8 +464,8 @@
       "stockType": "Make to Order",
       "status": "Active",
       "syncStatus": "Synced",
-      "lastUpdated": "2026-04-12T09:00:00.000Z",
-      "isNewArrival": false,
+      "lastUpdated": "2026-04-17T20:17:39.591Z",
+      "isNewArrival": true,
       "isBestSeller": true,
       "description": "A couture-led jewellery silhouette built for B2B buyers who want statement craftsmanship with practical ordering flexibility.",
       "images": [
@@ -488,7 +502,15 @@
           "value": "1.10 ct"
         },
         {
-          "attribute": "Gold Weight",
+          "attribute": "Gold Weight (filter)",
+          "value": "9.30 g"
+        },
+        {
+          "attribute": "18kt Gross Wt",
+          "value": "9.77 g"
+        },
+        {
+          "attribute": "18kt Net Wt",
           "value": "9.30 g"
         },
         {
@@ -510,7 +532,14 @@
       ],
       "views": 160,
       "cartAdds": 52,
-      "orderCount": 24
+      "orderCount": 24,
+      "kt18GrossWt": 9.765,
+      "kt18NetWt": 9.3,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 0
     },
     {
       "id": "prod-4",
@@ -590,7 +619,14 @@
       ],
       "views": 140,
       "cartAdds": 45,
-      "orderCount": 20
+      "orderCount": 20,
+      "kt18GrossWt": 17.22,
+      "kt18NetWt": 16.4,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 10
     },
     {
       "id": "prod-5",
@@ -670,7 +706,14 @@
       ],
       "views": 180,
       "cartAdds": 60,
-      "orderCount": 27
+      "orderCount": 27,
+      "kt18GrossWt": 11.76,
+      "kt18NetWt": 11.2,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 0
     },
     {
       "id": "prod-6",
@@ -750,7 +793,14 @@
       ],
       "views": 77,
       "cartAdds": 14,
-      "orderCount": 8
+      "orderCount": 8,
+      "kt18GrossWt": 6.615,
+      "kt18NetWt": 6.3,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 10
     },
     {
       "id": "prod-7",
@@ -830,7 +880,14 @@
       ],
       "views": 69,
       "cartAdds": 13,
-      "orderCount": 4
+      "orderCount": 4,
+      "kt18GrossWt": 7.7700000000000005,
+      "kt18NetWt": 7.4,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 0
     },
     {
       "id": "prod-8",
@@ -910,7 +967,14 @@
       ],
       "views": 52,
       "cartAdds": 8,
-      "orderCount": 3
+      "orderCount": 3,
+      "kt18GrossWt": 3.9899999999999998,
+      "kt18NetWt": 3.8,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 10
     },
     {
       "id": "prod-9",
@@ -990,7 +1054,14 @@
       ],
       "views": 205,
       "cartAdds": 76,
-      "orderCount": 31
+      "orderCount": 31,
+      "kt18GrossWt": 16.275000000000002,
+      "kt18NetWt": 15.5,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 0
     },
     {
       "id": "prod-10",
@@ -1070,7 +1141,14 @@
       ],
       "views": 94,
       "cartAdds": 19,
-      "orderCount": 10
+      "orderCount": 10,
+      "kt18GrossWt": 19.740000000000002,
+      "kt18NetWt": 18.8,
+      "kt14GrossWt": 0,
+      "kt14NetWt": 0,
+      "kt9GrossWt": 0,
+      "kt9NetWt": 0,
+      "stockQuantity": 10
     }
   ],
   "users": [
@@ -1213,7 +1291,7 @@
       "orderId": "DAR-ORD-1001",
       "userId": "user-buyer-1",
       "date": "2026-04-11T13:20:00.000Z",
-      "status": "Approved",
+      "status": "Reviewed",
       "paymentMethod": "Offline Payment",
       "orderTypeSplit": [
         "Ready Stock",
@@ -1267,9 +1345,9 @@
   ],
   "promotions": {
     "bannersOrder": [
-      "banner-1",
       "banner-2",
-      "banner-3"
+      "banner-3",
+      "banner-1"
     ],
     "popupAds": [
       {
@@ -1282,7 +1360,32 @@
       }
     ]
   },
+  "inventoryMovements": [],
   "syncLogs": [
+    {
+      "id": "cron-1776353400089",
+      "time": "2026-04-16T15:30:00.089Z",
+      "recordsSynced": 10,
+      "errors": 0,
+      "status": "Success",
+      "nextRun": "2026-04-16T18:30:00.094Z"
+    },
+    {
+      "id": "cron-1776202200095",
+      "time": "2026-04-14T21:30:00.095Z",
+      "recordsSynced": 10,
+      "errors": 0,
+      "status": "Success",
+      "nextRun": "2026-04-15T00:30:00.095Z"
+    },
+    {
+      "id": "cron-1776148200137",
+      "time": "2026-04-14T06:30:00.137Z",
+      "recordsSynced": 10,
+      "errors": 0,
+      "status": "Success",
+      "nextRun": "2026-04-14T09:30:00.138Z"
+    },
     {
       "id": "cron-1776115800146",
       "time": "2026-04-13T21:30:00.146Z",

@@ -22,16 +22,16 @@ export function ProductCard({ product }) {
   };
 
   return (
-    <article className="group lux-panel overflow-hidden p-0 transition duration-200 hover:border-[var(--color-rose-petal)]">
+    <article className="group lux-panel overflow-hidden p-0 transition duration-200 hover:border-[var(--color-primary)]">
       <Link to={`/products/${product.styleCode}`} className="block relative">
-        <div className="relative h-80 overflow-hidden rounded-t-[15px]">
+        <div className="relative h-80 overflow-hidden">
           <img
             src={product.images[0]}
             alt={product.name}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
           />
           <button 
-            className="absolute right-4 top-4 z-10 text-[var(--color-rose-petal)] hover:scale-110 transition p-2 bg-[var(--color-primary-bg)]/80 backdrop-blur-sm rounded-full shadow-sm hover:[&>svg]:fill-[var(--color-rose-petal)]"
+            className="absolute right-4 top-4 z-10 text-[var(--color-primary)] hover:scale-110 transition p-2 bg-[var(--color-surface)]/80 backdrop-blur-sm shadow-sm hover:[&>svg]:fill-[var(--color-primary)]"
             onClick={(e) => { 
                e.preventDefault(); 
                ensureAuth(() => addToWishlist({ productId: product.id })); 
@@ -46,17 +46,17 @@ export function ProductCard({ product }) {
           </div>
           
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none">
-             <span className="bg-[var(--color-deep-ruby)] text-white px-5 py-2 rounded-full text-xs font-semibold tracking-widest uppercase shadow-md">Quick View</span>
+             <span className="bg-[var(--color-primary)] text-white px-5 py-2 text-xs font-semibold tracking-widest uppercase shadow-md">Quick View</span>
           </div>
         </div>
 
-        <div className="space-y-3 p-5 bg-[var(--color-inner-bg)] relative z-20">
-          <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-muted)]">{product.styleCode}</p>
+        <div className="space-y-3 p-5 bg-[var(--color-surface)] relative z-20">
+          <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{product.styleCode}</p>
           <div>
-            <h3 className="font-[var(--font-serif)] text-2xl text-[var(--color-heading)] line-clamp-1">
+            <h3 className="font-[var(--font-serif)] text-2xl text-[var(--color-primary)] line-clamp-1">
               {product.name}
             </h3>
-            <div className="mt-2 space-y-1 text-sm text-[var(--color-muted)]">
+            <div className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">
               <p>Diamond: {formatWeight(product.diamondWeight, 'ct')} • Gold: {formatWeight(product.goldWeight, 'g')}</p>
             </div>
           </div>
@@ -65,6 +65,7 @@ export function ProductCard({ product }) {
               variant="secondary"
               className="w-full"
               icon={ShoppingBag}
+              disabled={product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0}
               onClick={(e) => {
                 e.preventDefault();
                 ensureAuth(() =>
@@ -80,7 +81,7 @@ export function ProductCard({ product }) {
                 )
               }}
             >
-              Add to cart
+              {product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0 ? 'Out of stock' : 'Add to cart'}
             </Button>
           </div>
         </div>

@@ -1,6 +1,12 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { db, enrichCart, enrichOrder, enrichWishlist, saveDb } from '../services/store.js';
+import { db, enrichCart, enrichOrder, enrichWishlist, saveDb, getProductById } from '../services/store.js';
+import {
+  validateReadyStockForCart,
+  validateOrderLinesForStock,
+  deductStockForOrder,
+  totalUnitsForProductInCart,
+} from '../utils/inventory.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 
 const router = express.Router();
@@ -43,6 +49,12 @@ router.get('/cart', (req, res) => sendSuccess(res, enrichCart(getOrCreateCart(re
 
 router.post('/cart/add', (req, res) => {
   const cart = getOrCreateCart(req.user.id);
+  const product = getProductById(req.body.productId);
+  if (!product) {
+    return sendError(res, 'Product not found', 404);
+  }
+
+  const addQty = req.body.quantity || 1;
   const existing = cart.items.find(
     (item) =>
       item.productId === req.body.productId &&
@@ -51,13 +63,19 @@ router.post('/cart/add', (req, res) => {
       item.customization.diamondQuality === req.body.customization.diamondQuality,
   );
 
+  const nextTotal = totalUnitsForProductInCart(cart, req.body.productId) + addQty;
+
+  if (product.stockType === 'Ready Stock' && nextTotal > product.stockQuantity) {
+    return sendError(res, `Only ${product.stockQuantity} unit(s) available for this style.`, 409);
+  }
+
   if (existing) {
-    existing.quantity += req.body.quantity || 1;
+    existing.quantity += addQty;
   } else {
     cart.items.push({
       id: uuidv4(),
       productId: req.body.productId,
-      quantity: req.body.quantity || 1,
+      quantity: addQty,
       customization: req.body.customization,
     });
   }
@@ -72,6 +90,17 @@ router.put('/cart/:itemId', (req, res) => {
 
   if (!item) {
     return sendError(res, 'Cart item not found', 404);
+  }
+
+  const product = getProductById(item.productId);
+  if (req.body.quantity !== undefined) {
+    const newQty = Number(req.body.quantity);
+    if (product?.stockType === 'Ready Stock') {
+      const totalWithout = totalUnitsForProductInCart(cart, item.productId) - item.quantity;
+      if (totalWithout + newQty > product.stockQuantity) {
+        return sendError(res, `Only ${product.stockQuantity} unit(s) available for this style.`, 409);
+      }
+    }
   }
 
   Object.assign(item, req.body);
@@ -123,6 +152,11 @@ router.post('/orders', (req, res) => {
     return sendError(res, 'Cart is empty');
   }
 
+  const stockErr = validateReadyStockForCart(cart);
+  if (stockErr) {
+    return sendError(res, stockErr, 409);
+  }
+
   const order = {
     id: uuidv4(),
     orderId: `DAR-ORD-${Math.floor(Math.random() * 9000 + 1000)}`,
@@ -144,7 +178,19 @@ router.post('/orders', (req, res) => {
       quantity: item.quantity,
       customization: item.customization,
     })),
+    stockDeducted: false,
   };
+
+  const lineErr = validateOrderLinesForStock(order);
+  if (lineErr) {
+    return sendError(res, lineErr, 409);
+  }
+
+  try {
+    deductStockForOrder(order);
+  } catch (error) {
+    return sendError(res, error.message || 'Unable to place order', 409);
+  }
 
   db.orders.unshift(order);
   cart.items = [];

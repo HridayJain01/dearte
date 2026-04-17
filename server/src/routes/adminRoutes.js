@@ -1,6 +1,8 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { db, enrichOrder, getDashboardData, saveDb } from '../services/store.js';
+import { normalizeProduct } from '../utils/productNormalize.js';
+import { restoreStockForOrder } from '../utils/inventory.js';
 import { sendSuccess, sendError } from '../utils/responses.js';
 
 const router = express.Router();
@@ -47,6 +49,7 @@ router.post('/products', (req, res) => {
     isBestSeller: false,
     ...req.body,
   };
+  normalizeProduct(product);
   db.products.unshift(product);
   saveDb();
   return sendSuccess(res, product, 'Product created');
@@ -56,6 +59,7 @@ router.put('/products/:id', (req, res) => {
   const product = findById(db.products, req.params.id);
   if (!product) return sendError(res, 'Product not found', 404);
   Object.assign(product, req.body, { lastUpdated: new Date().toISOString() });
+  normalizeProduct(product);
   saveDb();
   return sendSuccess(res, product, 'Product updated');
 });
@@ -71,7 +75,11 @@ router.get('/orders', (req, res) => sendSuccess(res, db.orders.map((order) => en
 router.put('/orders/:id', (req, res) => {
   const order = db.orders.find((entry) => entry.id === req.params.id || entry.orderId === req.params.id);
   if (!order) return sendError(res, 'Order not found', 404);
+  const prevStatus = order.status;
   Object.assign(order, req.body);
+  if (prevStatus !== 'Cancelled' && order.status === 'Cancelled' && order.stockDeducted) {
+    restoreStockForOrder(order);
+  }
   saveDb();
   return sendSuccess(res, enrichOrder(order), 'Order updated');
 });
@@ -120,6 +128,7 @@ router.delete('/catalogues/:id', (req, res) => {
 router.get('/promotions', (req, res) =>
   sendSuccess(res, {
     banners: db.banners,
+    bannersOrder: db.promotions.bannersOrder || [],
     popupAds: db.promotions.popupAds,
     events: db.events,
   }),
@@ -146,6 +155,16 @@ router.delete('/promotions/banners/:id', (req, res) => {
   db.promotions.bannersOrder = (db.promotions.bannersOrder || []).filter((id) => id !== req.params.id);
   saveDb();
   return sendSuccess(res, null, 'Banner deleted');
+});
+
+router.put('/promotions/banners-order', (req, res) => {
+  const order = req.body.order;
+  if (!Array.isArray(order)) {
+    return sendError(res, 'order must be an array of banner ids', 400);
+  }
+  db.promotions.bannersOrder = order;
+  saveDb();
+  return sendSuccess(res, { bannersOrder: db.promotions.bannersOrder }, 'Banner order updated');
 });
 
 router.post('/promotions/popup-ads', (req, res) => {

@@ -7,12 +7,12 @@ export function AdminLayout() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-[var(--color-primary-bg)] text-[var(--color-body)]">
+    <div className="min-h-screen bg-[var(--color-primary-bg)] text-[var(--color-text)]">
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="border-r border-[var(--color-border)] bg-[var(--color-inner-bg)] p-6 shadow-sm">
+        <aside className="border-r border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm">
           <p className="lux-label mb-3">Admin Console</p>
-          <h1 className="lux-heading text-4xl mt-3 tracking-widest text-[var(--color-heading)]">De Arté</h1>
-          <p className="mt-3 text-sm text-[var(--color-muted)]">{user?.name}</p>
+          <h1 className="lux-heading text-4xl mt-3 tracking-widest">De Arté</h1>
+          <p className="mt-3 text-sm text-[var(--color-text-muted)]">{user?.name}</p>
           <div className="mt-8 space-y-2">
             {ADMIN_LINKS.map((item) => {
               const Icon = item.icon;
@@ -22,7 +22,7 @@ export function AdminLayout() {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition ${isActive ? 'bg-[var(--color-hover-tint)] text-[var(--color-deep-ruby)] font-medium' : 'text-[var(--color-muted)] hover:bg-[var(--color-card-bg)] hover:text-[var(--color-heading)]'}`
+                  `flex items-center gap-3 px-4 py-3 text-sm transition ${isActive ? 'bg-[var(--color-surface-alt)] text-[var(--color-primary)] font-medium border-l-2 border-[var(--color-primary)]' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]'}`
                 }
               >
                 <Icon className="h-4 w-4" />
@@ -31,7 +31,7 @@ export function AdminLayout() {
               );
             })}
           </div>
-          <Button variant="secondary" className="mt-8 w-full" onClick={logout}>
+          <Button variant="ghost" className="mt-8 w-full" onClick={logout}>
             Logout
           </Button>
         </aside>

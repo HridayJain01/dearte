@@ -2,55 +2,43 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary-bg: #FAF6EF;
-  --color-alt-bg: #F2EBE0;
-  --color-card-bg: #F5E4E8;
-  --color-hover-tint: #EDD5DA;
-  --color-inner-bg: #FDFAF7;
-  
-  --color-deep-ruby: #8B2635;
-  --color-rich-crimson: #A83245;
-  --color-rose-petal: #C97B84;
-  --color-dusty-rose: #D9939A;
-  
-  --color-heading: #2C1810;
-  --color-body: #3D2B2B;
-  --color-muted: #9E7A7E;
-  
-  --color-border: #DEC3C7;
-  --color-divider: #B08A90;
-  
-  --color-sage: #7A9E7E;
-  --color-sage-bg: #EAF3E4;
-  --color-gold-accent: #E8D5A3;
+  /* ── Surface & Backgrounds ── */
+  --color-primary-bg: #FAF0F3;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F5ECF0;
 
-  --shadow-soft: 0 8px 30px rgba(44, 24, 16, 0.06);
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  /* ── Brand ── */
+  --color-primary: #6B0F2E;
+  --color-primary-hover: #8B1A3A;
+  --color-accent: #D4A82A;
+
+  /* ── Text ── */
+  --color-text: #3A1A28;
+  --color-text-muted: #9A7080;
+
+  /* ── Borders ── */
+  --color-border: #E8D5DA;
+  --color-border-active: #6B0F2E;
+
+  /* ── System ── */
+  --shadow-soft: 0 4px 24px rgba(107, 15, 46, 0.06);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
   --container: 1320px;
 }
 
 @theme {
   --color-primary-bg: var(--color-primary-bg);
-  --color-alt-bg: var(--color-alt-bg);
-  --color-card-bg: var(--color-card-bg);
-  --color-hover-tint: var(--color-hover-tint);
-  --color-inner-bg: var(--color-inner-bg);
-  
-  --color-deep-ruby: var(--color-deep-ruby);
-  --color-rich-crimson: var(--color-rich-crimson);
-  --color-rose-petal: var(--color-rose-petal);
-  --color-dusty-rose: var(--color-dusty-rose);
-  
-  --color-heading: var(--color-heading);
-  --color-body: var(--color-body);
-  --color-muted: var(--color-muted);
+  --color-surface: var(--color-surface);
+  --color-surface-alt: var(--color-surface-alt);
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-accent: var(--color-accent);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
   --color-border: var(--color-border);
-  --color-divider: var(--color-divider);
-  --color-sage: var(--color-sage);
-  --color-sage-bg: var(--color-sage-bg);
-  --color-gold-accent: var(--color-gold-accent);
+  --color-border-active: var(--color-border-active);
 
   --font-serif: "Cormorant Garamond", serif;
   --font-sans: "Jost", sans-serif;
@@ -69,7 +57,7 @@ body {
   margin: 0;
   min-width: 320px;
   background-color: var(--color-primary-bg);
-  color: var(--color-body);
+  color: var(--color-text);
   font-family: var(--font-sans);
   line-height: 1.75;
 }
@@ -100,30 +88,30 @@ textarea {
 }
 
 .lux-panel {
-  background: var(--color-inner-bg);
-  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-soft);
-  border-radius: var(--radius-md);
 }
 
 .lux-label {
   font-family: var(--font-sans);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-muted);
-  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .lux-heading {
   font-family: var(--font-serif);
-  color: var(--color-heading);
+  color: var(--color-primary);
   font-weight: 400;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   line-height: 1.1;
 }
 
 .soft-border {
-  border: 0.5px solid var(--color-border);
+  border: 1px solid var(--color-border);
 }
 
 .hide-scrollbar::-webkit-scrollbar {

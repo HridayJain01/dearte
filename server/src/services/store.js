@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { seedData } from '../data/seed.js';
+import { normalizeProduct } from '../utils/productNormalize.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,12 +80,21 @@ const loadDb = () => {
   const raw = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
   const defaults = buildDefaults();
 
-  return {
+  const merged = {
     ...defaults,
     ...raw,
     emailSettings: { ...defaults.emailSettings, ...(raw.emailSettings || {}) },
     integrationSettings: { ...defaults.integrationSettings, ...(raw.integrationSettings || {}) },
+    promotions: {
+      ...defaults.promotions,
+      ...(raw.promotions || {}),
+    },
   };
+
+  (merged.products || []).forEach((product) => normalizeProduct(product));
+  if (!merged.inventoryMovements) merged.inventoryMovements = [];
+
+  return merged;
 };
 
 export const db = loadDb();

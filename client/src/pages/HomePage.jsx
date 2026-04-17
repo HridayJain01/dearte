@@ -1,6 +1,7 @@
 import { useHomePage } from '../hooks/useProducts';
 import { LoadingBlock } from '../components/ui/Primitives';
 import { CompanyStrip, HeroSlider, ProductRail, SupportStrip, TestimonialRail, CTABanner } from '../components/home/HomeSections';
+import { PopupPromo } from '../components/home/PopupPromo';
 
 export function HomePage() {
   const { data, isLoading } = useHomePage();
@@ -15,6 +16,7 @@ export function HomePage() {
 
   return (
     <>
+      <PopupPromo ads={data.popupAds} />
       <HeroSlider banners={data.banners} />
       <CompanyStrip companyInfo={data.companyInfo} />
       <ProductRail
@@ -30,7 +32,7 @@ export function HomePage() {
         description="Fresh silhouettes and trending pieces."
         products={data.newArrivals}
         link="/products?sort=new-arrivals"
-        bgClass="bg-[var(--color-hover-tint)]"
+        bgClass="bg-[var(--color-surface-alt)]"
       />
       <CTABanner />
     </>

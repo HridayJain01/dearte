@@ -26,56 +26,70 @@ const makeProduct = ({
   views,
   cartAdds,
   orderCount,
-}) => ({
-  id,
-  styleCode,
-  name,
-  category,
-  subCategory,
-  collection,
-  metal,
-  metalColor: metal.includes('Rose')
-    ? 'Rose Gold'
-    : metal.includes('White')
-      ? 'White Gold'
-      : metal.includes('Platinum')
-        ? 'Platinum'
-        : 'Yellow Gold',
-  diamondWeight,
-  goldWeight,
-  diamondQuality,
-  settingType,
-  occasion,
-  sku: `${styleCode}-SKU`,
-  stockType,
-  status: 'Active',
-  syncStatus: 'Synced',
-  lastUpdated: '2026-04-12T09:00:00.000Z',
-  isNewArrival,
-  isBestSeller,
-  description:
-    'A couture-led jewellery silhouette built for B2B buyers who want statement craftsmanship with practical ordering flexibility.',
-  images: placeholderSet(styleCode.toLowerCase()),
-  video360:
-    'https://player.vimeo.com/external/370467553.sd.mp4?s=4df4b3b89eb6e5747aa0f248ab0bf36d5ef4d9e0&profile_id=164&oauth2_token_id=57447761',
-  customizationOptions: {
-    goldColors: ['Yellow Gold', 'Rose Gold', 'White Gold'],
-    goldCarats: ['14K', '18K', '22K'],
-    diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
-  },
-  specifications: [
-    { attribute: 'Metal', value: metal },
-    { attribute: 'Diamond Weight', value: `${diamondWeight.toFixed(2)} ct` },
-    { attribute: 'Gold Weight', value: `${goldWeight.toFixed(2)} g` },
-    { attribute: 'Diamond Quality', value: diamondQuality },
-    { attribute: 'Setting Type', value: settingType },
-    { attribute: 'Occasion', value: occasion },
-    { attribute: 'SKU', value: `${styleCode}-SKU` },
-  ],
-  views,
-  cartAdds,
-  orderCount,
-});
+}) => {
+  const kt18Net = goldWeight;
+  const kt18Gross = Number((goldWeight * 1.05).toFixed(3));
+  const stockQuantity = stockType === 'Ready Stock' ? 10 : 0;
+
+  return {
+    id,
+    styleCode,
+    name,
+    category,
+    subCategory,
+    collection,
+    metal,
+    metalColor: metal.includes('Rose')
+      ? 'Rose Gold'
+      : metal.includes('White')
+        ? 'White Gold'
+        : metal.includes('Platinum')
+          ? 'Platinum'
+          : 'Yellow Gold',
+    diamondWeight,
+    goldWeight,
+    kt18GrossWt: kt18Gross,
+    kt18NetWt: kt18Net,
+    kt14GrossWt: 0,
+    kt14NetWt: 0,
+    kt9GrossWt: 0,
+    kt9NetWt: 0,
+    diamondQuality,
+    settingType,
+    occasion,
+    sku: `${styleCode}-SKU`,
+    stockType,
+    stockQuantity,
+    status: 'Active',
+    syncStatus: 'Manual',
+    lastUpdated: '2026-04-12T09:00:00.000Z',
+    isNewArrival,
+    isBestSeller,
+    description:
+      'A couture-led jewellery silhouette built for B2B buyers who want statement craftsmanship with practical ordering flexibility.',
+    images: placeholderSet(styleCode.toLowerCase()),
+    video360:
+      'https://player.vimeo.com/external/370467553.sd.mp4?s=4df4b3b89eb6e5747aa0f248ab0bf36d5ef4d9e0&profile_id=164&oauth2_token_id=57447761',
+    customizationOptions: {
+      goldColors: ['Yellow Gold', 'Rose Gold', 'White Gold'],
+      goldCarats: ['14K', '18K', '22K'],
+      diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
+    },
+    specifications: [
+      { attribute: 'Metal', value: metal },
+      { attribute: 'Diamond Weight', value: `${diamondWeight.toFixed(2)} ct` },
+      { attribute: 'Gold Weight', value: `${goldWeight.toFixed(2)} g` },
+      { attribute: '18kt Net Wt', value: `${kt18Net.toFixed(2)} g` },
+      { attribute: 'Diamond Quality', value: diamondQuality },
+      { attribute: 'Setting Type', value: settingType },
+      { attribute: 'Occasion', value: occasion },
+      { attribute: 'SKU', value: `${styleCode}-SKU` },
+    ],
+    views,
+    cartAdds,
+    orderCount,
+  };
+};
 
 export const seedData = {
   banners: [
@@ -677,6 +691,8 @@ export const seedData = {
       },
     ],
   },
+  inventoryMovements: [],
+
   syncLogs: [
     {
       id: 'sync-1',

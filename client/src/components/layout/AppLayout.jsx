@@ -25,13 +25,13 @@ export function AppLayout() {
   return (
     <div className="relative">
       <header
-        className={`sticky top-0 z-50 transition duration-300 ${scrolled ? 'border-b border-[var(--color-border)] bg-[var(--color-inner-bg)]' : 'border-transparent bg-transparent'}`}
+        className={`sticky top-0 z-50 transition duration-300 ${scrolled ? 'border-b border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-transparent bg-transparent'}`}
       >
         <div className="page-shell flex items-center justify-between gap-4 py-5">
           <Link to="/" className="flex items-center gap-3">
             <div className="text-center">
-              <p className="lux-heading text-2xl tracking-widest text-[var(--color-heading)]">De Arté</p>
-              <p className="font-['Jost'] text-[9px] uppercase tracking-[0.3em] text-[var(--color-muted)]">Jewels</p>
+              <p className="lux-heading text-2xl tracking-widest">De Arté</p>
+              <p className="font-['Jost'] text-[9px] uppercase tracking-[0.3em] text-[var(--color-text-muted)]">Jewels</p>
             </div>
           </Link>
 
@@ -41,7 +41,7 @@ export function AppLayout() {
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
-                  `text-[13px] font-medium uppercase tracking-[0.1em] transition ${isActive ? 'text-[var(--color-heading)] underline decoration-[var(--color-rose-petal)] underline-offset-4' : 'text-[var(--color-body)] hover:text-[var(--color-heading)] hover:underline hover:decoration-[var(--color-rose-petal)] hover:underline-offset-4'}`
+                  `text-[13px] font-medium uppercase tracking-[0.1em] transition ${isActive ? 'text-[var(--color-primary)] underline decoration-[var(--color-accent)] underline-offset-4' : 'text-[var(--color-text)] hover:text-[var(--color-primary)]'}`
                 }
               >
                 {link.label}
@@ -50,36 +50,36 @@ export function AppLayout() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button className="hidden p-2 text-[var(--color-heading)] transition hover:text-[var(--color-rose-petal)] md:inline-flex">
+            <button className="hidden p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)] md:inline-flex">
               <Search className="h-5 w-5" />
             </button>
-            <button onClick={() => navigate('/wishlist')} className="relative p-2 text-[var(--color-heading)] transition hover:text-[var(--color-rose-petal)]">
+            <button onClick={() => navigate('/wishlist')} className="relative p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)]">
               <Heart className="h-5 w-5" />
-              {wishlist.items?.length ? <span className="absolute -right-1 -top-1 rounded-full bg-[var(--color-rose-petal)] px-1.5 py-0.5 text-[10px] text-white">{wishlist.items.length}</span> : null}
+              {wishlist.items?.length ? <span className="absolute -right-1 -top-1 bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] text-white">{wishlist.items.length}</span> : null}
             </button>
-            <button onClick={() => navigate('/cart')} className="relative p-2 text-[var(--color-heading)] transition hover:text-[var(--color-rose-petal)]">
+            <button onClick={() => navigate('/cart')} className="relative p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)]">
               <ShoppingBag className="h-5 w-5" />
-              {cart.items?.length ? <span className="absolute -right-1 -top-1 rounded-full bg-[var(--color-rose-petal)] px-1.5 py-0.5 text-[10px] text-white">{cart.items.length}</span> : null}
+              {cart.items?.length ? <span className="absolute -right-1 -top-1 bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] text-white">{cart.items.length}</span> : null}
             </button>
             {isAuthenticated ? (
               <button
                 onClick={() => navigate(user.role === 'admin' ? '/admin/dashboard' : '/profile')}
-                className="hidden rounded-full border border-white/10 px-4 py-3 text-sm md:inline-flex"
+                className="hidden border border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text)] hover:border-[var(--color-primary)] md:inline-flex"
               >
                 <User className="mr-2 h-4 w-4" />
                 {user.name.split(' ')[0]}
               </button>
             ) : (
-              <Button variant="secondary" className="hidden md:inline-flex" onClick={() => navigate('/login')}>
+              <Button variant="ghost" className="hidden md:inline-flex" onClick={() => navigate('/login')}>
                 Sign In
               </Button>
             )}
             {isAuthenticated ? (
-              <button onClick={logout} className="hidden text-xs text-[var(--color-muted)] transition hover:text-[var(--color-heading)] md:inline-flex">
+              <button onClick={logout} className="hidden text-xs text-[var(--color-text-muted)] transition hover:text-[var(--color-primary)] md:inline-flex">
                 Logout
               </button>
             ) : null}
-            <button className="p-2 text-[var(--color-heading)] lg:hidden" onClick={() => setMenuOpen((value) => !value)}>
+            <button className="p-2 text-[var(--color-text)] lg:hidden" onClick={() => setMenuOpen((value) => !value)}>
               <Menu className="h-5 w-5" />
             </button>
           </div>
@@ -100,21 +100,21 @@ export function AppLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-[var(--color-border)] bg-[var(--color-body)] text-[var(--color-primary-bg)] py-14">
+      <footer className="border-t border-[var(--color-border)] bg-[var(--color-primary)] text-white py-14">
         <div className="page-shell grid gap-10 lg:grid-cols-[1.1fr_0.7fr_0.7fr_1fr]">
           <div>
-            <p className="lux-label mb-4 !text-[var(--color-hover-tint)]">De Arté Jewels</p>
+            <p className="lux-label mb-4 !text-[var(--color-accent)]">De Arté Jewels</p>
             <h3 className="lux-heading text-4xl !text-white">Fine jewellery, consciously crafted.</h3>
-            <p className="mt-4 max-w-md text-sm text-[var(--color-border)]">
+            <p className="mt-4 max-w-md text-sm text-white/60">
               Discover pieces meant to be lived in, combining modern values with timeless aesthetics.
             </p>
           </div>
 
           <div>
-            <p className="lux-label mb-4 !text-[var(--color-hover-tint)]">Explore</p>
-            <div className="space-y-3 text-sm text-[var(--color-border)]">
+            <p className="lux-label mb-4 !text-[var(--color-accent)]">Explore</p>
+            <div className="space-y-3 text-sm text-white/60">
               {TRUST_LINKS.map((item) => (
-                <Link key={item.to} to={item.to} className="block hover:text-[var(--color-rose-petal)]">
+                <Link key={item.to} to={item.to} className="block hover:text-white">
                   {item.label}
                 </Link>
               ))}
@@ -122,25 +122,25 @@ export function AppLayout() {
           </div>
 
           <div>
-            <p className="lux-label mb-4 !text-[var(--color-hover-tint)]">Connect</p>
-            <div className="space-y-3 text-sm text-[var(--color-border)]">
+            <p className="lux-label mb-4 !text-[var(--color-accent)]">Connect</p>
+            <div className="space-y-3 text-sm text-white/60">
               <p>concierge@deartejewels.com</p>
               <p>+91 98765 43210</p>
               <p>Opera House, Mumbai</p>
-              <div className="flex gap-3 pt-2 text-[var(--color-primary-bg)]">
-                <a href="https://instagram.com" className="hover:text-[var(--color-rose-petal)]"><Instagram className="h-5 w-5" /></a>
-                <a href="https://linkedin.com" className="hover:text-[var(--color-rose-petal)]"><Linkedin className="h-5 w-5" /></a>
-                <a href="https://facebook.com" className="hover:text-[var(--color-rose-petal)]"><Facebook className="h-5 w-5" /></a>
+              <div className="flex gap-3 pt-2 text-white/80">
+                <a href="https://instagram.com" className="hover:text-[var(--color-accent)]"><Instagram className="h-5 w-5" /></a>
+                <a href="https://linkedin.com" className="hover:text-[var(--color-accent)]"><Linkedin className="h-5 w-5" /></a>
+                <a href="https://facebook.com" className="hover:text-[var(--color-accent)]"><Facebook className="h-5 w-5" /></a>
               </div>
             </div>
           </div>
 
-          <div className="border border-[var(--color-border)] bg-[#4A3C3C] p-6 rounded-2xl">
-            <p className="lux-label mb-3 !text-[var(--color-hover-tint)]">Newsletter</p>
-            <p className="text-sm text-[var(--color-border)]">Sign up for early access to our exclusive collections.</p>
+          <div className="border border-white/15 bg-white/5 p-6">
+            <p className="lux-label mb-3 !text-[var(--color-accent)]">Newsletter</p>
+            <p className="text-sm text-white/60">Sign up for early access to our exclusive collections.</p>
             <div className="mt-4 flex flex-col gap-3">
-              <input className="rounded-full border border-[var(--color-border)] bg-transparent px-4 py-3 placeholder:text-[var(--color-border)] text-white focus:outline-none focus:border-[var(--color-rose-petal)]" placeholder="Email address" />
-              <Button variant="primary">Subscribe</Button>
+              <input className="border border-white/20 bg-transparent px-4 py-3 placeholder:text-white/40 text-white focus:outline-none focus:border-[var(--color-accent)]" placeholder="Email address" />
+              <Button variant="secondary">Subscribe</Button>
             </div>
           </div>
         </div>
@@ -150,7 +150,7 @@ export function AppLayout() {
         href="https://wa.me/919876543210"
         target="_blank"
         rel="noreferrer"
-        className="fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-rose-petal)] text-white shadow-xl hover:bg-[var(--color-dusty-rose)] transition"
+        className="fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center bg-[var(--color-primary)] text-white shadow-xl hover:bg-[var(--color-primary-hover)] transition"
       >
         <MessageCircleMore className="h-6 w-6" />
       </a>
