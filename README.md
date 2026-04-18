@@ -22,6 +22,9 @@ npm run dev
 
 - Frontend: `http://localhost:5173`
 - API: `http://localhost:5001`
+- Copy [.env.example](.env.example) to a local `.env` file if you want to change ports or host origins.
+- Start from the repository root so the workspaces boot together.
+- If you run client and server separately, keep the client proxy target and server CORS origin aligned.
 
 ## Demo accounts
 

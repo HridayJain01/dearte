@@ -1363,6 +1363,14 @@
   "inventoryMovements": [],
   "syncLogs": [
     {
+      "id": "cron-1776493800163",
+      "time": "2026-04-18T06:30:00.163Z",
+      "recordsSynced": 10,
+      "errors": 0,
+      "status": "Success",
+      "nextRun": "2026-04-18T09:30:00.163Z"
+    },
+    {
       "id": "cron-1776353400089",
       "time": "2026-04-16T15:30:00.089Z",
       "recordsSynced": 10,
