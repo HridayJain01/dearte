@@ -3,7 +3,6 @@ import {
   Briefcase,
   Building2,
   FileClock,
-  Gem,
   Home,
   LayoutDashboard,
   MessageSquareQuote,
@@ -43,7 +42,6 @@ export const ADMIN_LINKS = [
   { label: 'Testimonials', to: '/admin/testimonials', icon: MessageSquareQuote },
   { label: 'Roles', to: '/admin/roles', icon: ShieldCheck },
   { label: 'Reports', to: '/admin/reports', icon: FileClock },
-  { label: 'Sync', to: '/admin/sync', icon: Gem },
 ];
 
 export const TRUST_LINKS = [
@@ -58,5 +56,5 @@ export const TRUST_LINKS = [
 export const SUPPORT_PAGES = [
   { icon: Home, title: 'Responsive B2B storefront', text: 'Built for wholesale discovery without pricing exposure.' },
   { icon: Building2, title: 'Private catalogue workflows', text: 'Role-aware buyer experiences and curated access.' },
-  { icon: Briefcase, title: 'ERP-oriented operations', text: 'Admin-ready sync, approval, and reporting surfaces.' },
+  { icon: Briefcase, title: 'Trade-first operations', text: 'Admin-managed catalogues, approvals, and reporting surfaces.' },
 ];

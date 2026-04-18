@@ -1,233 +1,448 @@
 import express from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import { db, enrichCart, enrichOrder, enrichWishlist, saveDb, getProductById } from '../services/store.js';
 import {
-  validateReadyStockForCart,
-  validateOrderLinesForStock,
-  deductStockForOrder,
-  totalUnitsForProductInCart,
-} from '../utils/inventory.js';
+  Catalogue,
+  Order,
+  Product,
+  User,
+} from '../models/index.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
+import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } from '../utils/serializers.js';
 
 const router = express.Router();
 
-const getOrCreateCart = (userId) => {
-  let cart = db.carts.find((entry) => entry.userId === userId);
+const productPopulate = [
+  { path: 'category' },
+  { path: 'subCategory' },
+  { path: 'collection' },
+  { path: 'metalColor' },
+];
 
-  if (!cart) {
-    cart = { userId, items: [], specialInstructions: '' };
-    db.carts.push(cart);
+async function populateUserCommerceState(user) {
+  await user.populate([
+    { path: 'cart.items.product', populate: productPopulate },
+    { path: 'wishlist.items.product', populate: productPopulate },
+  ]);
+  return user;
+}
+
+function ensureWishlist(user) {
+  if (!user.wishlist) {
+    user.wishlist = { collections: [], items: [] };
   }
 
-  return cart;
-};
-
-const getOrCreateWishlist = (userId) => {
-  let wishlist = db.wishlists.find((entry) => entry.userId === userId);
-
-  if (!wishlist) {
-    wishlist = { userId, collections: [{ id: 'default', name: 'My Wishlist' }], items: [] };
-    db.wishlists.push(wishlist);
+  if (!Array.isArray(user.wishlist.collections) || !user.wishlist.collections.length) {
+    user.wishlist.collections = [{ name: 'My Wishlist' }];
   }
 
-  return wishlist;
-};
+  if (!Array.isArray(user.wishlist.items)) {
+    user.wishlist.items = [];
+  }
+}
 
-router.get('/profile', (req, res) => {
-  const { passwordHash, ...safeUser } = req.user;
-  return sendSuccess(res, safeUser);
+function serializeCart(user) {
+  return {
+    items: (user.cart?.items || []).map((item) => ({
+      id: String(item._id),
+      quantity: item.quantity,
+      customization: item.customization,
+      product: serializeProduct(item.product),
+    })),
+    specialInstructions: user.cart?.specialInstructions || '',
+  };
+}
+
+function serializeWishlist(user) {
+  ensureWishlist(user);
+
+  return {
+    collections: (user.wishlist.collections || []).map((collection) => ({
+      id: String(collection._id),
+      name: collection.name,
+    })),
+    items: (user.wishlist.items || []).map((item) => ({
+      id: String(item._id),
+      collectionId: String(item.collectionId),
+      product: serializeProduct(item.product),
+    })),
+  };
+}
+
+async function getProductByClientId(productId) {
+  const product = await Product.findById(productId).populate(productPopulate);
+  return product;
+}
+
+function totalUnitsForProductInCart(user, productId, excludeItemId = null) {
+  return (user.cart?.items || []).reduce((sum, item) => {
+    if (String(item.product) !== String(productId) && String(item.product?._id) !== String(productId)) {
+      return sum;
+    }
+
+    if (excludeItemId && String(item._id) === String(excludeItemId)) {
+      return sum;
+    }
+
+    return sum + Number(item.quantity || 0);
+  }, 0);
+}
+
+async function validateReadyStockOrThrow(orderLikeItems) {
+  for (const line of orderLikeItems) {
+    const product = await Product.findById(line.product);
+    if (!product) {
+      throw new Error('One or more products are unavailable.');
+    }
+
+    if (product.stockType === 'Ready Stock' && Number(line.quantity || 0) > Number(product.stockQuantity || 0)) {
+      throw new Error(`Only ${product.stockQuantity} unit(s) available for ${product.styleCode}.`);
+    }
+  }
+}
+
+async function deductOrderStock(order) {
+  if (order.stockDeducted) return;
+
+  for (const line of order.items) {
+    const product = await Product.findById(line.product);
+
+    if (!product) {
+      throw new Error('Unable to deduct stock because a product is missing.');
+    }
+
+    if (product.stockType === 'Ready Stock') {
+      if (product.stockQuantity < line.quantity) {
+        throw new Error(`Only ${product.stockQuantity} unit(s) available for ${product.styleCode}.`);
+      }
+
+      product.stockQuantity -= line.quantity;
+      await product.save();
+    }
+  }
+
+  order.stockDeducted = true;
+}
+
+router.get('/profile', async (req, res) => sendSuccess(res, serializeUser(req.user)));
+
+router.put('/profile', async (req, res) => {
+  const allowed = [
+    'name',
+    'mobile',
+    'address',
+    'city',
+    'state',
+    'country',
+    'pinCode',
+    'companyName',
+    'gstNumber',
+    'kycDocuments',
+  ];
+
+  for (const key of allowed) {
+    if (key in req.body) {
+      req.user[key] = req.body[key];
+    }
+  }
+
+  await req.user.save();
+  return sendSuccess(res, serializeUser(req.user), 'Profile updated');
 });
 
-router.put('/profile', (req, res) => {
-  Object.assign(req.user, req.body);
-  saveDb();
-  const { passwordHash, ...safeUser } = req.user;
-  return sendSuccess(res, safeUser, 'Profile updated');
+router.get('/cart', async (req, res) => {
+  await populateUserCommerceState(req.user);
+  return sendSuccess(res, serializeCart(req.user));
 });
 
-router.get('/cart', (req, res) => sendSuccess(res, enrichCart(getOrCreateCart(req.user.id))));
+router.post('/cart/add', async (req, res) => {
+  const { productId, quantity = 1, customization = {} } = req.body;
+  const product = await getProductByClientId(productId);
 
-router.post('/cart/add', (req, res) => {
-  const cart = getOrCreateCart(req.user.id);
-  const product = getProductById(req.body.productId);
   if (!product) {
     return sendError(res, 'Product not found', 404);
   }
 
-  const addQty = req.body.quantity || 1;
-  const existing = cart.items.find(
+  const addQty = Number(quantity || 1);
+  if (addQty < 1) {
+    return sendError(res, 'Quantity must be at least 1', 400);
+  }
+
+  const existing = (req.user.cart?.items || []).find(
     (item) =>
-      item.productId === req.body.productId &&
-      item.customization.goldColor === req.body.customization.goldColor &&
-      item.customization.goldCarat === req.body.customization.goldCarat &&
-      item.customization.diamondQuality === req.body.customization.diamondQuality,
+      String(item.product) === String(productId) &&
+      item.customization?.goldColor === customization.goldColor &&
+      item.customization?.goldCarat === customization.goldCarat &&
+      item.customization?.diamondQuality === customization.diamondQuality,
   );
 
-  const nextTotal = totalUnitsForProductInCart(cart, req.body.productId) + addQty;
-
+  const nextTotal = totalUnitsForProductInCart(req.user, productId) + addQty;
   if (product.stockType === 'Ready Stock' && nextTotal > product.stockQuantity) {
     return sendError(res, `Only ${product.stockQuantity} unit(s) available for this style.`, 409);
+  }
+
+  if (!req.user.cart) {
+    req.user.cart = { items: [], specialInstructions: '' };
   }
 
   if (existing) {
     existing.quantity += addQty;
   } else {
-    cart.items.push({
-      id: uuidv4(),
-      productId: req.body.productId,
+    req.user.cart.items.push({
+      product: product._id,
       quantity: addQty,
-      customization: req.body.customization,
+      customization: {
+        goldColor: customization.goldColor || product.customizationOptions?.goldColors?.[0] || '',
+        goldCarat: customization.goldCarat || product.customizationOptions?.goldCarats?.[0] || '',
+        diamondQuality:
+          customization.diamondQuality || product.customizationOptions?.diamondQualities?.[0] || '',
+      },
     });
   }
 
-  saveDb();
-  return sendSuccess(res, enrichCart(cart), 'Item added to cart');
+  product.cartAdds += addQty;
+  await Promise.all([req.user.save(), product.save()]);
+  await populateUserCommerceState(req.user);
+
+  return sendSuccess(res, serializeCart(req.user), 'Item added to cart');
 });
 
-router.put('/cart/:itemId', (req, res) => {
-  const cart = getOrCreateCart(req.user.id);
-  const item = cart.items.find((entry) => entry.id === req.params.itemId);
-
+router.put('/cart/:itemId', async (req, res) => {
+  const item = (req.user.cart?.items || []).id(req.params.itemId);
   if (!item) {
     return sendError(res, 'Cart item not found', 404);
   }
 
-  const product = getProductById(item.productId);
+  const product = await getProductByClientId(item.product);
+  if (!product) {
+    return sendError(res, 'Product not found', 404);
+  }
+
   if (req.body.quantity !== undefined) {
-    const newQty = Number(req.body.quantity);
-    if (product?.stockType === 'Ready Stock') {
-      const totalWithout = totalUnitsForProductInCart(cart, item.productId) - item.quantity;
-      if (totalWithout + newQty > product.stockQuantity) {
+    const quantity = Number(req.body.quantity);
+    if (quantity < 1) {
+      return sendError(res, 'Quantity must be at least 1', 400);
+    }
+
+    if (product.stockType === 'Ready Stock') {
+      const totalWithoutItem = totalUnitsForProductInCart(req.user, item.product, item._id);
+      if (totalWithoutItem + quantity > product.stockQuantity) {
         return sendError(res, `Only ${product.stockQuantity} unit(s) available for this style.`, 409);
       }
     }
+
+    item.quantity = quantity;
   }
 
-  Object.assign(item, req.body);
-  saveDb();
-  return sendSuccess(res, enrichCart(cart), 'Cart updated');
+  if (req.body.customization) {
+    item.customization = {
+      ...item.customization,
+      ...req.body.customization,
+    };
+  }
+
+  if (req.body.specialInstructions !== undefined) {
+    req.user.cart.specialInstructions = req.body.specialInstructions;
+  }
+
+  await req.user.save();
+  await populateUserCommerceState(req.user);
+  return sendSuccess(res, serializeCart(req.user), 'Cart updated');
 });
 
-router.delete('/cart/:itemId', (req, res) => {
-  const cart = getOrCreateCart(req.user.id);
-  cart.items = cart.items.filter((entry) => entry.id !== req.params.itemId);
-  saveDb();
-  return sendSuccess(res, enrichCart(cart), 'Item removed from cart');
+router.delete('/cart/:itemId', async (req, res) => {
+  const item = (req.user.cart?.items || []).id(req.params.itemId);
+  if (!item) {
+    return sendError(res, 'Cart item not found', 404);
+  }
+
+  item.deleteOne();
+  await req.user.save();
+  await populateUserCommerceState(req.user);
+  return sendSuccess(res, serializeCart(req.user), 'Item removed from cart');
 });
 
-router.get('/wishlist', (req, res) =>
-  sendSuccess(res, enrichWishlist(getOrCreateWishlist(req.user.id))),
-);
-
-router.post('/wishlist/add', (req, res) => {
-  const wishlist = getOrCreateWishlist(req.user.id);
-  wishlist.items.push({
-    id: uuidv4(),
-    productId: req.body.productId,
-    collectionId: req.body.collectionId || wishlist.collections[0]?.id || 'default',
-  });
-  saveDb();
-  return sendSuccess(res, enrichWishlist(wishlist), 'Added to wishlist');
+router.get('/wishlist', async (req, res) => {
+  ensureWishlist(req.user);
+  await populateUserCommerceState(req.user);
+  return sendSuccess(res, serializeWishlist(req.user));
 });
 
-router.post('/wishlist/collections', (req, res) => {
-  const wishlist = getOrCreateWishlist(req.user.id);
-  const collection = { id: uuidv4(), name: req.body.name };
-  wishlist.collections.push(collection);
-  saveDb();
-  return sendSuccess(res, enrichWishlist(wishlist), 'Wishlist collection created');
+router.post('/wishlist/add', async (req, res) => {
+  const { productId, collectionId } = req.body;
+  const product = await getProductByClientId(productId);
+  if (!product) {
+    return sendError(res, 'Product not found', 404);
+  }
+
+  ensureWishlist(req.user);
+  const resolvedCollectionId =
+    collectionId || String(req.user.wishlist.collections[0]?._id || '');
+
+  const collectionExists = req.user.wishlist.collections.some(
+    (entry) => String(entry._id) === String(resolvedCollectionId),
+  );
+
+  if (!collectionExists) {
+    return sendError(res, 'Wishlist collection not found', 404);
+  }
+
+  const duplicate = req.user.wishlist.items.some(
+    (item) =>
+      String(item.product) === String(productId) &&
+      String(item.collectionId) === String(resolvedCollectionId),
+  );
+
+  if (!duplicate) {
+    req.user.wishlist.items.push({
+      product: product._id,
+      collectionId: resolvedCollectionId,
+    });
+    await req.user.save();
+  }
+
+  await populateUserCommerceState(req.user);
+  return sendSuccess(res, serializeWishlist(req.user), 'Added to wishlist');
 });
 
-router.delete('/wishlist/:itemId', (req, res) => {
-  const wishlist = getOrCreateWishlist(req.user.id);
-  wishlist.items = wishlist.items.filter((entry) => entry.id !== req.params.itemId);
-  saveDb();
-  return sendSuccess(res, enrichWishlist(wishlist), 'Removed from wishlist');
+router.post('/wishlist/collections', async (req, res) => {
+  ensureWishlist(req.user);
+  const name = String(req.body.name || '').trim();
+  if (!name) {
+    return sendError(res, 'Collection name is required', 400);
+  }
+
+  req.user.wishlist.collections.push({ name });
+  await req.user.save();
+  await populateUserCommerceState(req.user);
+  return sendSuccess(res, serializeWishlist(req.user), 'Wishlist collection created');
 });
 
-router.post('/orders', (req, res) => {
-  const cart = getOrCreateCart(req.user.id);
+router.delete('/wishlist/:itemId', async (req, res) => {
+  const item = (req.user.wishlist?.items || []).id(req.params.itemId);
+  if (!item) {
+    return sendError(res, 'Wishlist item not found', 404);
+  }
 
-  if (!cart.items.length) {
+  item.deleteOne();
+  await req.user.save();
+  await populateUserCommerceState(req.user);
+  return sendSuccess(res, serializeWishlist(req.user), 'Removed from wishlist');
+});
+
+router.post('/orders', async (req, res) => {
+  await populateUserCommerceState(req.user);
+
+  const cartItems = req.user.cart?.items || [];
+  if (!cartItems.length) {
     return sendError(res, 'Cart is empty');
   }
 
-  const stockErr = validateReadyStockForCart(cart);
-  if (stockErr) {
-    return sendError(res, stockErr, 409);
+  try {
+    await validateReadyStockOrThrow(
+      cartItems.map((item) => ({
+        product: item.product?._id || item.product,
+        quantity: item.quantity,
+      })),
+    );
+  } catch (error) {
+    return sendError(res, error.message, 409);
   }
 
-  const order = {
-    id: uuidv4(),
+  const order = new Order({
     orderId: `DAR-ORD-${Math.floor(Math.random() * 9000 + 1000)}`,
-    userId: req.user.id,
-    date: new Date().toISOString(),
+    user: req.user._id,
     status: 'Pending',
-    paymentMethod: req.body.paymentMethod,
-    orderTypeSplit: [
-      ...new Set(
-        cart.items.map(
-          (item) => db.products.find((product) => product.id === item.productId)?.stockType || 'Make to Order',
-        ),
-      ),
+    statusHistory: [
+      {
+        status: 'Pending',
+        note: 'Order placed by buyer.',
+        changedAt: new Date(),
+        changedBy: req.user._id,
+      },
     ],
-    shippingAddress: req.body.shippingAddress,
-    notes: req.body.notes,
-    items: cart.items.map((item) => ({
-      productId: item.productId,
+    paymentMethod: req.body.paymentMethod || 'Cash on Delivery',
+    shippingAddress: req.body.shippingAddress || '',
+    notes: req.body.notes || req.user.cart?.specialInstructions || '',
+    items: cartItems.map((item) => ({
+      product: item.product?._id || item.product,
       quantity: item.quantity,
       customization: item.customization,
     })),
     stockDeducted: false,
-  };
-
-  const lineErr = validateOrderLinesForStock(order);
-  if (lineErr) {
-    return sendError(res, lineErr, 409);
-  }
+  });
 
   try {
-    deductStockForOrder(order);
+    await deductOrderStock(order);
+    await order.save();
+    req.user.cart.items = [];
+    req.user.cart.specialInstructions = '';
+    await req.user.save();
   } catch (error) {
     return sendError(res, error.message || 'Unable to place order', 409);
   }
 
-  db.orders.unshift(order);
-  cart.items = [];
-  cart.specialInstructions = '';
-  saveDb();
+  await order.populate([
+    { path: 'user' },
+    {
+      path: 'items.product',
+      populate: productPopulate,
+    },
+    { path: 'statusHistory.changedBy' },
+  ]);
 
-  return sendSuccess(res, enrichOrder(order), 'Order placed successfully');
+  return sendSuccess(res, serializeOrder(order), 'Order placed successfully');
 });
 
-router.get('/orders', (req, res) =>
-  sendSuccess(
-    res,
-    db.orders.filter((order) => order.userId === req.user.id).map((order) => enrichOrder(order)),
-  ),
-);
+router.get('/orders', async (req, res) => {
+  const orders = await Order.find({ user: req.user._id })
+    .sort({ createdAt: -1 })
+    .populate([
+      { path: 'user' },
+      { path: 'statusHistory.changedBy' },
+      {
+        path: 'items.product',
+        populate: productPopulate,
+      },
+    ]);
 
-router.get('/orders/:id', (req, res) => {
-  const order = db.orders.find((entry) => entry.id === req.params.id || entry.orderId === req.params.id);
+  return sendSuccess(res, orders.map(serializeOrder));
+});
 
-  if (!order || order.userId !== req.user.id) {
+router.get('/orders/:id', async (req, res) => {
+  const order = await Order.findOne({
+    $or: [{ _id: req.params.id }, { orderId: req.params.id }],
+    user: req.user._id,
+  }).populate([
+    { path: 'user' },
+    { path: 'statusHistory.changedBy' },
+    {
+      path: 'items.product',
+      populate: productPopulate,
+    },
+  ]);
+
+  if (!order) {
     return sendError(res, 'Order not found', 404);
   }
 
-  return sendSuccess(res, enrichOrder(order));
+  return sendSuccess(res, serializeOrder(order));
 });
 
-router.get('/catalogues', (req, res) => {
-  const catalogues = db.catalogues
-    .filter((catalogue) => catalogue.assignedUserIds.includes(req.user.id))
-    .map((catalogue) => ({
-      ...catalogue,
-      products: catalogue.productIds.map((productId) =>
-        db.products.find((product) => product.id === productId),
-      ),
-    }));
+router.get('/catalogues', async (req, res) => {
+  const catalogues = await Catalogue.find({
+    assignedUsers: req.user._id,
+    archived: false,
+    active: true,
+  })
+    .sort({ createdAt: -1 })
+    .populate([
+      { path: 'assignedUsers' },
+      {
+        path: 'products',
+        populate: productPopulate,
+      },
+    ]);
 
-  return sendSuccess(res, catalogues);
+  return sendSuccess(res, catalogues.map(serializeCatalogue));
 });
 
 export default router;

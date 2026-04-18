@@ -6,18 +6,19 @@ const AuthContext = createContext(null);
 
 const initialState = {
   user: null,
-  token: localStorage.getItem('dearte-token'),
   loading: true,
 };
 
 const reducer = (state, action) => {
   switch (action.type) {
     case 'RESTORE':
-      return { ...state, ...action.payload, loading: false };
+      return { ...state, user: action.payload, loading: false };
     case 'LOGIN':
-      return { ...state, ...action.payload, loading: false };
+      return { ...state, user: action.payload, loading: false };
     case 'LOGOUT':
-      return { user: null, token: null, loading: false };
+      return { user: null, loading: false };
+    case 'LOADING':
+      return { ...state, loading: true };
     default:
       return state;
   }
@@ -27,24 +28,29 @@ export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    const rawUser = localStorage.getItem('dearte-user');
-    const token = localStorage.getItem('dearte-token');
+    let mounted = true;
 
-    if (rawUser && token) {
-      dispatch({
-        type: 'RESTORE',
-        payload: { user: JSON.parse(rawUser), token },
+    userService
+      .me()
+      .then((response) => {
+        if (mounted) {
+          dispatch({ type: 'RESTORE', payload: response.user || null });
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          dispatch({ type: 'RESTORE', payload: null });
+        }
       });
-    } else {
-      dispatch({ type: 'RESTORE', payload: { user: null, token: null } });
-    }
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const login = async (payload) => {
     const response = await userService.login(payload);
-    localStorage.setItem('dearte-token', response.token);
-    localStorage.setItem('dearte-user', JSON.stringify(response.user));
-    dispatch({ type: 'LOGIN', payload: { token: response.token, user: response.user } });
+    dispatch({ type: 'LOGIN', payload: response.user });
     toast.success(`Welcome back, ${response.user.name.split(' ')[0]}`);
     return response.user;
   };
@@ -56,8 +62,6 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await userService.logout().catch(() => null);
-    localStorage.removeItem('dearte-token');
-    localStorage.removeItem('dearte-user');
     dispatch({ type: 'LOGOUT' });
     toast.success('Logged out');
   };
@@ -66,7 +70,7 @@ export function AuthProvider({ children }) {
     () => ({
       ...state,
       role: state.user?.role ?? 'guest',
-      isAuthenticated: Boolean(state.user && state.token),
+      isAuthenticated: Boolean(state.user),
       login,
       register,
       logout,

@@ -2,6 +2,8 @@ import api, { unwrap } from './api';
 
 export const userService = {
   login: (payload) => unwrap(api.post('/auth/login', payload)),
+  me: () => unwrap(api.get('/auth/me')),
+  refresh: () => unwrap(api.post('/auth/refresh')),
   register: (payload) => unwrap(api.post('/auth/register', payload)),
   forgotPassword: (payload) => unwrap(api.post('/auth/forgot-password', payload)),
   resetPassword: (payload) => unwrap(api.post('/auth/reset-password', payload)),

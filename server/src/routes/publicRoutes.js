@@ -1,59 +1,97 @@
 import express from 'express';
-import { db, getCategories, getCollections, getProductByStyleCode } from '../services/store.js';
-import { sortBannersByOrder } from '../utils/inventory.js';
+import {
+  Banner,
+  Category,
+  Collection,
+  Event,
+  MetalOption,
+  PopupAd,
+  Product,
+  SiteSettings,
+  SubCategory,
+  Testimonial,
+} from '../models/index.js';
+import { seedData } from '../data/seed.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
+import {
+  serializeProduct,
+  serializeTaxonomy,
+  serializeMetalOption,
+} from '../utils/serializers.js';
 
 const router = express.Router();
 
-const sortProducts = (products, sort) => {
-  const list = [...products];
+const productPopulate = [
+  { path: 'category' },
+  { path: 'subCategory' },
+  { path: 'collection' },
+  { path: 'metalColor' },
+];
 
+function applySort(query, sort) {
   switch (sort) {
     case 'diamond-asc':
-      return list.sort((a, b) => a.diamondWeight - b.diamondWeight);
+      return query.sort({ diamondWeight: 1 });
     case 'diamond-desc':
-      return list.sort((a, b) => b.diamondWeight - a.diamondWeight);
+      return query.sort({ diamondWeight: -1 });
     case 'gold-asc':
-      return list.sort((a, b) => a.goldWeight - b.goldWeight);
+      return query.sort({ goldWeight: 1 });
     case 'gold-desc':
-      return list.sort((a, b) => b.goldWeight - a.goldWeight);
+      return query.sort({ goldWeight: -1 });
     case 'best-sellers':
-      return list.sort((a, b) => b.orderCount - a.orderCount);
+      return query.sort({ orderCount: -1 });
     case 'new-arrivals':
-      return list.sort((a, b) => Number(b.isNewArrival) - Number(a.isNewArrival));
+      return query.sort({ isNewArrival: -1, createdAt: -1 });
     default:
-      return list;
+      return query.sort({ createdAt: -1 });
   }
-};
+}
 
-router.get('/site/home', (req, res) => {
-  const newArrivals = db.products.filter((product) => product.isNewArrival).slice(0, 10);
-  const bestSellers = [...db.products]
-    .sort((a, b) => b.orderCount - a.orderCount)
-    .slice(0, 10);
-
-  const activeBanners = db.banners.filter((banner) => banner.active);
-  const banners = sortBannersByOrder(activeBanners, db.promotions.bannersOrder || []);
-  const today = new Date().toISOString().slice(0, 10);
-  const popupAds = db.promotions.popupAds.filter((entry) => {
-    if (!entry.active) return false;
-    if (!entry.startDate || !entry.endDate) return true;
-    return entry.startDate <= today && entry.endDate >= today;
-  });
+router.get('/site/home', async (_req, res) => {
+  const [banners, newArrivals, bestSellers, testimonials, siteSettings, popupAds] = await Promise.all([
+    Banner.find({ active: true }).sort({ sortOrder: 1 }),
+    Product.find({ isNewArrival: true, status: 'Active' }).populate(productPopulate).limit(10),
+    Product.find({ status: 'Active' }).sort({ orderCount: -1 }).populate(productPopulate).limit(10),
+    Testimonial.find({ status: 'Approved' }).sort({ createdAt: -1 }),
+    SiteSettings.findOne(),
+    PopupAd.find({ active: true }).sort({ createdAt: -1 }),
+  ]);
 
   return sendSuccess(res, {
-    banners,
-    newArrivals,
-    bestSellers,
-    companyInfo: db.companyInfo,
-    testimonials: db.testimonials.filter((testimonial) => testimonial.status === 'Approved'),
-    siteSettings: db.siteSettings,
-    popupAds,
+    banners: banners.map((banner) => ({
+      id: String(banner._id),
+      title: banner.title,
+      subtitle: banner.subtitle,
+      ctaLabel: banner.ctaLabel,
+      ctaLink: banner.ctaLink,
+      image: banner.image?.secureUrl || '',
+      active: banner.active,
+    })),
+    newArrivals: newArrivals.map(serializeProduct),
+    bestSellers: bestSellers.map(serializeProduct),
+    companyInfo: seedData.companyInfo,
+    testimonials: testimonials.map((item) => ({
+      id: String(item._id),
+      name: item.name,
+      company: item.company,
+      rating: item.rating,
+      status: item.status,
+      review: item.review,
+      avatar: item.avatar?.secureUrl || '',
+    })),
+    siteSettings: siteSettings || seedData.siteSettings,
+    popupAds: popupAds.map((item) => ({
+      id: String(item._id),
+      image: item.image?.secureUrl || '',
+      frequency: item.frequency,
+      startDate: item.startDate,
+      endDate: item.endDate,
+      active: item.active,
+    })),
   });
 });
 
-router.get('/products', (req, res) => {
-  let products = [...db.products];
+router.get('/products', async (req, res) => {
   const {
     category,
     subCategory,
@@ -70,118 +108,173 @@ router.get('/products', (req, res) => {
     stockType,
   } = req.query;
 
+  const filter = { status: 'Active' };
+
   if (category) {
-    products = products.filter((product) => product.category === category);
+    const categories = await Category.find({
+      $or: [{ name: category }, { slug: category }, { name: { $regex: String(category), $options: 'i' } }],
+    }).select('_id');
+    if (categories.length) {
+      filter.category = { $in: categories.map((item) => item._id) };
+    }
   }
-
   if (subCategory) {
-    const subCategories = String(subCategory).split(',');
-    products = products.filter((product) => subCategories.includes(product.subCategory));
+    const names = String(subCategory).split(',').map((item) => item.trim()).filter(Boolean);
+    const subCategories = await SubCategory.find({ name: { $in: names } }).select('_id');
+    filter.subCategory = { $in: subCategories.map((item) => item._id) };
   }
-
   if (collection) {
-    const collections = String(collection).split(',');
-    products = products.filter((product) => collections.includes(product.collection));
+    const names = String(collection).split(',').map((item) => item.trim()).filter(Boolean);
+    const collectionsFound = await Collection.find({ name: { $in: names } }).select('_id');
+    filter.collection = { $in: collectionsFound.map((item) => item._id) };
   }
-
   if (metalColor) {
-    const metalColors = String(metalColor).split(',');
-    products = products.filter((product) => metalColors.includes(product.metalColor));
+    const names = String(metalColor).split(',').map((item) => item.trim()).filter(Boolean);
+    const colors = await MetalOption.find({ name: { $in: names } }).select('_id');
+    filter.metalColor = { $in: colors.map((item) => item._id) };
   }
-
-  if (stockType) {
-    products = products.filter((product) => product.stockType === stockType);
+  if (stockType) filter.stockType = stockType;
+  if (diamondMin || diamondMax) {
+    filter.diamondWeight = {};
+    if (diamondMin) filter.diamondWeight.$gte = Number(diamondMin);
+    if (diamondMax) filter.diamondWeight.$lte = Number(diamondMax);
   }
-
-  if (diamondMin) {
-    products = products.filter((product) => product.diamondWeight >= Number(diamondMin));
+  if (goldMin || goldMax) {
+    filter.goldWeight = {};
+    if (goldMin) filter.goldWeight.$gte = Number(goldMin);
+    if (goldMax) filter.goldWeight.$lte = Number(goldMax);
   }
-
-  if (diamondMax) {
-    products = products.filter((product) => product.diamondWeight <= Number(diamondMax));
-  }
-
-  if (goldMin) {
-    products = products.filter((product) => product.goldWeight >= Number(goldMin));
-  }
-
-  if (goldMax) {
-    products = products.filter((product) => product.goldWeight <= Number(goldMax));
-  }
-
   if (search) {
-    const keyword = String(search).toLowerCase();
-    products = products.filter((product) =>
-      [product.styleCode, product.name, product.category, product.collection]
-        .join(' ')
-        .toLowerCase()
-        .includes(keyword),
-    );
+    filter.$or = [
+      { styleCode: { $regex: search, $options: 'i' } },
+      { name: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+    ];
   }
-
-  products = sortProducts(products, sort);
 
   const currentPage = Number(page);
   const pageSize = Number(limit);
-  const paginatedProducts = products.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const [items, total, categories, collections, metalColors] = await Promise.all([
+    applySort(Product.find(filter).populate(productPopulate), sort)
+      .skip((currentPage - 1) * pageSize)
+      .limit(pageSize),
+    Product.countDocuments(filter),
+    Category.find({ active: true }).sort({ name: 1 }),
+    Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 }),
+    MetalOption.find({ active: true }).sort({ name: 1 }),
+  ]);
+
+  const subCategories = await SubCategory.find({ active: true }).populate('category').sort({ name: 1 });
 
   return sendSuccess(res, {
-    items: paginatedProducts,
-    total: products.length,
+    items: items.map(serializeProduct),
+    total,
     page: currentPage,
-    totalPages: Math.ceil(products.length / pageSize),
+    totalPages: Math.ceil(total / pageSize),
     filters: {
-      categories: getCategories(),
-      collections: getCollections(),
-      metalColors: ['Yellow Gold', 'Rose Gold', 'White Gold', 'Platinum'],
+      categories: categories.map((cat) => ({
+        ...serializeTaxonomy(cat),
+        subCategories: subCategories
+          .filter((sub) => String(sub.category?._id) === String(cat._id))
+          .map((sub) => sub.name),
+      })),
+      collections: collections.map((item) => ({
+        id: String(item._id),
+        name: item.name,
+      })),
+      metalColors: metalColors.map((item) => item.name),
       diamondRange: [0.1, 2.0],
       goldRange: [2, 20],
     },
   });
 });
 
-router.get('/products/new-arrivals', (req, res) =>
-  sendSuccess(
-    res,
-    db.products.filter((product) => product.isNewArrival),
-  ),
-);
+router.get('/products/new-arrivals', async (_req, res) => {
+  const products = await Product.find({ isNewArrival: true, status: 'Active' }).populate(productPopulate);
+  return sendSuccess(res, products.map(serializeProduct));
+});
 
-router.get('/products/best-sellers', (req, res) =>
-  sendSuccess(
-    res,
-    [...db.products].sort((a, b) => b.orderCount - a.orderCount),
-  ),
-);
+router.get('/products/best-sellers', async (_req, res) => {
+  const products = await Product.find({ status: 'Active' }).sort({ orderCount: -1 }).populate(productPopulate);
+  return sendSuccess(res, products.map(serializeProduct));
+});
 
-router.get('/products/:styleCode', (req, res) => {
-  const product = getProductByStyleCode(req.params.styleCode);
-
+router.get('/products/:styleCode', async (req, res) => {
+  const product = await Product.findOne({ styleCode: req.params.styleCode }).populate(productPopulate);
   if (!product) {
     return sendError(res, 'Product not found', 404);
   }
 
-  const relatedProducts = db.products.filter(
-    (item) =>
-      item.styleCode !== product.styleCode &&
-      (item.collection === product.collection || item.category === product.category),
-  );
+  const related = await Product.find({
+    _id: { $ne: product._id },
+    status: 'Active',
+    $or: [{ collection: product.collection?._id }, { category: product.category?._id }],
+  })
+    .populate(productPopulate)
+    .limit(6);
 
-  return sendSuccess(res, { ...product, relatedProducts: relatedProducts.slice(0, 6) });
+  return sendSuccess(res, { ...serializeProduct(product), relatedProducts: related.map(serializeProduct) });
 });
 
-router.get('/categories', (req, res) => sendSuccess(res, getCategories()));
-router.get('/collections', (req, res) => sendSuccess(res, getCollections()));
-router.get('/events', (req, res) => sendSuccess(res, db.events));
-router.get('/testimonials', (req, res) =>
-  sendSuccess(res, db.testimonials.filter((testimonial) => testimonial.status === 'Approved')),
-);
-router.get('/careers', (req, res) => sendSuccess(res, db.careers));
-router.get('/faq', (req, res) => sendSuccess(res, db.faq));
-router.get('/site/contact', (req, res) => sendSuccess(res, db.siteSettings));
+router.get('/categories', async (_req, res) => {
+  const categories = await Category.find({ active: true }).sort({ name: 1 });
+  return sendSuccess(res, categories.map(serializeTaxonomy));
+});
+
+router.get('/collections', async (_req, res) => {
+  const collections = await Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 });
+  return sendSuccess(
+    res,
+    collections.map((item) => ({
+      id: String(item._id),
+      name: item.name,
+      categoryId: item.category ? String(item.category._id) : '',
+      subCategoryId: item.subCategory ? String(item.subCategory._id) : '',
+      image: item.image?.secureUrl || '',
+    })),
+  );
+});
+
+router.get('/events', async (_req, res) => {
+  const events = await Event.find({ active: true }).sort({ date: 1 });
+  return sendSuccess(
+    res,
+    events.map((event) => ({
+      id: String(event._id),
+      title: event.title,
+      date: event.date,
+      description: event.description,
+      image: event.image?.secureUrl || '',
+    })),
+  );
+});
+
+router.get('/testimonials', async (_req, res) => {
+  const testimonials = await Testimonial.find({ status: 'Approved' }).sort({ createdAt: -1 });
+  return sendSuccess(
+    res,
+    testimonials.map((item) => ({
+      id: String(item._id),
+      name: item.name,
+      company: item.company,
+      rating: item.rating,
+      status: item.status,
+      review: item.review,
+      avatar: item.avatar?.secureUrl || '',
+    })),
+  );
+});
+
+router.get('/careers', (_req, res) => sendSuccess(res, seedData.careers));
+router.get('/faq', (_req, res) => sendSuccess(res, seedData.faq));
+router.get('/site/contact', async (_req, res) => {
+  const siteSettings = await SiteSettings.findOne();
+  return sendSuccess(res, siteSettings || seedData.siteSettings);
+});
 
 router.get('/site/static/:slug', (req, res) => {
-  const page = db.staticPages[req.params.slug];
+  const page = seedData.staticPages[req.params.slug];
 
   if (!page) {
     return sendError(res, 'Page not found', 404);
@@ -191,8 +284,7 @@ router.get('/site/static/:slug', (req, res) => {
 });
 
 router.get('/education/:slug', (req, res) => {
-  const page = db.education[req.params.slug];
-
+  const page = seedData.education[req.params.slug];
   if (!page) {
     return sendError(res, 'Education page not found', 404);
   }

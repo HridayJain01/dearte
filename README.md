@@ -1,40 +1,73 @@
 # DeArte Jewellery Platform
 
-A MERN-style B2B jewellery ordering platform built from the supplied PRD, with:
+DeArte is a B2B jewellery commerce platform with a buyer-facing storefront, a backend-managed admin dashboard, MongoDB persistence, Cloudinary-based media handling, and cookie-only authentication.
 
-- Luxury editorial React storefront
-- Role-aware admin dashboard
-- Express API with seeded mock business data
-- Buyer auth, cart, wishlist, checkout, catalogues, education pages, and trust pages
-- Admin modules for dashboard, promotions, users, products, orders, catalogues, config, testimonials, roles, reports, and ERP sync
+## Stack
 
-## Tech
+- Frontend: React, Vite, React Router, TanStack Query, React Hook Form, Zod, Recharts
+- Backend: Express, Mongoose, Cloudinary SDK, bcryptjs, JWT cookies, helmet, express-rate-limit
+- Infrastructure target: Vercel frontend, Render API, MongoDB Atlas, Cloudinary
 
-- Frontend: React, Vite, React Router, TanStack Query, Tailwind CSS, React Hook Form, Zod, Recharts, Lucide
-- Backend: Express, JWT, bcryptjs, cookie-parser, node-cron
+## Local setup
 
-## Run locally
+### 1. Clone and install
 
 ```bash
+git clone <repo-url>
+cd dearte
 npm install
+```
+
+### 2. Set up MongoDB Atlas (free tier)
+
+1. Sign up at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a free cluster
+3. Go to **Database Access** → Create a database user with a password
+4. Go to **Network Access** → Allow access from `0.0.0.0/0` (for local dev)
+5. Click **Connect** on your cluster → Copy the connection string
+6. Replace `<username>`, `<password>` in the string with your credentials
+
+### 3. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and fill in:
+- `MONGODB_URI`: Your MongoDB Atlas connection string
+- `JWT_SECRET` and `JWT_REFRESH_SECRET`: Run `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` twice
+- `CLOUDINARY_*`: Optional for now (set to dummy values); needed for image uploads later
+
+### 4. Start development
+
+```bash
 npm run dev
 ```
 
+Local defaults:
 - Frontend: `http://localhost:5173`
 - API: `http://localhost:5001`
-- Copy [.env.example](.env.example) to a local `.env` file if you want to change ports or host origins.
-- Start from the repository root so the workspaces boot together.
-- If you run client and server separately, keep the client proxy target and server CORS origin aligned.
 
-## Demo accounts
-
-- Buyer: `buyer@lumina.com` / `Buyer@123`
+Demo accounts after first seed:
 - Admin: `admin@dearte.com` / `Admin@123`
+- Buyer: `buyer@lumina.com` / `Buyer@123`
 
-## Notes
+## What changed
 
-- Product data is seeded in-memory in [`server/src/data/seed.js`](/Users/hridayjain/Documents/Projects/dearte/server/src/data/seed.js).
-- The app intentionally shows no pricing anywhere on the buyer-facing UI.
-- The current backend is mock-data driven but shaped around the PRD’s REST contract so it can be swapped to MongoDB/Mongoose later.
-- `npm run build` and `npm run lint` both pass.
-- Vite currently reports a large client bundle warning; the next optimization step would be route-level code splitting for public/admin pages.
+- MongoDB is now the source of truth for users, products, taxonomies, orders, catalogues, promotions, testimonials, and site settings
+- Cloudinary signed uploads are available for admin-managed media
+- Auth uses `httpOnly` cookies instead of `localStorage`
+- ERP/sync integration routes and navigation were removed
+- Admin APIs now expose taxonomy CRUD, searchable product selection, richer order details, and catalogue assignment flows
+
+## Common issues
+
+**MONGODB_URI is required:** Copy `.env.example` to `.env` and add your MongoDB Atlas connection string.
+
+**Cannot connect to MongoDB:** Check that your IP is whitelisted in MongoDB Atlas Network Access.
+
+**Port 5173 or 5001 already in use:** Edit `.env` and change `PORT` or `VITE_API_PROXY_TARGET`.
+- `/Users/hridayjain/Documents/Projects/dearte/docs/deployment.md`
+- `/Users/hridayjain/Documents/Projects/dearte/docs/auth.md`
+
+Any change to data models, endpoint contracts, admin workflows, or deployment config should update the relevant docs in the same change set.

@@ -33,7 +33,6 @@ import {
   AdminPromotionsPage,
   AdminReportsPage,
   AdminRolesPage,
-  AdminSyncPage,
   AdminTestimonialsPage,
   AdminUsersPage,
 } from './pages/AdminPages';
@@ -110,7 +109,6 @@ function App() {
         <Route path="testimonials" element={<AdminTestimonialsPage />} />
         <Route path="roles" element={<AdminRolesPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
-        <Route path="sync" element={<AdminSyncPage />} />
       </Route>
     </Routes>
   );
