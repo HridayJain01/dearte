@@ -1,5 +1,5 @@
 import { Heart, Menu, Search, ShoppingBag, User, MessageCircleMore, Instagram, Linkedin, Facebook } from 'lucide-react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
 import { useAuth } from '../../hooks/useAuth';
@@ -13,6 +13,7 @@ export function AppLayout() {
   const { user, isAuthenticated, logout } = useAuth();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
+  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -97,7 +98,9 @@ export function AppLayout() {
       </header>
 
       <main>
-        <Outlet />
+        <div key={location.pathname} className="animate-page-enter">
+          <Outlet />
+        </div>
       </main>
 
       <footer className="border-t border-[var(--color-border)] bg-[var(--color-primary)] text-white py-14">

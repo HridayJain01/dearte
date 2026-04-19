@@ -63,12 +63,15 @@ export function Badge({ children, tone = 'default' }) {
   );
 }
 
-export function StatCard({ label, value, caption }) {
+export function StatCard({ label, title, value, caption, detail }) {
+  const heading = label ?? title;
+  const subtext = caption ?? detail;
+
   return (
     <Panel className="min-h-[140px]">
-      <p className="lux-label mb-6">{label}</p>
+      <p className="lux-label mb-6">{heading}</p>
       <p className="text-4xl font-semibold text-[var(--color-primary)]">{value}</p>
-      {caption ? <p className="mt-4 text-sm text-[var(--color-text-muted)]">{caption}</p> : null}
+      {subtext ? <p className="mt-4 text-sm text-[var(--color-text-muted)]">{subtext}</p> : null}
     </Panel>
   );
 }

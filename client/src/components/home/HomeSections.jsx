@@ -149,27 +149,28 @@ export function TestimonialRail({ testimonials }) {
   );
 }
 
-export function SupportStrip() {
-  return (
-    <section className="bg-[var(--color-surface-alt)] py-16">
-      <div className="page-shell grid gap-8 md:grid-cols-4">
-        {SUPPORT_PAGES.map((item) => {
-          const Icon = item.icon;
+// export function SupportStrip() {
+//   return (
+//     <section className="bg-[var(--color-surface-alt)] py-16">
+//       <div className="page-shell grid gap-8 md:grid-cols-4">
+//         {SUPPORT_PAGES.map((item) => {
+//           const Icon = item.icon;
 
-          return (
-            <div key={item.title} className="flex flex-col items-center text-center gap-2">
-              <div className="p-4 bg-[var(--color-primary)] text-white inline-flex mb-3 hover:bg-[var(--color-primary-hover)] transition duration-300">
-                <Icon className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-semibold text-[var(--color-primary)]">{item.title}</h3>
-              <p className="text-sm text-[var(--color-text-muted)]">{item.text}</p>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
+//           return (
+//             <div key={item.title} className="flex flex-col items-center text-center gap-2">
+//               <div className="p-4 bg-[var(--color-primary)] text-white inline-flex mb-3 hover:bg-[var(--color-primary-hover)] transition duration-300">
+//                 <Icon className="h-6 w-6" />
+//               </div>
+//               <h3 className="text-lg font-semibold text-[var(--color-primary)]">{item.title}</h3>
+//               <p className="text-sm text-[var(--color-text-muted)]">{item.text}</p>
+//             </div>
+//           );
+//         })}
+//       </div>
+//     </section>
+//   );
+// }
+
 
 export function CTABanner() {
   return (
