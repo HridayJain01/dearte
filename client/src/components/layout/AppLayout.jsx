@@ -1,4 +1,4 @@
-import { Heart, Menu, Search, ShoppingBag, User, MessageCircleMore, Instagram, Linkedin, Facebook } from 'lucide-react';
+import { Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
@@ -177,9 +177,9 @@ export function AppLayout() {
               <p>+91 98765 43210</p>
               <p>Opera House, Mumbai</p>
               <div className="flex gap-3 pt-2 text-white/80">
-                <a href="https://instagram.com" className="hover:text-[var(--color-accent)]"><Instagram className="h-5 w-5" /></a>
-                <a href="https://linkedin.com" className="hover:text-[var(--color-accent)]"><Linkedin className="h-5 w-5" /></a>
-                <a href="https://facebook.com" className="hover:text-[var(--color-accent)]"><Facebook className="h-5 w-5" /></a>
+                <a href="https://instagram.com" className="inline-flex h-5 min-w-5 items-center justify-center text-xs tracking-[0.08em] hover:text-[var(--color-accent)]">IG</a>
+                <a href="https://linkedin.com" className="inline-flex h-5 min-w-5 items-center justify-center text-xs tracking-[0.08em] hover:text-[var(--color-accent)]">IN</a>
+                <a href="https://facebook.com" className="inline-flex h-5 min-w-5 items-center justify-center text-xs tracking-[0.08em] hover:text-[var(--color-accent)]">FB</a>
               </div>
             </div>
           </div>

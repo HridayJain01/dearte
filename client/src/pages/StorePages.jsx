@@ -64,7 +64,7 @@ export function ProductListPage() {
         title={activeCategory || 'All Jewellery Collections'}
         description="Explore ready stock and make-to-order jewellery without exposing buyer pricing."
       />
-      <div className="grid gap-6 xl:grid-cols-[260px_1fr]">
+      <div className="space-y-6">
         <ProductFilters
           filters={data.filters}
           activeFilters={filters}
@@ -74,55 +74,53 @@ export function ProductListPage() {
             setSearchParams(sort ? { sort } : {});
           }}
         />
-        <div className="space-y-6">
-          <div className="lux-panel flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm text-[var(--color-text-muted)]">{data.total} items found</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {[...filters.subCategory, ...filters.collection, ...filters.metalColor, filters.stockType]
-                  .filter(Boolean)
-                  .map((chip) => (
-                    <span key={chip} className="bg-[var(--color-surface-alt)] border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text-muted)]">
-                      {chip}
-                    </span>
-                  ))}
-              </div>
+        <div className="lux-panel flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm text-[var(--color-text-muted)]">{data.total} items found</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {[...filters.subCategory, ...filters.collection, ...filters.metalColor, filters.stockType]
+                .filter(Boolean)
+                .map((chip) => (
+                  <span key={chip} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1 text-xs tracking-[0.08em] text-[var(--color-text-muted)] uppercase">
+                    {chip}
+                  </span>
+                ))}
             </div>
-            <select
-              className="border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] px-4 py-3 focus:border-[var(--color-border-active)] outline-none"
-              value={sort}
-              onChange={(event) => {
-                setSort(event.target.value);
-                setSearchParams(event.target.value ? { sort: event.target.value } : {});
-              }}
-            >
-              <option value="">Featured</option>
-              <option value="diamond-asc">Diamond Wt. Low to High</option>
-              <option value="diamond-desc">Diamond Wt. High to Low</option>
-              <option value="gold-asc">Gold Wt. Low to High</option>
-              <option value="gold-desc">Gold Wt. High to Low</option>
-              <option value="best-sellers">Best Sellers</option>
-              <option value="new-arrivals">New Arrivals</option>
-            </select>
           </div>
+          <select
+            className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+            value={sort}
+            onChange={(event) => {
+              setSort(event.target.value);
+              setSearchParams(event.target.value ? { sort: event.target.value } : {});
+            }}
+          >
+            <option value="">Featured</option>
+            <option value="diamond-asc">Diamond Wt. Low to High</option>
+            <option value="diamond-desc">Diamond Wt. High to Low</option>
+            <option value="gold-asc">Gold Wt. Low to High</option>
+            <option value="gold-desc">Gold Wt. High to Low</option>
+            <option value="best-sellers">Best Sellers</option>
+            <option value="new-arrivals">New Arrivals</option>
+          </select>
+        </div>
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {data.items.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {data.items.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button variant="secondary" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
-              Previous
-            </Button>
-            <p className="text-sm text-[var(--color-text-muted)]">
-              Page {data.page} of {data.totalPages}
-            </p>
-            <Button variant="secondary" onClick={() => setPage((value) => Math.min(data.totalPages, value + 1))} disabled={page >= data.totalPages}>
-              Next
-            </Button>
-          </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button variant="secondary" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
+            Previous
+          </Button>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Page {data.page} of {data.totalPages}
+          </p>
+          <Button variant="secondary" onClick={() => setPage((value) => Math.min(data.totalPages, value + 1))} disabled={page >= data.totalPages}>
+            Next
+          </Button>
         </div>
       </div>
     </section>

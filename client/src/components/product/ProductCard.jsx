@@ -1,6 +1,6 @@
 import { Heart, ShoppingBag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Badge, Button } from '../ui/Primitives';
+import { Button } from '../ui/Primitives';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
@@ -22,48 +22,49 @@ export function ProductCard({ product }) {
   };
 
   return (
-    <article className="group lux-panel overflow-hidden p-0 transition duration-200 hover:border-[var(--color-primary)]">
+    <article className="group overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] p-0 transition duration-200 hover:border-[var(--color-border-active)]">
       <Link to={`/products/${product.styleCode}`} className="block relative">
-        <div className="relative h-64 overflow-hidden sm:h-80">
+        <div className="relative h-56 overflow-hidden bg-[#f6f6f6] sm:h-72">
           <img
             src={product.images[0]}
             alt={product.name}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            className="h-full w-full object-contain p-5 transition duration-300 group-hover:scale-[1.03]"
           />
-          <button 
-            className="absolute right-4 top-4 z-10 text-[var(--color-primary)] hover:scale-110 transition p-2 bg-[var(--color-surface)]/80 backdrop-blur-sm shadow-sm hover:[&>svg]:fill-[var(--color-primary)]"
-            onClick={(e) => { 
-               e.preventDefault(); 
-               ensureAuth(() => addToWishlist({ productId: product.id })); 
+          <p className="absolute left-4 top-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b6d1e]">
+            Sale
+          </p>
+          <button
+            className="absolute right-4 top-3 z-10 p-2 text-[#9b6d1e] transition hover:scale-110 hover:[&>svg]:fill-[#9b6d1e]"
+            onClick={(e) => {
+              e.preventDefault();
+              ensureAuth(() => addToWishlist({ productId: product.id }));
             }}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className="h-5 w-5" />
           </button>
-          
-          <div className="absolute left-4 top-4 flex gap-2">
-            <Badge tone="lab">Lab Grown</Badge>
-            <Badge tone="accent">{product.customizationOptions?.goldCarats?.[0] || '14KT'}</Badge>
-          </div>
-          
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none">
-             <span className="bg-[var(--color-primary)] text-white px-5 py-2 text-xs font-semibold tracking-widest uppercase shadow-md">Quick View</span>
-          </div>
         </div>
 
-        <div className="space-y-3 p-5 bg-[var(--color-surface)] relative z-20">
-          <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{product.styleCode}</p>
-          <div>
-            <h3 className="line-clamp-1 font-[var(--font-serif)] text-xl text-[var(--color-primary)] sm:text-2xl">
-              {product.name}
-            </h3>
-            <div className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">
-              <p>Diamond: {formatWeight(product.diamondWeight, 'ct')} • Gold: {formatWeight(product.goldWeight, 'g')}</p>
+        <div className="space-y-3 p-4 sm:p-5">
+          <div className="grid grid-cols-[1fr_auto] items-start gap-3">
+            <div>
+              <p className="line-clamp-2 font-['Jost'] text-[19px] leading-[1.2] tracking-[0.01em] text-[#151515] uppercase">
+                {product.name}
+              </p>
+              <p className="mt-1 font-['Jost'] text-xs tracking-[0.06em] text-[var(--color-text-muted)] uppercase">
+                {product.styleCode}
+              </p>
             </div>
+            
           </div>
-          <div className="pt-3">
+
+          <p className="text-xs text-[var(--color-text-muted)]">
+            Diamond: {formatWeight(product.diamondWeight, 'ct')} | Gold: {formatWeight(product.goldWeight, 'g')}
+          </p>
+
+          <div className="pt-1">
             <Button
               variant="secondary"
-              className="w-full"
+              className="w-full border-[#ddd] bg-transparent text-[#303030] hover:bg-[var(--color-surface-alt)]"
               icon={ShoppingBag}
               disabled={product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0}
               onClick={(e) => {
@@ -83,6 +84,16 @@ export function ProductCard({ product }) {
             >
               {product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0 ? 'Out of stock' : 'Add to cart'}
             </Button>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            {['#ddd', '#ececec', '#d9d9d9', '#f0efe9', '#f2d5b6'].map((swatch) => (
+              <span
+                key={`${product.id}-${swatch}`}
+                className="h-5 w-5 rounded-full border border-[#cfcfcf]"
+                style={{ backgroundColor: swatch }}
+              />
+            ))}
           </div>
         </div>
       </Link>
