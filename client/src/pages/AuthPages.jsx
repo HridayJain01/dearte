@@ -11,12 +11,12 @@ function AuthShell({ title, description, children }) {
   return (
     <section className="page-shell section-gap">
       <div className="grid overflow-hidden border border-[var(--color-border)] lg:grid-cols-2">
-        <div className="relative min-h-[620px] bg-[var(--color-primary)] p-10">
+        <div className="relative min-h-[280px] bg-[var(--color-primary)] p-5 sm:min-h-[520px] sm:p-10">
           <p className="lux-label mb-5 !text-[var(--color-accent)]">De Arté Access</p>
-          <h1 className="lux-heading max-w-md text-6xl !text-white">{title}</h1>
-          <p className="mt-6 max-w-md text-white/60">{description}</p>
+          <h1 className="lux-heading max-w-md text-3xl !text-white sm:text-6xl">{title}</h1>
+          <p className="mt-4 max-w-md text-sm text-white/60 sm:mt-6 sm:text-base">{description}</p>
         </div>
-        <div className="p-8 md:p-12 bg-[var(--color-surface)]">{children}</div>
+        <div className="bg-[var(--color-surface)] p-5 sm:p-8 md:p-12">{children}</div>
       </div>
     </section>
   );
@@ -27,7 +27,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const form = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: 'buyer@lumina.com', password: 'Buyer@123' },
+    defaultValues: { email: 'hridaymjain@gmail.com', password: 'password' },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {

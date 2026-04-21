@@ -51,6 +51,7 @@ export const TRUST_LINKS = [
   { label: 'FAQs', to: '/faq' },
   { label: 'Career', to: '/careers' },
   { label: 'Events', to: '/events' },
+  { label: 'Trusted By', to: '/trusted-by' },
 ];
 
 export const SUPPORT_PAGES = [

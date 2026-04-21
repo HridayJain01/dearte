@@ -6,6 +6,7 @@ export const productService = {
   product: (styleCode) => unwrap(api.get(`/products/${styleCode}`)),
   education: (slug) => unwrap(api.get(`/education/${slug}`)),
   events: () => unwrap(api.get('/events')),
+  trustedBy: () => unwrap(api.get('/trusted-by')),
   testimonials: () => unwrap(api.get('/testimonials')),
   careers: () => unwrap(api.get('/careers')),
   staticPage: (slug) => unwrap(api.get(`/site/static/${slug}`)),

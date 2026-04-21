@@ -103,6 +103,14 @@ const emptyCollection = {
   active: true,
 };
 const emptyMetalOption = { name: '', group: 'Metal Color', swatch: emptyAsset, active: true };
+const emptyTrustedBrand = {
+  name: '',
+  sector: '',
+  websiteUrl: '',
+  logo: emptyAsset,
+  active: true,
+  sortOrder: 0,
+};
 
 function toDateInput(value) {
   if (!value) return '';
@@ -452,10 +460,10 @@ function TaxonomyManager({ title, items, onSave, onDelete, children, onEdit, onN
             className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] px-3 py-2 text-left hover:border-[var(--color-border-active)]"
             onClick={() => onEdit(item)}
           >
-            <Thumbnail asset={item.image || item.swatch} alt={item.name} />
+              <Thumbnail asset={item.logo || item.image || item.swatch} alt={item.name} />
             <div>
               <p className="text-sm font-medium text-[var(--color-text)]">{item.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">{item.slug || item.group || ''}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">{item.slug || item.group || item.sector || ''}</p>
             </div>
           </button>
         ))}
@@ -476,7 +484,7 @@ export function AdminDashboardPage() {
   const stats = data?.stats || {};
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Dashboard" title="Admin overview" description="Operational visibility for buyers, products, orders, and catalogue assignments." />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <StatCard title="Buyers" value={stats.buyers || 0} detail={`${stats.pendingBuyers || 0} pending activation`} />
@@ -521,7 +529,7 @@ export function AdminPromotionsPage() {
   const bannerOrder = data?.bannersOrder || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Promotions" title="Manage banners, popups, and events" description="All promotional media is now backend-managed and upload-first." />
 
       <Panel className="space-y-3">
@@ -685,7 +693,7 @@ export function AdminUsersPage() {
   if (isLoading) return <LoadingBlock />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Users" title="Buyer account management" description="Approve, review, and update buyer account details." />
       <Panel>
         <DataTable
@@ -750,7 +758,7 @@ export function AdminProductsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Products, media, and stock now live in MongoDB and are editable from admin." />
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Panel className="space-y-4">
@@ -833,7 +841,7 @@ export function AdminOrdersPage() {
   if (isLoading) return <LoadingBlock />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Orders" title="Review and edit buyer orders" description="Order detail now includes buyer info, shipping notes, and product-level context." />
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Panel className="space-y-3">
@@ -935,7 +943,7 @@ export function AdminCataloguesPage() {
   if (isLoading) return <LoadingBlock />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Catalogues" title="Build private buyer catalogues" description="Search products and buyers, preview thumbnails, and manage assignments without manual IDs." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
@@ -1065,14 +1073,19 @@ export function AdminConfigPage() {
   const [subCategoryForm, setSubCategoryForm] = useState(emptySubCategory);
   const [collectionForm, setCollectionForm] = useState(emptyCollection);
   const [metalForm, setMetalForm] = useState(emptyMetalOption);
+  const [brandForm, setBrandForm] = useState(emptyTrustedBrand);
   const siteSettings = siteSettingsDraft || data?.siteSettings || emptySiteSettings;
 
   if (isLoading) return <LoadingBlock />;
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-config'] });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-config'] });
+    queryClient.invalidateQueries({ queryKey: ['home'] });
+    queryClient.invalidateQueries({ queryKey: ['trusted-by'] });
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Configuration" title="Site settings and taxonomy managers" description="These records now power admin dropdowns and frontend content structure." />
 
       <Panel className="space-y-4">
@@ -1208,6 +1221,32 @@ export function AdminConfigPage() {
           <Field label="Group"><input className={textInput} value={metalForm.group} onChange={(event) => setMetalForm((current) => ({ ...current, group: event.target.value }))} /></Field>
           <AssetField label="Swatch" value={metalForm.swatch} onChange={(swatch) => setMetalForm((current) => ({ ...current, swatch }))} folder="dearte/site/metal-options" />
         </TaxonomyManager>
+
+        <TaxonomyManager
+          title="Trusted by brands"
+          items={data.trustedBrands || []}
+          onEdit={(item) => setBrandForm({ ...item, logo: normalizeAsset(item.logo) })}
+          onNew={() => setBrandForm(emptyTrustedBrand)}
+          onSave={async () => {
+            if (brandForm.id) await adminService.updateTrustedBrand(brandForm.id, brandForm);
+            else await adminService.createTrustedBrand(brandForm);
+            setBrandForm(emptyTrustedBrand);
+            refresh();
+          }}
+          onDelete={brandForm.id ? async () => {
+            await adminService.deleteTrustedBrand(brandForm.id);
+            setBrandForm(emptyTrustedBrand);
+            refresh();
+          } : null}
+          saveLabel={brandForm.id ? 'Update Brand' : 'Create Brand'}
+        >
+          <Field label="Brand Name"><input className={textInput} value={brandForm.name} onChange={(event) => setBrandForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+          <Field label="Sector"><input className={textInput} value={brandForm.sector} onChange={(event) => setBrandForm((current) => ({ ...current, sector: event.target.value }))} /></Field>
+          <Field label="Website URL"><input className={textInput} value={brandForm.websiteUrl} onChange={(event) => setBrandForm((current) => ({ ...current, websiteUrl: event.target.value }))} /></Field>
+          <Field label="Sort Order"><input type="number" className={textInput} value={brandForm.sortOrder} onChange={(event) => setBrandForm((current) => ({ ...current, sortOrder: Number(event.target.value) }))} /></Field>
+          <AssetField label="Brand logo" value={brandForm.logo} onChange={(logo) => setBrandForm((current) => ({ ...current, logo }))} folder="dearte/trusted-brands" />
+          <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]"><input type="checkbox" checked={brandForm.active} onChange={(event) => setBrandForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
+        </TaxonomyManager>
       </div>
     </div>
   );
@@ -1222,7 +1261,7 @@ export function AdminTestimonialsPage() {
   if (isLoading) return <LoadingBlock />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Testimonials" title="Moderate and curate social proof" description="Testimonials, avatars, and status changes are fully backend-managed." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
@@ -1284,7 +1323,7 @@ export function AdminRolesPage() {
   if (isLoading) return <LoadingBlock />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Roles" title="Reference roles" description="Roles remain documented for future admin permission layering." />
       <Panel>
         <DataTable
@@ -1313,7 +1352,7 @@ export function AdminReportsPage() {
     : [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Reports" title="Operational reporting" description="Product, category, login, and buyer-order reports are pulled from the current Mongo-backed dataset." />
       <Panel className="space-y-4">
         <Field label="Report">

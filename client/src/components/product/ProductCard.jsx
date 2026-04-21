@@ -24,7 +24,7 @@ export function ProductCard({ product }) {
   return (
     <article className="group lux-panel overflow-hidden p-0 transition duration-200 hover:border-[var(--color-primary)]">
       <Link to={`/products/${product.styleCode}`} className="block relative">
-        <div className="relative h-80 overflow-hidden">
+        <div className="relative h-64 overflow-hidden sm:h-80">
           <img
             src={product.images[0]}
             alt={product.name}
@@ -53,7 +53,7 @@ export function ProductCard({ product }) {
         <div className="space-y-3 p-5 bg-[var(--color-surface)] relative z-20">
           <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{product.styleCode}</p>
           <div>
-            <h3 className="font-[var(--font-serif)] text-2xl text-[var(--color-primary)] line-clamp-1">
+            <h3 className="line-clamp-1 font-[var(--font-serif)] text-xl text-[var(--color-primary)] sm:text-2xl">
               {product.name}
             </h3>
             <div className="mt-2 space-y-1 text-sm text-[var(--color-text-muted)]">

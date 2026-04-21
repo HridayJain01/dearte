@@ -13,6 +13,7 @@ import {
   SiteSettings,
   SubCategory,
   Testimonial,
+  TrustedBrand,
   User,
 } from '../models/index.js';
 import { cloudinary } from '../config/cloudinary.js';
@@ -26,6 +27,7 @@ import {
   serializeProduct,
   serializeTaxonomy,
   serializeUser,
+  serializeTrustedBrand,
 } from '../utils/serializers.js';
 import { slugify } from '../utils/slugify.js';
 
@@ -929,12 +931,13 @@ router.delete('/events/:id', async (req, res) => {
 });
 
 router.get('/config', async (_req, res) => {
-  const [siteSettings, categories, subCategories, collections, metalOptions] = await Promise.all([
+  const [siteSettings, categories, subCategories, collections, metalOptions, trustedBrands] = await Promise.all([
     SiteSettings.findOne().sort({ createdAt: -1 }),
     Category.find().sort({ name: 1 }),
     SubCategory.find().sort({ name: 1 }).populate('category'),
     Collection.find().sort({ name: 1 }).populate(['category', 'subCategory']),
     MetalOption.find().sort({ name: 1 }),
+    TrustedBrand.find().sort({ sortOrder: 1, createdAt: 1 }),
   ]);
 
   return sendSuccess(res, {
@@ -953,6 +956,7 @@ router.get('/config', async (_req, res) => {
       subCategoryName: item.subCategory?.name || '',
     })),
     metalOptions: metalOptions.map(serializeMetalOption),
+    trustedBrands: trustedBrands.map(serializeTrustedBrand),
   });
 });
 
@@ -972,6 +976,50 @@ router.put('/config', async (req, res) => {
     },
     'Configuration updated',
   );
+});
+
+router.get('/trusted-brands', async (_req, res) => {
+  const trustedBrands = await TrustedBrand.find().sort({ sortOrder: 1, createdAt: 1 });
+  return sendSuccess(res, trustedBrands.map(serializeTrustedBrand));
+});
+
+router.post('/trusted-brands', async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  if (!name) return sendError(res, 'Brand name is required', 400);
+
+  const trustedBrand = await TrustedBrand.create({
+    name,
+    sector: String(req.body.sector || '').trim(),
+    websiteUrl: String(req.body.websiteUrl || '').trim(),
+    logo: normalizeAsset(req.body.logo),
+    active: parseBoolean(req.body.active, true),
+    sortOrder: Number(req.body.sortOrder || 0),
+  });
+
+  return sendSuccess(res, serializeTrustedBrand(trustedBrand), 'Brand created');
+});
+
+router.put('/trusted-brands/:id', async (req, res) => {
+  const trustedBrand = await TrustedBrand.findById(req.params.id);
+  if (!trustedBrand) return sendError(res, 'Brand not found', 404);
+
+  if (req.body.name !== undefined) trustedBrand.name = req.body.name;
+  if (req.body.sector !== undefined) trustedBrand.sector = req.body.sector;
+  if (req.body.websiteUrl !== undefined) trustedBrand.websiteUrl = req.body.websiteUrl;
+  if (req.body.logo !== undefined) trustedBrand.logo = normalizeAsset(req.body.logo);
+  if (req.body.active !== undefined) trustedBrand.active = parseBoolean(req.body.active, trustedBrand.active);
+  if (req.body.sortOrder !== undefined) trustedBrand.sortOrder = Number(req.body.sortOrder);
+
+  await trustedBrand.save();
+  return sendSuccess(res, serializeTrustedBrand(trustedBrand), 'Brand updated');
+});
+
+router.delete('/trusted-brands/:id', async (req, res) => {
+  const trustedBrand = await TrustedBrand.findById(req.params.id);
+  if (!trustedBrand) return sendError(res, 'Brand not found', 404);
+
+  await trustedBrand.deleteOne();
+  return sendSuccess(res, null, 'Brand deleted');
 });
 
 router.get('/testimonials', async (_req, res) => {

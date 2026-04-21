@@ -87,6 +87,16 @@ textarea {
   padding-block: 5rem;
 }
 
+@media (max-width: 767px) {
+  .page-shell {
+    width: min(calc(100% - 24px), var(--container));
+  }
+
+  .section-gap {
+    padding-block: 2.5rem;
+  }
+}
+
 .lux-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -165,6 +175,14 @@ textarea {
 .animate-page-enter {
   animation: pageEnter 260ms ease;
   will-change: opacity, transform;
+}
+
+.safe-bottom-pad {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.safe-bottom-offset {
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
 @media (prefers-reduced-motion: reduce) {

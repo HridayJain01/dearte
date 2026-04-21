@@ -54,7 +54,7 @@ export function ProductListPage() {
   const { data, isLoading } = useProducts(params);
 
   if (isLoading) {
-    return <div className="page-shell py-16"><LoadingBlock label="Curating product library..." /></div>;
+    return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Curating product library..." /></div>;
   }
 
   return (
@@ -112,7 +112,7 @@ export function ProductListPage() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button variant="secondary" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
               Previous
             </Button>
@@ -139,7 +139,7 @@ export function ProductDetailPage() {
   const navigate = useNavigate();
 
   if (isLoading) {
-    return <div className="page-shell py-16"><LoadingBlock label="Preparing product atelier..." /></div>;
+    return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Preparing product atelier..." /></div>;
   }
 
   const requireAuth = async (callback) => {
@@ -220,15 +220,15 @@ export function ProductDetailPage() {
           ) : (
             <p className="text-sm text-[var(--color-text-muted)]">Made to order — not held as finished stock.</p>
           )}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button
-              className="flex-1"
+              className="w-full sm:flex-1"
               disabled={product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0}
               onClick={() => requireAuth(() => addToCart({ productId: product.id, quantity: 1, customization: selection }))}
             >
               Add to Cart
             </Button>
-            <Button variant="secondary" className="flex-1" onClick={() => requireAuth(() => addToWishlist({ productId: product.id }))}>
+            <Button variant="secondary" className="w-full sm:flex-1" onClick={() => requireAuth(() => addToWishlist({ productId: product.id }))}>
               Add to Wishlist
             </Button>
           </div>
@@ -266,14 +266,14 @@ export function ProductDetailPage() {
           <Panel className="overflow-hidden p-0">
             <TransformWrapper>
               <TransformComponent wrapperClass="h-full w-full">
-                <img src={data.images[activeImage]} alt={data.name} className="h-[620px] w-full object-cover" />
+                <img src={data.images[activeImage]} alt={data.name} className="h-[360px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
               </TransformComponent>
             </TransformWrapper>
           </Panel>
           <div className="grid grid-cols-4 gap-3">
             {data.images.map((image, index) => (
               <button key={image} className={`overflow-hidden border ${index === activeImage ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`} onClick={() => setActiveImage(index)}>
-                <img src={image} alt="" className="h-24 w-full object-cover" />
+                <img src={image} alt="" className="h-16 w-full object-cover sm:h-24" />
               </button>
             ))}
           </div>
@@ -282,7 +282,7 @@ export function ProductDetailPage() {
         <ProductDetailContent key={data.id} product={data} />
       </div>
 
-      <section className="pt-16">
+      <section className="pt-10 sm:pt-16">
         <SectionHeading eyebrow="Related Products" title="More from this design story" />
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {data.relatedProducts.map((product) => (
@@ -316,7 +316,7 @@ export function CartPage() {
         <div className="space-y-4">
           {cart.items.map((item) => (
             <Panel key={item.id} className="flex flex-col gap-4 md:flex-row">
-              <img src={item.product.images[0]} alt={item.product.name} className="h-24 w-24 object-cover" />
+              <img src={item.product.images[0]} alt={item.product.name} className="h-24 w-full object-cover sm:w-24" />
               <div className="flex-1">
                 <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{item.product.styleCode}</p>
                 <h3 className="mt-2 text-xl font-semibold text-[var(--color-text)]">{item.product.name}</h3>
@@ -324,7 +324,7 @@ export function CartPage() {
                   {item.customization.goldColor}, {item.customization.goldCarat}, {item.customization.diamondQuality}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <Button variant="secondary" onClick={() => updateCart(item.id, { quantity: Math.max(1, item.quantity - 1) })}>-</Button>
                 <span>{item.quantity}</span>
                 <Button variant="secondary" onClick={() => updateCart(item.id, { quantity: item.quantity + 1 })}>+</Button>
@@ -376,17 +376,17 @@ export function WishlistPage() {
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {wishlist.items.map((item) => (
             <Panel key={item.id}>
-              <img src={item.product.images[0]} alt={item.product.name} className="mb-4 h-72 w-full object-cover" />
+              <img src={item.product.images[0]} alt={item.product.name} className="mb-4 h-56 w-full object-cover sm:h-72" />
               <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">{item.product.styleCode}</p>
               <h3 className="mt-3 text-2xl font-semibold text-[var(--color-text)]">{item.product.name}</h3>
               <p className="mt-2 text-sm text-[var(--color-text-muted)]">
                 Collection: {wishlist.collections.find((collection) => collection.id === item.collectionId)?.name || 'My Wishlist'}
               </p>
-              <div className="mt-5 flex gap-3">
-                <Button className="flex-1" onClick={() => addToCart({ productId: item.product.id, quantity: 1, customization: { goldColor: item.product.customizationOptions.goldColors[0], goldCarat: item.product.customizationOptions.goldCarats[0], diamondQuality: item.product.customizationOptions.diamondQualities[0] } })}>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <Button className="w-full sm:flex-1" onClick={() => addToCart({ productId: item.product.id, quantity: 1, customization: { goldColor: item.product.customizationOptions.goldColors[0], goldCarat: item.product.customizationOptions.goldCarats[0], diamondQuality: item.product.customizationOptions.diamondQualities[0] } })}>
                   Move to Cart
                 </Button>
-                <Button variant="secondary" className="flex-1" onClick={() => removeFromWishlist(item.id)}>
+                <Button variant="secondary" className="w-full sm:flex-1" onClick={() => removeFromWishlist(item.id)}>
                   Remove
                 </Button>
               </div>
@@ -411,7 +411,24 @@ export function CheckoutPage() {
       paymentMethod: 'Cash on Delivery',
     },
   });
+  const {
+    formState: { errors, isSubmitting },
+  } = form;
   const reviewValues = form.getValues();
+
+  const handleNextStep = async () => {
+    if (step === 0) {
+      const isValid = await form.trigger('shippingAddress');
+      if (!isValid) return;
+    }
+
+    if (step === 2) {
+      const isValid = await form.trigger('paymentMethod');
+      if (!isValid) return;
+    }
+
+    setStep((value) => Math.min(steps.length - 1, value + 1));
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -442,7 +459,16 @@ export function CheckoutPage() {
         <Panel>
           <form className="space-y-5" onSubmit={onSubmit}>
             {step === 0 ? (
-              <textarea {...form.register('shippingAddress')} placeholder="Shipping address" className="min-h-[160px] w-full border border-[var(--color-border)] bg-transparent p-4 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]" />
+              <div>
+                <textarea
+                  {...form.register('shippingAddress')}
+                  placeholder="Shipping address"
+                  className="min-h-[160px] w-full border border-[var(--color-border)] bg-transparent p-4 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]"
+                />
+                {errors.shippingAddress ? (
+                  <p className="mt-2 text-sm text-[var(--color-primary)]">Please add a valid shipping address (minimum 6 characters).</p>
+                ) : null}
+              </div>
             ) : null}
             {step === 1 ? (
               <textarea {...form.register('notes')} placeholder="Special instructions and delivery preferences" className="min-h-[160px] w-full border border-[var(--color-border)] bg-transparent p-4 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]" />
@@ -457,6 +483,9 @@ export function CheckoutPage() {
                   <input type="radio" value="Offline Payment" {...form.register('paymentMethod')} className="mr-3" />
                   Offline Payment (bank details shared post-review)
                 </label>
+                {errors.paymentMethod ? (
+                  <p className="text-sm text-[var(--color-primary)]">Please choose a payment method.</p>
+                ) : null}
               </div>
             ) : null}
             {step === 3 ? (
@@ -467,16 +496,16 @@ export function CheckoutPage() {
               </div>
             ) : null}
 
-            <div className="flex justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
               <Button type="button" variant="secondary" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))}>
                 Back
               </Button>
               {step < steps.length - 1 ? (
-                <Button type="button" onClick={() => setStep((value) => Math.min(steps.length - 1, value + 1))}>
+                <Button type="button" onClick={handleNextStep}>
                   Next Step
                 </Button>
               ) : (
-                <Button type="submit">Place Order</Button>
+                <Button type="submit" loading={isSubmitting}>Place Order</Button>
               )}
             </div>
           </form>
@@ -507,7 +536,7 @@ export function CataloguePage() {
   });
 
   if (isLoading) {
-    return <div className="page-shell py-16"><LoadingBlock label="Loading private catalogues..." /></div>;
+    return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading private catalogues..." /></div>;
   }
 
   return (

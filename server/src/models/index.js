@@ -10,4 +10,5 @@ export { Banner } from './Banner.js';
 export { PopupAd } from './PopupAd.js';
 export { Event } from './Event.js';
 export { Testimonial } from './Testimonial.js';
+export { TrustedBrand } from './TrustedBrand.js';
 export { SiteSettings } from './SiteSettings.js';

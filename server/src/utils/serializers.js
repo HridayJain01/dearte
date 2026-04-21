@@ -22,6 +22,22 @@ export function serializeMetalOption(doc) {
   };
 }
 
+export function serializeTrustedBrand(doc) {
+  if (!doc) return null;
+
+  return {
+    id: String(doc._id),
+    name: doc.name,
+    sector: doc.sector,
+    websiteUrl: doc.websiteUrl,
+    logo: normalizeAsset(doc.logo),
+    active: doc.active,
+    sortOrder: doc.sortOrder,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
 export function serializeProduct(doc) {
   if (!doc) return null;
   const categoryName = doc.category?.name || doc.categoryName || '';

@@ -21,7 +21,7 @@ export function Button({
 
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 px-5 py-3 text-[13px] font-medium transition duration-300 ${variants[variant]} ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 text-[12px] font-medium transition duration-300 sm:px-5 sm:py-3 sm:text-[13px] ${variants[variant]} ${className}`}
       {...props}
     >
       {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : Icon ? <Icon className="h-4 w-4" /> : null}
@@ -35,7 +35,7 @@ export function SectionHeading({ eyebrow, title, description, action }) {
     <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
         {eyebrow ? <p className="lux-label mb-3">{eyebrow}</p> : null}
-        <h2 className="lux-heading text-4xl md:text-6xl">{title}</h2>
+        <h2 className="lux-heading text-3xl sm:text-4xl md:text-6xl">{title}</h2>
         {description ? <p className="mt-3 text-sm text-[var(--color-text-muted)] md:text-base">{description}</p> : null}
       </div>
       {action}
@@ -44,7 +44,7 @@ export function SectionHeading({ eyebrow, title, description, action }) {
 }
 
 export function Panel({ children, className = '' }) {
-  return <div className={`lux-panel p-6 ${className}`}>{children}</div>;
+  return <div className={`lux-panel p-4 sm:p-6 ${className}`}>{children}</div>;
 }
 
 export function Badge({ children, tone = 'default' }) {

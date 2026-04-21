@@ -134,6 +134,56 @@ export const seedData = {
     mission:
       'Elevate wholesale jewellery buying with a polished digital experience rooted in trust, beauty, and fulfilment precision.',
   },
+  trustedBrands: [
+    {
+      id: 'brand-1',
+      name: 'Maison Aurum',
+      sector: 'Bridal retail',
+      websiteUrl: '',
+      logo: 'https://ui-avatars.com/api/?name=Maison+Aurum&background=F5E6E0&color=6B0F2E&bold=true',
+      sortOrder: 1,
+    },
+    {
+      id: 'brand-2',
+      name: 'Noir Atelier',
+      sector: 'Luxury ateliers',
+      websiteUrl: '',
+      logo: 'https://ui-avatars.com/api/?name=Noir+Atelier&background=EEE4DA&color=6B0F2E&bold=true',
+      sortOrder: 2,
+    },
+    {
+      id: 'brand-3',
+      name: 'Velvet Gold',
+      sector: 'Export trading',
+      websiteUrl: '',
+      logo: 'https://ui-avatars.com/api/?name=Velvet+Gold&background=F7EFE8&color=6B0F2E&bold=true',
+      sortOrder: 3,
+    },
+    {
+      id: 'brand-4',
+      name: 'Sora Bridal',
+      sector: 'Retail showrooms',
+      websiteUrl: '',
+      logo: 'https://ui-avatars.com/api/?name=Sora+Bridal&background=F0E6DE&color=6B0F2E&bold=true',
+      sortOrder: 4,
+    },
+    {
+      id: 'brand-5',
+      name: 'The Gold Room',
+      sector: 'Boutique chains',
+      websiteUrl: '',
+      logo: 'https://ui-avatars.com/api/?name=The+Gold+Room&background=EEE7DD&color=6B0F2E&bold=true',
+      sortOrder: 5,
+    },
+    {
+      id: 'brand-6',
+      name: 'Aster & Co.',
+      sector: 'Private label',
+      websiteUrl: '',
+      logo: 'https://ui-avatars.com/api/?name=Aster+and+Co&background=F5EBDD&color=6B0F2E&bold=true',
+      sortOrder: 6,
+    },
+  ],
   testimonials: [
     {
       id: 'test-1',

@@ -5,7 +5,7 @@ const toggleArrayValue = (values, value) =>
 
 export function ProductFilters({ filters, activeFilters, setFilter, resetFilters }) {
   return (
-    <Panel className="sticky top-28 space-y-6">
+    <Panel className="space-y-6 xl:sticky xl:top-28">
       <div>
         <p className="lux-label mb-3">Sub Category</p>
         <div className="space-y-2 text-sm">

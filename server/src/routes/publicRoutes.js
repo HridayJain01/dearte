@@ -10,6 +10,7 @@ import {
   SiteSettings,
   SubCategory,
   Testimonial,
+  TrustedBrand,
 } from '../models/index.js';
 import { seedData } from '../data/seed.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
@@ -17,6 +18,7 @@ import {
   serializeProduct,
   serializeTaxonomy,
   serializeMetalOption,
+  serializeTrustedBrand,
 } from '../utils/serializers.js';
 
 const router = express.Router();
@@ -48,11 +50,13 @@ function applySort(query, sort) {
 }
 
 router.get('/site/home', async (_req, res) => {
-  const [banners, newArrivals, bestSellers, testimonials, siteSettings, popupAds] = await Promise.all([
+  const [banners, newArrivals, bestSellers, testimonials, events, trustedBrands, siteSettings, popupAds] = await Promise.all([
     Banner.find({ active: true }).sort({ sortOrder: 1 }),
     Product.find({ isNewArrival: true, status: 'Active' }).populate(productPopulate).limit(10),
     Product.find({ status: 'Active' }).sort({ orderCount: -1 }).populate(productPopulate).limit(10),
     Testimonial.find({ status: 'Approved' }).sort({ createdAt: -1 }),
+    Event.find({ active: true }).sort({ date: 1 }).limit(6),
+    TrustedBrand.find({ active: true }).sort({ sortOrder: 1, createdAt: 1 }),
     SiteSettings.findOne(),
     PopupAd.find({ active: true }).sort({ createdAt: -1 }),
   ]);
@@ -79,6 +83,14 @@ router.get('/site/home', async (_req, res) => {
       review: item.review,
       avatar: item.avatar?.secureUrl || '',
     })),
+    events: events.map((event) => ({
+      id: String(event._id),
+      title: event.title,
+      date: event.date,
+      description: event.description,
+      image: event.image?.secureUrl || '',
+    })),
+    trustedBrands: trustedBrands.map(serializeTrustedBrand),
     siteSettings: siteSettings || seedData.siteSettings,
     popupAds: popupAds.map((item) => ({
       id: String(item._id),
@@ -248,6 +260,11 @@ router.get('/events', async (_req, res) => {
       image: event.image?.secureUrl || '',
     })),
   );
+});
+
+router.get('/trusted-by', async (_req, res) => {
+  const trustedBrands = await TrustedBrand.find({ active: true }).sort({ sortOrder: 1, createdAt: 1 });
+  return sendSuccess(res, trustedBrands.map(serializeTrustedBrand));
 });
 
 router.get('/testimonials', async (_req, res) => {
