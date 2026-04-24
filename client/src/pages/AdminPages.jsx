@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { adminService } from '../services/adminService';
 import { Button, LoadingBlock, Panel, SectionHeading, StatCard } from '../components/ui/Primitives';
+import { Download } from 'lucide-react';
+import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 
 const textInput =
   'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--color-border-active)]';
@@ -479,9 +481,22 @@ function TaxonomyManager({ title, items, onSave, onDelete, children, onEdit, onN
 
 export function AdminDashboardPage() {
   const { data, isLoading } = useQuery({ queryKey: ['admin-dashboard'], queryFn: adminService.dashboard });
+  const [downloadingOrderId, setDownloadingOrderId] = useState(null);
   if (isLoading) return <LoadingBlock />;
 
   const stats = data?.stats || {};
+
+  const handleDownloadOrder = async (order) => {
+    try {
+      setDownloadingOrderId(order.id || order.orderId);
+      await downloadDeArteOrderPdf({ order, user: order.user || {} });
+      toast.success(`Downloaded ${order.orderId}`);
+    } catch (error) {
+      toast.error(error?.message || 'Could not generate PDF');
+    } finally {
+      setDownloadingOrderId(null);
+    }
+  };
 
   return (
     <div className="space-y-5 sm:space-y-8">
@@ -499,8 +514,22 @@ export function AdminDashboardPage() {
             { key: 'orderId', label: 'Order ID' },
             { key: 'user', label: 'Buyer', render: (value) => value?.name || '-' },
             { key: 'status', label: 'Status' },
-            { key: 'paymentMethod', label: 'Payment' },
             { key: 'createdAt', label: 'Created', render: (value) => new Date(value).toLocaleString('en-IN') },
+            {
+              key: 'download',
+              label: 'PDF',
+              render: (_value, row) => (
+                <Button
+                  variant="ghost"
+                  className="px-3 py-2 text-[11px]"
+                  icon={Download}
+                  loading={downloadingOrderId === (row.id || row.orderId)}
+                  onClick={() => handleDownloadOrder(row)}
+                >
+                  Download
+                </Button>
+              ),
+            },
           ]}
           rows={data?.recentOrders || []}
         />

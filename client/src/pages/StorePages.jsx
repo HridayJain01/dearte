@@ -1,4 +1,4 @@
-import { Share2, Trash2 } from 'lucide-react';
+import { Download, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import { userService } from '../services/userService';
 import { Button, EmptyState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
 import { ProductCard } from '../components/product/ProductCard';
 import { ProductFilters } from '../components/product/ProductFilters';
+import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { formatDate } from '../utils/formatters';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -294,6 +295,20 @@ export function ProductDetailPage() {
 
 export function CartPage() {
   const { cart, updateCart, removeFromCart } = useCart();
+  const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    try {
+      setIsDownloadingPdf(true);
+      await downloadDeArteCartPdf({ cart, user: profile || {} });
+      toast.success('Cart PDF downloaded');
+    } catch (error) {
+      toast.error(error?.message || 'Could not generate PDF');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   if (!cart.items.length) {
     return (
@@ -339,6 +354,9 @@ export function CartPage() {
           <p className="text-4xl font-semibold text-[var(--color-primary)]">{cart.items.length} Items</p>
           <p className="text-sm text-[var(--color-text-muted)]">Pricing will be confirmed by your sales representative after review.</p>
           <p className="text-sm text-[var(--color-text-muted)]">Special Instructions: {cart.specialInstructions || 'Add at checkout'}</p>
+          <Button variant="secondary" className="w-full" icon={Download} loading={isDownloadingPdf} onClick={handleDownloadPdf}>
+            Download Catalogue PDF
+          </Button>
           <Link to="/checkout">
             <Button className="mt-4 w-full">Proceed to Checkout</Button>
           </Link>
@@ -563,6 +581,19 @@ export function CataloguePage() {
 export function ProfilePage() {
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
   const { data: orders = [] } = useQuery({ queryKey: ['orders'], queryFn: orderService.list });
+  const [downloadingOrderId, setDownloadingOrderId] = useState(null);
+
+  const handleDownloadOrder = async (order) => {
+    try {
+      setDownloadingOrderId(order.id);
+      await downloadDeArteOrderPdf({ order, user: order.user || profile || {} });
+      toast.success(`Downloaded ${order.orderId}`);
+    } catch (error) {
+      toast.error(error?.message || 'Could not generate order PDF');
+    } finally {
+      setDownloadingOrderId(null);
+    }
+  };
 
   return (
     <section className="page-shell section-gap">
@@ -590,6 +621,7 @@ export function ProfilePage() {
                   <th className="pb-4">Date</th>
                   <th className="pb-4">Items</th>
                   <th className="pb-4">Status</th>
+                  <th className="pb-4 text-right">Download</th>
                 </tr>
               </thead>
               <tbody>
@@ -599,6 +631,17 @@ export function ProfilePage() {
                     <td className="py-4">{formatDate(order.date)}</td>
                     <td className="py-4">{order.items.length}</td>
                     <td className="py-4">{order.status}</td>
+                    <td className="py-4 text-right">
+                      <Button
+                        variant="ghost"
+                        className="px-3 py-2 text-[11px]"
+                        icon={Download}
+                        loading={downloadingOrderId === order.id}
+                        onClick={() => handleDownloadOrder(order)}
+                      >
+                        PDF
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

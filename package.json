@@ -16,6 +16,7 @@
     "concurrently": "^9.2.1"
   },
   "dependencies": {
+    "boneyard-js": "^1.7.7",
     "dotenv": "^17.4.2",
     "mongodb": "^7.1.1"
   }
