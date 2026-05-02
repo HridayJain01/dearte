@@ -10,6 +10,40 @@ function getEventStatus(date) {
   return new Date(date) < new Date() ? 'Previous' : 'Upcoming';
 }
 
+function ShopCategoryDiamondIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M24 6L41 18.5L24 42L7 18.5L24 6Z" stroke="#002130" strokeWidth="1.35" strokeLinejoin="round" />
+      <path d="M7 18.5H41" stroke="#002130" strokeWidth="1.35" />
+      <path d="M13.5 18.5L24 6L34.5 18.5" stroke="#002130" strokeWidth="1.35" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShopCategoryCard({ label, categorySlug, imageSrc, className }) {
+  const to = `/collections/${encodeURIComponent(categorySlug)}`;
+
+  return (
+    <Link
+      to={to}
+      className={`group relative isolate block overflow-hidden bg-neutral-200 ${className ?? ''}`}
+    >
+      <img
+        src={imageSrc}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover transition duration-500 ease-out group-hover:scale-105"
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-linear-to-t from-black/62 via-black/28 to-transparent"
+        aria-hidden
+      />
+      <span className="absolute bottom-4.5 left-4.5 z-10 text-lg font-medium leading-tight tracking-[-0.01em] text-white sm:bottom-5 sm:left-5 sm:text-xl">
+        {label}
+      </span>
+    </Link>
+  );
+}
+
 export function BrandExpressionFrame() {
   return (
     <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 pb-4 pt-3 sm:pb-8 sm:pt-6">
@@ -32,6 +66,63 @@ export function ProcessImageFrame() {
         className="block h-auto w-full"
         loading="lazy"
       />
+    </section>
+  );
+}
+
+export function CollectionsShowcase() {
+  const navy = '#002130';
+
+  return (
+    <section className="page-shell animate-page-enter pb-14 pt-8 sm:pb-20 sm:pt-10 md:pb-28 md:pt-12">
+      <header className="mb-10 text-center sm:mb-12 md:mb-14">
+        <ShopCategoryDiamondIcon className="mx-auto h-11 w-11 sm:h-12 sm:w-12 md:h-13 md:w-13" />
+        <h2
+          className="mt-5 text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[2rem] md:text-[2.25rem]"
+          style={{ color: navy }}
+        >
+          Shop by Category
+        </h2>
+        <p
+          className="mx-auto mt-3 max-w-160 text-sm leading-relaxed sm:text-lg"
+          style={{ color: `${navy}CC` }}
+        >
+          Discover the perfect lab-grown diamond jewellery for everyday and special occasions.
+        </p>
+      </header>
+
+      <div className="flex flex-col gap-4 sm:gap-4.5 lg:flex-row lg:items-stretch">
+        <ShopCategoryCard
+          label="Rings"
+          categorySlug="Rings"
+          imageSrc="/images/shop-category/rings.jpg"
+          className="aspect-4/5 min-h-70 w-full lg:aspect-auto lg:w-1/2 lg:self-stretch lg:min-h-144"
+        />
+
+        <div className="flex w-full min-h-0 flex-col gap-4 sm:gap-4.5 lg:w-1/2 lg:min-h-144">
+          <ShopCategoryCard
+            label="Earrings"
+            categorySlug="Earrings"
+            imageSrc="/images/shop-category/earrings.jpg"
+            className="aspect-16/11 min-h-48 w-full lg:aspect-auto lg:min-h-0 lg:flex-1"
+          />
+
+          <div className="grid min-h-42 grid-cols-2 gap-4 sm:gap-4.5 lg:min-h-0 lg:flex-1">
+            <ShopCategoryCard
+              label="Bracelets"
+              categorySlug="Bracelets"
+              imageSrc="/images/shop-category/bracelets.jpg"
+              className="aspect-square min-h-42 w-full lg:aspect-auto lg:min-h-0 lg:h-full"
+            />
+            <ShopCategoryCard
+              label="Pendants"
+              categorySlug="Necklaces"
+              imageSrc="/images/shop-category/pendants.jpg"
+              className="aspect-square min-h-42 w-full lg:aspect-auto lg:min-h-0 lg:h-full"
+            />
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -281,6 +372,49 @@ export function TrustedBrandGrid({ brands }) {
         );
       })}
     </div>
+  );
+}
+
+export function CollectionsRail({ collections }) {
+  if (!collections?.length) return null;
+
+  return (
+    <section className="page-shell section-gap">
+      <SectionHeading
+        eyebrow="Curated Collections"
+        title="Explore our signature collections."
+        description="Handpicked assortments designed for specific occasions and styles."
+      />
+      <div className="hide-scrollbar flex gap-4 overflow-x-auto pb-4 sm:gap-6">
+        {collections.map((collection) => (
+          <Link
+            key={collection.id}
+            to={`/products?collection=${collection.name}`}
+            className="min-w-[240px] max-w-[240px] flex-none sm:min-w-[300px] sm:max-w-[300px]"
+          >
+            <Panel className="group h-full overflow-hidden p-0">
+              <div className="relative overflow-hidden bg-[var(--color-surface-alt)]">
+                {collection.image ? (
+                  <img
+                    src={collection.image}
+                    alt={collection.name}
+                    className="h-40 w-full object-cover transition group-hover:scale-105 sm:h-48"
+                  />
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-[var(--color-primary-bg)] to-[var(--color-surface)] sm:h-48">
+                    <p className="text-sm font-semibold text-[var(--color-text-muted)]">No Image</p>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-[var(--color-text)]">{collection.name}</h3>
+                <p className="mt-2 text-xs uppercase tracking-[0.12em] text-[var(--color-primary)]">View Collection &rarr;</p>
+              </div>
+            </Panel>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 

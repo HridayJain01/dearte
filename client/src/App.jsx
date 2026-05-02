@@ -12,6 +12,7 @@ const LoginPage = lazy(() => import('./pages/AuthPages').then((module) => ({ def
 const RegisterPage = lazy(() => import('./pages/AuthPages').then((module) => ({ default: module.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('./pages/AuthPages').then((module) => ({ default: module.ForgotPasswordPage })));
 
+const CollectionsPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.CollectionsPage })));
 const ProductListPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.ProductListPage })));
 const ProductDetailPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.ProductDetailPage })));
 const CartPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.CartPage })));
@@ -74,6 +75,7 @@ function App() {
         >
           <Route index element={<HomePage />} />
           <Route path="products" element={<ProductListPage />} />
+          <Route path="collections" element={<CollectionsPage />} />
           <Route path="collections/:category" element={<ProductListPage />} />
           <Route path="products/:styleCode" element={<ProductDetailPage />} />
           <Route path="cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />

@@ -8,6 +8,7 @@ export const productService = {
   events: () => unwrap(api.get('/events')),
   trustedBy: () => unwrap(api.get('/trusted-by')),
   testimonials: () => unwrap(api.get('/testimonials')),
+  collections: () => unwrap(api.get('/collections')),
   careers: () => unwrap(api.get('/careers')),
   staticPage: (slug) => unwrap(api.get(`/site/static/${slug}`)),
   faq: () => unwrap(api.get('/faq')),

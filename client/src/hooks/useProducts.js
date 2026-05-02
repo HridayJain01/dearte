@@ -19,3 +19,9 @@ export const useProduct = (styleCode) =>
     queryFn: () => productService.product(styleCode),
     enabled: Boolean(styleCode),
   });
+
+export const useCollections = () =>
+  useQuery({
+    queryKey: ['collections'],
+    queryFn: productService.collections,
+  });

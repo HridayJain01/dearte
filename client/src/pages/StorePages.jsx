@@ -1,5 +1,6 @@
 import { Download, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -19,6 +20,106 @@ import { formatDate } from '../utils/formatters';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutSchema } from '../utils/validators';
+
+function ShopCategoryDiamondIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M24 6L41 18.5L24 42L7 18.5L24 6Z" stroke="#002130" strokeWidth="1.35" strokeLinejoin="round" />
+      <path d="M7 18.5H41" stroke="#002130" strokeWidth="1.35" />
+      <path d="M13.5 18.5L24 6L34.5 18.5" stroke="#002130" strokeWidth="1.35" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShopCategoryCard({ label, categorySlug, imageSrc, className }) {
+  const to = `/collections/${encodeURIComponent(categorySlug)}`;
+
+  return (
+    <Link
+      to={to}
+      className={`group relative isolate block overflow-hidden bg-neutral-200 ${className ?? ''}`}
+    >
+      <img
+        src={imageSrc}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover transition duration-[480ms] ease-out group-hover:scale-[1.03]"
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/62 via-black/28 to-transparent"
+        aria-hidden
+      />
+      <span className="absolute bottom-[1.125rem] left-[1.125rem] z-10 text-[1.0625rem] font-medium leading-tight tracking-[-0.01em] text-white sm:bottom-5 sm:left-5 sm:text-xl">
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+/** Shop-by-category landing: asymmetric grid landing on curated category product lists at `/collections/:category`. */
+export function CollectionsPage() {
+  const navy = '#002130';
+
+  return (
+    <section className="page-shell animate-page-enter pb-14 pt-12 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20">
+      <Helmet>
+        <title>Shop by Category | DeArte Jewellery</title>
+        <meta
+          name="description"
+          content="Discover lab-grown diamond jewellery by category — rings, earrings, bracelets, and pendants."
+        />
+      </Helmet>
+
+      <header className="mb-10 text-center sm:mb-12 md:mb-14">
+        <ShopCategoryDiamondIcon className="mx-auto h-11 w-11 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
+        <h1
+          className="mt-5 text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[2rem] md:text-[2.25rem]"
+          style={{ color: navy }}
+        >
+          Shop by Category
+        </h1>
+        <p
+          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed sm:text-lg"
+          style={{ color: `${navy}CC` }}
+        >
+          Discover the perfect lab-grown diamond jewellery for everyday and special occasions.
+        </p>
+      </header>
+
+      <div className="flex flex-col gap-4 sm:gap-[18px] lg:flex-row lg:items-stretch">
+        <ShopCategoryCard
+          label="Rings"
+          categorySlug="Rings"
+          imageSrc="/images/shop-category/rings.jpg"
+          className="aspect-[4/5] min-h-[17.5rem] w-full lg:aspect-auto lg:w-1/2 lg:self-stretch lg:min-h-[36rem]"
+        />
+
+        <div className="flex w-full min-h-0 flex-col gap-4 sm:gap-[18px] lg:w-1/2 lg:min-h-[36rem]">
+          <ShopCategoryCard
+            label="Earrings"
+            categorySlug="Earrings"
+            imageSrc="/images/shop-category/earrings.jpg"
+            className="aspect-[16/11] min-h-[12rem] w-full lg:aspect-auto lg:min-h-0 lg:flex-1"
+          />
+
+          <div className="grid min-h-[10.5rem] grid-cols-2 gap-4 sm:gap-[18px] lg:min-h-0 lg:flex-1">
+            <ShopCategoryCard
+              label="Bracelets"
+              categorySlug="Bracelets"
+              imageSrc="/images/shop-category/bracelets.jpg"
+              className="aspect-square min-h-[10.5rem] w-full lg:aspect-auto lg:min-h-0 lg:h-full"
+            />
+            <ShopCategoryCard
+              label="Pendants"
+              categorySlug="Necklaces"
+              imageSrc="/images/shop-category/pendants.jpg"
+              className="aspect-square min-h-[10.5rem] w-full lg:aspect-auto lg:min-h-0 lg:h-full"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function ProductListPage() {
   const { category } = useParams();

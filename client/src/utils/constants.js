@@ -17,7 +17,7 @@ import {
 
 export const NAV_LINKS = [
   { label: 'Home', to: '/' },
-  { label: 'Collections', to: '/products' },
+  { label: 'Collections', to: '/collections' },
   { label: 'New Arrivals', to: '/products?sort=new-arrivals' },
   { label: 'Best Sellers', to: '/products?sort=best-sellers' },
   { label: 'Education', to: '/education/diamond' },

@@ -2,7 +2,7 @@ import { useHomePage } from '../hooks/useProducts';
 import { LoadingBlock } from '../components/ui/Primitives';
 import {
   BrandExpressionFrame,
-  CompanyStrip,
+  CollectionsShowcase,
   CTABanner,
   EventsRail,
   HeroSlider,
@@ -30,9 +30,7 @@ export function HomePage() {
       <HeroSlider banners={data.banners} />
       <BrandExpressionFrame />
       <ProcessImageFrame />
-      <CompanyStrip companyInfo={data.companyInfo} />
-      <TestimonialRail testimonials={data.testimonials} />
-      <EventsRail events={data.events} />
+      <CollectionsShowcase />
       <ProductRail
         title="Best Sellers"
         description="Curated favorites and everyday classics."
@@ -47,6 +45,8 @@ export function HomePage() {
         link="/products?sort=new-arrivals"
         bgClass="bg-[var(--color-surface-alt)]"
       />
+      <TestimonialRail testimonials={data.testimonials} />
+      <EventsRail events={data.events} />
       <section className="page-shell section-gap">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
