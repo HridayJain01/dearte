@@ -37,6 +37,7 @@ const AdminPromotionsPage = lazy(() => import('./pages/AdminPages').then((module
 const AdminUsersPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminUsersPage })));
 const AdminProductsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminProductsPage })));
 const AdminOrdersPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminOrdersPage })));
+const AdminWhatsAppPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminWhatsAppPage })));
 const AdminCataloguesPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminCataloguesPage })));
 const AdminConfigPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminConfigPage })));
 const AdminTestimonialsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminTestimonialsPage })));
@@ -114,6 +115,7 @@ function App() {
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="whatsapp" element={<AdminWhatsAppPage />} />
           <Route path="catalogues" element={<AdminCataloguesPage />} />
           <Route path="config" element={<AdminConfigPage />} />
           <Route path="testimonials" element={<AdminTestimonialsPage />} />

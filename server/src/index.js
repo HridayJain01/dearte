@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import whatsappWebhookRoutes from './routes/whatsappWebhookRoutes.js';
 import { requireAdmin, requireAuth } from './middleware/auth.js';
 import { sendError, sendSuccess } from './utils/responses.js';
 import { connectDatabase } from './config/database.js';
@@ -37,6 +38,7 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/whatsapp', whatsappWebhookRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', requireAuth, userRoutes);
 app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);

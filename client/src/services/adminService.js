@@ -58,4 +58,6 @@ export const adminService = {
   signUpload: (payload) => unwrap(api.post('/admin/uploads/sign', payload)),
   deleteUpload: (publicId) =>
     unwrap(api.delete(`/admin/uploads/${encodeURIComponent(publicId)}`)),
+  whatsappStatus: () => unwrap(api.get('/admin/whatsapp/status')),
+  whatsappBroadcast: (payload) => unwrap(api.post('/admin/whatsapp/broadcast', payload)),
 };

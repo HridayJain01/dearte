@@ -20,6 +20,7 @@ import {
   serializeMetalOption,
   serializeTrustedBrand,
 } from '../utils/serializers.js';
+import { sanitizeSiteSettingsForPublic } from '../utils/siteSettingsPublic.js';
 
 const router = express.Router();
 
@@ -91,7 +92,7 @@ router.get('/site/home', async (_req, res) => {
       image: event.image?.secureUrl || '',
     })),
     trustedBrands: trustedBrands.map(serializeTrustedBrand),
-    siteSettings: siteSettings || seedData.siteSettings,
+    siteSettings: sanitizeSiteSettingsForPublic(siteSettings) || seedData.siteSettings,
     popupAds: popupAds.map((item) => ({
       id: String(item._id),
       image: item.image?.secureUrl || '',
@@ -287,7 +288,7 @@ router.get('/careers', (_req, res) => sendSuccess(res, seedData.careers));
 router.get('/faq', (_req, res) => sendSuccess(res, seedData.faq));
 router.get('/site/contact', async (_req, res) => {
   const siteSettings = await SiteSettings.findOne();
-  return sendSuccess(res, siteSettings || seedData.siteSettings);
+  return sendSuccess(res, sanitizeSiteSettingsForPublic(siteSettings) || seedData.siteSettings);
 });
 
 router.get('/site/static/:slug', (req, res) => {

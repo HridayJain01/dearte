@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { adminService } from '../services/adminService';
@@ -85,6 +85,7 @@ const emptySiteSettings = {
   email: '',
   phone: '',
   whatsapp: '',
+  whatsappOperationsNumbers: '',
   instagram: '',
   linkedin: '',
   facebook: '',
@@ -866,12 +867,43 @@ export function AdminOrdersPage() {
   const { data = [], isLoading } = useQuery({ queryKey: ['admin-orders'], queryFn: adminService.orders });
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const selectedOrder = data.find((item) => item.id === selectedOrderId) || data[0];
+  const [statusChangeFlow, setStatusChangeFlow] = useState(null);
+  const [statusNotifyOptionalNote, setStatusNotifyOptionalNote] = useState('');
+  const [statusSaving, setStatusSaving] = useState(false);
+
+  useEffect(() => {
+    setStatusChangeFlow(null);
+    setStatusNotifyOptionalNote('');
+  }, [selectedOrder?.id]);
 
   if (isLoading) return <LoadingBlock />;
 
+  const displayedStatusSelect = statusChangeFlow?.next ?? selectedOrder?.status ?? 'Pending';
+
+  const applyOrderStatusChange = async (notifyCustomerViaWhatsapp) => {
+    if (!selectedOrder || !statusChangeFlow?.next || statusSaving) return;
+    try {
+      setStatusSaving(true);
+      await adminService.updateOrder(selectedOrder.id, {
+        status: statusChangeFlow.next,
+        notifyCustomerViaWhatsapp,
+        notifyCustomerMessage: statusNotifyOptionalNote,
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      setStatusChangeFlow(null);
+      setStatusNotifyOptionalNote('');
+      toast.success(notifyCustomerViaWhatsapp ? 'Order saved and WhatsApp sent (if buyer has mobile configured).' : 'Order saved.');
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Could not update order.';
+      toast.error(msg);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Orders" title="Review and edit buyer orders" description="Order detail now includes buyer info, shipping notes, and product-level context." />
+      <SectionHeading eyebrow="Orders" title="Review and edit buyer orders" description="When you change order status, confirm whether WhatsApp notification should reach the buyer. Order confirmations with PDF attach automatically." />
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Panel className="space-y-3">
           {data.map((order) => (
@@ -892,10 +924,19 @@ export function AdminOrdersPage() {
                 queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
               }} /></Field>
               <Field label="Status">
-                <select className={textInput} value={selectedOrder.status} onChange={async (event) => {
-                  await adminService.updateOrder(selectedOrder.id, { status: event.target.value });
-                  queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-                }}>
+                <select
+                  key={selectedOrder.id}
+                  className={textInput}
+                  value={displayedStatusSelect}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    if (next === selectedOrder.status) {
+                      setStatusChangeFlow(null);
+                      return;
+                    }
+                    setStatusChangeFlow({ next });
+                  }}
+                >
                   <option value="Pending">Pending</option>
                   <option value="Reviewed">Reviewed</option>
                   <option value="Approved">Approved</option>
@@ -907,6 +948,27 @@ export function AdminOrdersPage() {
               </Field>
               <Field label="Created"><input className={textInput} value={new Date(selectedOrder.createdAt).toLocaleString('en-IN')} readOnly /></Field>
             </div>
+            {statusChangeFlow ? (
+              <div className="space-y-3 rounded border border-[var(--color-border-active)] bg-[var(--color-surface-alt)] p-4">
+                <p className="text-sm text-[var(--color-text)]">
+                  Status goes from “{selectedOrder.status}” to “{statusChangeFlow.next}”. Should we send a WhatsApp text to the buyer (mobile on profile)?
+                </p>
+                <Field label="Optional note for buyer (appended to WhatsApp)">
+                  <textarea
+                    className={textareaInput}
+                    value={statusNotifyOptionalNote}
+                    placeholder="Shipment tracking reference, ETA, pickup instructions..."
+                    rows={3}
+                    onChange={(event) => setStatusNotifyOptionalNote(event.target.value)}
+                  />
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <Button loading={statusSaving} onClick={() => applyOrderStatusChange(true)}>Notify on WhatsApp and save</Button>
+                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange(false)}>Save without WhatsApp</Button>
+                  <Button variant="ghost" disabled={statusSaving} onClick={() => setStatusChangeFlow(null)}>Cancel</Button>
+                </div>
+              </div>
+            ) : null}
             <Field label="Shipping address">
               <textarea className={textareaInput} defaultValue={selectedOrder.shippingAddress || ''} onBlur={async (event) => {
                 await adminService.updateOrder(selectedOrder.id, { shippingAddress: event.target.value });
@@ -1094,6 +1156,146 @@ export function AdminCataloguesPage() {
   );
 }
 
+export function AdminWhatsAppPage() {
+  const queryClient = useQueryClient();
+  const { data: waStatus, isLoading: waLoading } = useQuery({
+    queryKey: ['admin-whatsapp-status'],
+    queryFn: adminService.whatsappStatus,
+  });
+  const { data: buyers = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: adminService.users,
+  });
+
+  const [message, setMessage] = useState('');
+  const [audience, setAudience] = useState('selected');
+  const [selectedBuyerIds, setSelectedBuyerIds] = useState(() => new Set());
+  const [mediaKind, setMediaKind] = useState('none');
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaFilename, setMediaFilename] = useState('attachment.pdf');
+  const [sending, setSending] = useState(false);
+
+  const buyerSearchList = useMemo(() => [...buyers].sort((a, b) => a.name.localeCompare(b.name)), [buyers]);
+
+  if (waLoading || usersLoading) return <LoadingBlock />;
+
+  const toggleBuyer = (id) => {
+    setSelectedBuyerIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const runBroadcast = async () => {
+    const trimmedMsg = message.trim();
+    const trimmedUrl = mediaUrl.trim();
+    if (!trimmedMsg && !trimmedUrl) {
+      toast.error('Enter a message, an https media URL, or both.');
+      return;
+    }
+
+    const payload = {
+      audience,
+      userIds: audience === 'selected' ? [...selectedBuyerIds] : [],
+      message: trimmedMsg,
+      mediaKind: trimmedUrl ? mediaKind : 'none',
+      mediaUrl: trimmedUrl,
+      mediaFilename: mediaFilename.trim() || 'attachment.pdf',
+    };
+
+    if (audience === 'selected' && payload.userIds.length === 0) {
+      toast.error('Select at least one buyer.');
+      return;
+    }
+
+    try {
+      setSending(true);
+      const result = await adminService.whatsappBroadcast(payload);
+      const totals = result?.totals || {};
+      toast.success(`Sent ${totals.sent || 0}, skipped ${totals.skipped || 0}, failed ${totals.failed || 0}.`);
+      queryClient.invalidateQueries({ queryKey: ['admin-whatsapp-status'] });
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Broadcast failed.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5 sm:space-y-8">
+      <SectionHeading
+        eyebrow="WhatsApp"
+        title="Cloud API broadcasts"
+        description="Send trade updates with optional CDN-hosted media (image, video, or document link). Recipient phones must accept messages from your business number and use international format on profiles."
+      />
+
+      <Panel className="space-y-4">
+        <p className="lux-label">Connection status</p>
+        {waStatus?.configured ? (
+          <p className="text-sm text-[var(--color-text-muted)]">WhatsApp Cloud API credentials are configured on the server.</p>
+        ) : (
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Not ready: {(waStatus?.missing || []).join(', ') || 'Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID'}.
+          </p>
+        )}
+      </Panel>
+
+      <Panel className="space-y-4">
+        <p className="lux-label">Audience</p>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="radio" checked={audience === 'selected'} onChange={() => setAudience('selected')} /> Selected buyers ({selectedBuyerIds.size})
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="radio" checked={audience === 'all_active_buyers'} onChange={() => setAudience('all_active_buyers')} /> All active buyers
+          </label>
+        </div>
+
+        {audience === 'selected' ? (
+          <div className="max-h-[280px] space-y-2 overflow-y-auto rounded border border-[var(--color-border)] p-3">
+            {buyerSearchList.map((user) => (
+              <label key={user.id} className="flex cursor-pointer items-center gap-3 text-sm">
+                <input type="checkbox" checked={selectedBuyerIds.has(user.id)} onChange={() => toggleBuyer(user.id)} />
+                <span className="font-medium text-[var(--color-text)]">{user.name}</span>
+                <span className="text-[var(--color-text-muted)]">{user.mobile || 'No mobile'}</span>
+              </label>
+            ))}
+          </div>
+        ) : null}
+
+        <Field label="Message body">
+          <textarea className={textareaInput} rows={5} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Hi from De Arté — new collection preview inside." />
+        </Field>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Media type (optional)">
+            <select className={textInput} value={mediaKind} onChange={(event) => setMediaKind(event.target.value)}>
+              <option value="none">Text only</option>
+              <option value="image">Image (https link)</option>
+              <option value="video">Video (https link)</option>
+              <option value="document">Document (https link)</option>
+            </select>
+          </Field>
+          <Field label="Public https URL (Cloudinary, etc.)">
+            <input className={textInput} value={mediaUrl} onChange={(event) => setMediaUrl(event.target.value)} placeholder="https://res.cloudinary.com/..." />
+          </Field>
+        </div>
+        {mediaKind === 'document' ? (
+          <Field label="Filename shown in WhatsApp">
+            <input className={textInput} value={mediaFilename} onChange={(event) => setMediaFilename(event.target.value)} />
+          </Field>
+        ) : null}
+
+        <Button loading={sending} onClick={runBroadcast} disabled={!waStatus?.configured}>
+          Send broadcast
+        </Button>
+      </Panel>
+    </div>
+  );
+}
+
 export function AdminConfigPage() {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['admin-config'], queryFn: adminService.config });
@@ -1124,7 +1326,8 @@ export function AdminConfigPage() {
           <Field label="Email"><input className={textInput} value={siteSettings.email} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), email: event.target.value }))} /></Field>
           <Field label="Phone"><input className={textInput} value={siteSettings.phone} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), phone: event.target.value }))} /></Field>
           <Field label="Hours"><input className={textInput} value={siteSettings.hours} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), hours: event.target.value }))} /></Field>
-          <Field label="WhatsApp"><input className={textInput} value={siteSettings.whatsapp} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), whatsapp: event.target.value }))} /></Field>
+          <Field label="WhatsApp (public link)"><input className={textInput} value={siteSettings.whatsapp} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), whatsapp: event.target.value }))} /></Field>
+          <Field label="WhatsApp ops numbers (order PDF copies)"><input className={textInput} value={siteSettings.whatsappOperationsNumbers || ''} placeholder="9198..., 9197... (comma-separated)" onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), whatsappOperationsNumbers: event.target.value }))} /></Field>
           <Field label="Instagram"><input className={textInput} value={siteSettings.instagram} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), instagram: event.target.value }))} /></Field>
           <Field label="LinkedIn"><input className={textInput} value={siteSettings.linkedin} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), linkedin: event.target.value }))} /></Field>
           <Field label="Facebook"><input className={textInput} value={siteSettings.facebook} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), facebook: event.target.value }))} /></Field>

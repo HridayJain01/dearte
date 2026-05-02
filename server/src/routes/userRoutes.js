@@ -7,6 +7,7 @@ import {
 } from '../models/index.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } from '../utils/serializers.js';
+import { notifyWhatsappOrderPlaced } from '../services/orderWhatsappNotifications.js';
 
 const router = express.Router();
 
@@ -388,6 +389,12 @@ router.post('/orders', async (req, res) => {
     },
     { path: 'statusHistory.changedBy' },
   ]);
+
+  setImmediate(() => {
+    notifyWhatsappOrderPlaced(order).catch((e) =>
+      console.error('[whatsapp] order-placed notifications failed', e.message),
+    );
+  });
 
   return sendSuccess(res, serializeOrder(order), 'Order placed successfully');
 });
