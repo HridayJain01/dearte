@@ -38,7 +38,16 @@ Edit `.env` and fill in:
 - `JWT_SECRET` and `JWT_REFRESH_SECRET`: Run `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` twice
 - `CLOUDINARY_*`: Optional for now (set to dummy values); needed for image uploads later
 
-### 4. Start development
+### 4. Test WhatsApp webhook locally with ngrok
+
+1. Start the backend on port `5001`
+2. Run `ngrok http 5001`
+3. Copy the public HTTPS forwarding URL that ngrok gives you
+4. In Meta WhatsApp webhook settings, set the callback URL to `https://<your-ngrok-subdomain>.ngrok-free.app/api/whatsapp/webhook`
+5. Use the same value as `WHATSAPP_WEBHOOK_VERIFY_TOKEN` in `.env`
+6. Keep `WHATSAPP_ENABLED=true`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_ACCESS_TOKEN` set while testing
+
+### 5. Start development
 
 ```bash
 npm run dev
