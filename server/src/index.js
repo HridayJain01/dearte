@@ -18,9 +18,23 @@ const app = express();
 const PORT = Number(process.env.PORT || 5001);
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
+// Support multiple origins for dev and production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://dearte-client.vercel.app',
+  CLIENT_ORIGIN
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: CLIENT_ORIGIN,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS not allowed'));
+      }
+    },
     credentials: true,
   }),
 );
