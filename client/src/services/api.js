@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const defaultTarget = import.meta.env.VITE_API_PROXY_TARGET || 'http://localhost:5001/api';
+const baseURL = import.meta.env.DEV ? '/api' : defaultTarget;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_PROXY_TARGET || 'http://localhost:5001/api',
+  baseURL,
   withCredentials: true,
 });
 

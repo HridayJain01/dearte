@@ -21,23 +21,32 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 // Support multiple origins for dev and production
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://127.0.0.1:5173',
   'http://localhost:3000',
   'https://dearte-client.vercel.app',
-  CLIENT_ORIGIN
+  CLIENT_ORIGIN,
 ].filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS not allowed'));
-      }
-    },
-    credentials: true,
-  }),
-);
+const isDev = process.env.NODE_ENV !== 'production';
+
+if (isDev) {
+  // In development, allow any origin and echo it back so credentials work.
+  // This avoids accidental CORS failures from localhost variants (127.0.0.1, ::1).
+  app.use(cors({ origin: true, credentials: true }));
+} else {
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('CORS not allowed'));
+        }
+      },
+      credentials: true,
+    }),
+  );
+}
 app.use(
   helmet({
     crossOriginResourcePolicy: false,

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { userService } from '../services/userService';
+import { brandLogoAlt, brandLogoUrl } from '../utils/brandLogo';
 import { Button, Input, Panel, SectionHeading } from '../components/ui/Primitives';
 import { forgotPasswordSchema, loginSchema, registerSchema } from '../utils/validators';
 
@@ -12,7 +13,7 @@ function AuthShell({ title, description, children }) {
     <section className="page-shell section-gap">
       <div className="grid overflow-hidden border border-[var(--color-border)] lg:grid-cols-2">
         <div className="relative min-h-[280px] bg-[var(--color-primary)] p-5 sm:min-h-[520px] sm:p-10">
-          <p className="lux-label mb-5 !text-[var(--color-accent)]">De Arté Access</p>
+          <img src={brandLogoUrl} alt={brandLogoAlt} className="mb-5 h-12 w-auto bg-white/95 p-2" />
           <h1 className="lux-heading max-w-md text-3xl !text-white sm:text-6xl">{title}</h1>
           <p className="mt-4 max-w-md text-sm text-white/60 sm:mt-6 sm:text-base">{description}</p>
         </div>

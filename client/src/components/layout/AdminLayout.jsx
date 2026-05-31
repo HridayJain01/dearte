@@ -2,6 +2,7 @@ import { ChevronDown, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { ADMIN_LINKS } from '../../utils/constants';
+import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Primitives';
 
@@ -16,7 +17,7 @@ export function AdminLayout() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="lux-label mb-2">Admin Console</p>
-              <h1 className="lux-heading text-4xl tracking-widest">De Arté</h1>
+              <img src={brandLogoUrl} alt={brandLogoAlt} className="h-12 w-auto" />
               <p className="mt-2 text-sm text-text-muted">{user?.name}</p>
             </div>
             <button

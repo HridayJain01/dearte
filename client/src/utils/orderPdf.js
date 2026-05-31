@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { formatDate, formatWeight } from './formatters';
+import { brandLogoUrl } from './brandLogo';
 
 const BRAND = {
   charcoal: '#1f1d1a',
@@ -63,6 +64,16 @@ async function imageToDataUrl(url) {
   }
 }
 
+let cachedBrandLogoDataUrl = null;
+
+async function getBrandLogoDataUrl() {
+  if (cachedBrandLogoDataUrl === null) {
+    cachedBrandLogoDataUrl = await imageToDataUrl(brandLogoUrl);
+  }
+
+  return cachedBrandLogoDataUrl;
+}
+
 function buildItems(sourceItems = []) {
   return sourceItems.map((item) => ({
     id: item.id,
@@ -100,7 +111,7 @@ function mapOrder(order) {
   };
 }
 
-function drawHeader(doc, title, reference, kind, pageNumberLabel = '') {
+function drawHeader(doc, title, reference, kind, logoDataUrl, pageNumberLabel = '') {
   const width = doc.internal.pageSize.getWidth();
 
   doc.setFillColor(BRAND.charcoal);
@@ -109,11 +120,13 @@ function drawHeader(doc, title, reference, kind, pageNumberLabel = '') {
   doc.setFillColor(BRAND.gold);
   doc.rect(0, 22, width, 2, 'F');
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text('De Arté', 14, 14);
+  if (logoDataUrl) {
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(14, 4, 50, 14, 1.5, 1.5, 'F');
+    doc.addImage(logoDataUrl, 'PNG', 16, 5.1, 46, 12.1, undefined, 'FAST');
+  }
 
+  doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.text('Private jewellery catalogue and order summary', 14, 18);
@@ -247,7 +260,9 @@ async function generatePdf({ payload, user, filename }) {
     })),
   );
 
-  drawHeader(doc, payload.title, payload.reference, payload.kind);
+  const logoDataUrl = await getBrandLogoDataUrl();
+
+  drawHeader(doc, payload.title, payload.reference, payload.kind, logoDataUrl);
 
   doc.setTextColor(BRAND.charcoal);
   doc.setFont('helvetica', 'normal');
@@ -263,10 +278,19 @@ async function generatePdf({ payload, user, filename }) {
   const summaryGap = 4;
   const summaryCardWidth = (contentWidth - summaryGap) / 2;
 
+  // compute totals for gold weight and diamond carats
+  const totalGold = payload.items.reduce((sum, it) => sum + (Number(it.product?.goldWeight || 0) * (Number(it.quantity) || 1)), 0);
+  const totalCarats = payload.items.reduce((sum, it) => sum + (Number(it.product?.diamondWeight || 0) * (Number(it.quantity) || 1)), 0);
+
   drawSummaryCard(doc, margin, summaryY, summaryCardWidth, payload.kind === 'cart' ? 'Items in draft' : 'Items in order', String(payload.items.length));
   drawSummaryCard(doc, margin + summaryCardWidth + summaryGap, summaryY, summaryCardWidth, 'Reference', payload.reference);
 
-  const infoY = 62;
+  // additional totals shown beneath the primary summary
+  const totalsY = summaryY + 22;
+  drawSummaryCard(doc, margin, totalsY, summaryCardWidth, 'Total gold weight', formatWeight(totalGold, 'g'));
+  drawSummaryCard(doc, margin + summaryCardWidth + summaryGap, totalsY, summaryCardWidth, 'Total diamond carats', formatWeight(totalCarats, 'ct'));
+
+  const infoY = 62 + 22; // move info block down to account for totals row
   const infoGap = 4;
   const infoCardWidth = (contentWidth - infoGap) / 2;
 
@@ -301,7 +325,7 @@ async function generatePdf({ payload, user, filename }) {
   for (const [index, item] of payload.items.entries()) {
     if (y + cardHeight > height - 18) {
       doc.addPage();
-      drawHeader(doc, payload.title, payload.reference, payload.kind, `Page ${doc.getNumberOfPages()}`);
+      drawHeader(doc, payload.title, payload.reference, payload.kind, logoDataUrl, `Page ${doc.getNumberOfPages()}`);
       y = 26;
     }
 

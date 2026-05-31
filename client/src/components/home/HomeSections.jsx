@@ -50,7 +50,7 @@ export function BrandExpressionFrame() {
       <img
         src={brandExpressionImage}
         alt="Origin Emotion Experience Radiance"
-        className="block h-auto w-full"
+        className="block h-auto w-full max-h-[32rem] sm:max-h-[40rem] object-contain mx-auto"
         loading="lazy"
       />
     </section>
@@ -146,11 +146,11 @@ export function HeroSlider({ banners }) {
   const slide = banners[active];
 
   return (
-    <section className="page-shell py-2 sm:py-8">
-      <div className="relative min-h-[78svh] overflow-hidden sm:min-h-screen">
+    <section className="page-shell py-2 sm:py-4">
+      <div className="relative h-[calc(92svh-5.75rem)] overflow-hidden sm:h-[calc(88svh-6.5rem)]">
         <img src={slide.image} alt={slide.title} className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-[rgba(107,15,46,0.25)]" />
-        <div className="animate-hero-entry relative z-10 flex min-h-[78svh] max-w-3xl flex-col justify-center gap-4 px-4 py-10 sm:min-h-screen sm:gap-5 sm:px-8 sm:py-16 md:px-16">
+        <div className="animate-hero-entry relative z-10 flex h-full max-w-3xl flex-col justify-center gap-4 px-4 py-8 sm:gap-5 sm:px-8 sm:py-12 md:px-16 md:py-16">
           <p className="lux-label text-white/80!">Luxury B2B Jewellery Platform</p>
           {slide.offerBadge ? (
             <p className="inline-flex w-fit border border-white/30 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">

@@ -2,6 +2,7 @@ import { Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucid
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
+import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
@@ -30,10 +31,7 @@ export function AppLayout() {
       >
         <div className="page-shell flex items-center justify-between gap-3 py-3 sm:gap-4 sm:py-5">
           <Link to="/" className="flex items-center gap-3">
-            <div className="text-center">
-              <p className="lux-heading text-xl tracking-widest sm:text-2xl">De Arté</p>
-              <p className="font-['Jost'] text-[9px] uppercase tracking-[0.3em] text-[var(--color-text-muted)]">Jewels</p>
-            </div>
+            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-10 w-auto sm:h-12" />
           </Link>
 
           <nav className="hidden items-center gap-6 lg:flex">
@@ -152,7 +150,7 @@ export function AppLayout() {
       <footer className="safe-bottom-pad border-t border-[var(--color-border)] bg-[var(--color-primary)] py-6 text-white sm:py-14">
         <div className="page-shell grid gap-5 sm:gap-10 lg:grid-cols-[1.1fr_0.7fr_0.7fr_1fr]">
           <div>
-            <p className="lux-label mb-4 !text-[var(--color-accent)]">De Arté Jewels</p>
+            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-10 w-auto bg-white/95 p-2" />
             <h3 className="lux-heading text-3xl !text-white sm:text-4xl">Fine jewellery, consciously crafted.</h3>
             <p className="mt-4 max-w-md text-sm text-white/60">
               Discover pieces meant to be lived in, combining modern values with timeless aesthetics.
