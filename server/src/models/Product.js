@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import {
   assetSchema,
   customizationOptionsSchema,
+  productColorVariantSchema,
   specificationSchema,
 } from './schemas.js';
 
@@ -28,6 +29,7 @@ const productSchema = new mongoose.Schema(
     isNewArrival: { type: Boolean, default: false },
     isBestSeller: { type: Boolean, default: false },
     media: { type: [assetSchema], default: [] },
+    colorVariants: { type: [productColorVariantSchema], default: [] },
     customizationOptions: { type: customizationOptionsSchema, default: () => ({}) },
     specifications: { type: [specificationSchema], default: [] },
     views: { type: Number, default: 0 },

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { adminService } from '../services/adminService';
 import { Button, LoadingBlock, Panel, SectionHeading, StatCard } from '../components/ui/Primitives';
 import { Download } from 'lucide-react';
@@ -31,6 +32,7 @@ const emptyProduct = {
   status: 'Active',
   description: '',
   media: [],
+  colorVariants: [],
   isNewArrival: false,
   isBestSeller: false,
   sku: '',
@@ -359,6 +361,105 @@ function buildProductSpecifications(form) {
   ].filter((item) => item.value);
 }
 
+function normalizeSheetHeader(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function getWorkbookRows(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const workbook = XLSX.read(event.target?.result, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+        resolve({ rows, sheetName: firstSheetName });
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = () => reject(new Error('Could not read spreadsheet'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function summarizeImportRows(rows) {
+  const summaryMap = new Map();
+
+  rows.forEach((row) => {
+    const normalized = {};
+    Object.entries(row || {}).forEach(([key, value]) => {
+      normalized[normalizeSheetHeader(key)] = value;
+    });
+
+    const styleCode = String(
+      normalized.styleno || normalized.stylecode || normalized.style || normalized.collectionstyleno || '',
+    ).trim();
+    const color = String(normalized.colour || normalized.color || '').trim();
+    const view = String(normalized.view || '').trim();
+
+    if (!styleCode) return;
+
+    const current = summaryMap.get(styleCode) || {
+      styleCode,
+      colors: new Set(),
+      views: new Set(),
+      rows: 0,
+    };
+
+    if (color) current.colors.add(color);
+    if (view) current.views.add(view);
+    current.rows += 1;
+    summaryMap.set(styleCode, current);
+  });
+
+  return [...summaryMap.values()]
+    .map((item) => ({
+      styleCode: item.styleCode,
+      colorCount: item.colors.size,
+      colors: [...item.colors],
+      views: [...item.views],
+      rows: item.rows,
+    }))
+    .sort((a, b) => a.styleCode.localeCompare(b.styleCode));
+}
+
+function getRowFileName(row) {
+  const normalized = {};
+  Object.entries(row || {}).forEach(([key, value]) => {
+    normalized[normalizeSheetHeader(key)] = value;
+  });
+
+  return String(
+    normalized.filename || normalized.file || normalized.image || normalized.imagename || '',
+  ).trim();
+}
+
+function normalizeImportFileKey(value) {
+  return String(value || '')
+    .trim()
+    .split(/[\\/]/)
+    .pop()
+    .toLowerCase();
+}
+
+function buildSheetFileSummary(rows, fileMap = new Map()) {
+  const fileNames = [...new Set(rows.map(getRowFileName).filter(Boolean))];
+  const matched = fileNames.filter((name) => fileMap.has(normalizeImportFileKey(name)));
+  const missing = fileNames.filter((name) => !fileMap.has(normalizeImportFileKey(name)));
+
+  return {
+    required: fileNames.length,
+    matched: matched.length,
+    missingCount: missing.length,
+    missing,
+  };
+}
+
 function ProductEditor({
   form,
   setForm,
@@ -439,11 +540,332 @@ function ProductEditor({
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.isBestSeller} onChange={(event) => setForm((current) => ({ ...current, isBestSeller: event.target.checked }))} /> Best Seller</label>
       </div>
 
+      {form.colorVariants?.length ? (
+        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
+          <p className="font-medium text-[var(--color-text)]">Imported color mapping</p>
+          <p className="mt-1">
+            {form.colorVariants.map((variant) => `${variant.color} (${variant.views?.length || 0} views)`).join(' • ')}
+          </p>
+        </div>
+      ) : null}
+
       <MediaField value={form.media} onChange={(media) => setForm((current) => ({ ...current, media }))} folder={`dearte/products/${form.styleCode || 'draft'}`} />
 
       <div className="flex gap-3">
         <Button onClick={onSave}>{form.id ? 'Update Product' : 'Create Product'}</Button>
         {onDelete ? <Button variant="danger" onClick={onDelete}>Delete</Button> : null}
+      </div>
+    </Panel>
+  );
+}
+
+function BulkProductImportPanel({ config, onImported }) {
+  const [importFileName, setImportFileName] = useState('');
+  const [sheetName, setSheetName] = useState('');
+  const [parsedRows, setParsedRows] = useState([]);
+  const [summaryRows, setSummaryRows] = useState([]);
+  const [cloudinaryBaseUrl, setCloudinaryBaseUrl] = useState('');
+  const [folderFiles, setFolderFiles] = useState([]);
+  const [folderFileMap, setFolderFileMap] = useState(new Map());
+  const [sheetFileSummary, setSheetFileSummary] = useState({
+    required: 0,
+    matched: 0,
+    missingCount: 0,
+    missing: [],
+  });
+  const [importing, setImporting] = useState(false);
+  const [importOptions, setImportOptions] = useState({
+    categoryId: config?.categories?.[0]?.id || '',
+    subCategoryId: config?.subCategories?.[0]?.id || '',
+    collectionId: config?.collections?.[0]?.id || '',
+    metalColorId: config?.metalOptions?.[0]?.id || '',
+    stockType: 'Ready Stock',
+    stockQuantity: 10,
+    status: 'Active',
+    isNewArrival: false,
+    isBestSeller: false,
+  });
+
+  useEffect(() => {
+    setImportOptions((current) => ({
+      ...current,
+      categoryId: current.categoryId || config?.categories?.[0]?.id || '',
+      subCategoryId: current.subCategoryId || config?.subCategories?.[0]?.id || '',
+      collectionId: current.collectionId || config?.collections?.[0]?.id || '',
+      metalColorId: current.metalColorId || config?.metalOptions?.[0]?.id || '',
+    }));
+  }, [config]);
+
+  const availableSubCategories = useMemo(
+    () => (config?.subCategories || []).filter(
+      (item) => !importOptions.categoryId || item.categoryId === importOptions.categoryId,
+    ),
+    [config, importOptions.categoryId],
+  );
+
+  const availableCollections = useMemo(
+    () => (config?.collections || []).filter(
+      (item) =>
+        (!importOptions.categoryId || item.categoryId === importOptions.categoryId) &&
+        (!importOptions.subCategoryId || item.subCategoryId === importOptions.subCategoryId),
+    ),
+    [config, importOptions.categoryId, importOptions.subCategoryId],
+  );
+
+  const handleSheetUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const workbook = await getWorkbookRows(file);
+      const nextRows = Array.isArray(workbook.rows) ? workbook.rows : [];
+      setImportFileName(file.name);
+      setSheetName(workbook.sheetName);
+      setParsedRows(nextRows);
+      setSummaryRows(summarizeImportRows(nextRows));
+      setSheetFileSummary(buildSheetFileSummary(nextRows, folderFileMap));
+      toast.success(`Loaded ${nextRows.length} rows from ${file.name}`);
+    } catch (error) {
+      toast.error(error.message || 'Could not read spreadsheet');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleFolderUpload = (event) => {
+    const nextFiles = Array.from(event.target.files || []).filter((file) => file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(file.name));
+    const nextMap = new Map();
+
+    nextFiles.forEach((file) => {
+      const normalizedName = normalizeImportFileKey(file.webkitRelativePath || file.name);
+      nextMap.set(normalizedName, file);
+      nextMap.set(normalizeImportFileKey(file.name), file);
+    });
+
+    setFolderFiles(nextFiles);
+    setFolderFileMap(nextMap);
+    setSheetFileSummary(buildSheetFileSummary(parsedRows, nextMap));
+    toast.success(`Loaded ${nextFiles.length} images from folder`);
+    event.target.value = '';
+  };
+
+  const uploadFolderAssetsForRows = async (rows) => {
+    const fileNames = [...new Set(rows.map(getRowFileName).filter(Boolean))];
+    const missing = fileNames.filter((name) => !folderFileMap.has(normalizeImportFileKey(name)));
+
+    if (missing.length) {
+      throw new Error(`Missing ${missing.length} image file(s). First missing file: ${missing[0]}`);
+    }
+
+    const uploadedAssets = new Map();
+    for (const fileName of fileNames) {
+      const matchedFile = folderFileMap.get(normalizeImportFileKey(fileName));
+      if (!matchedFile) continue;
+
+      const folderName = `dearte/products/bulk-import`;
+      const asset = await uploadFile(matchedFile, folderName);
+      uploadedAssets.set(normalizeImportFileKey(fileName), asset);
+    }
+
+    return rows.map((row) => {
+      const fileName = getRowFileName(row);
+      const asset = uploadedAssets.get(normalizeImportFileKey(fileName));
+      return asset
+        ? {
+            ...row,
+            cloudinaryUrl: asset.secureUrl,
+          }
+        : row;
+    });
+  };
+
+  const handleImport = async () => {
+    if (!parsedRows.length) {
+      toast.error('Upload the spreadsheet first.');
+      return;
+    }
+
+    if (!importOptions.categoryId || !importOptions.subCategoryId || !importOptions.collectionId || !importOptions.metalColorId) {
+      toast.error('Choose category, sub-category, collection, and fallback metal color first.');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      let rowsForImport = parsedRows;
+
+      if (folderFiles.length) {
+        rowsForImport = await uploadFolderAssetsForRows(parsedRows);
+      }
+
+      const result = await adminService.bulkImportProducts({
+        rows: rowsForImport,
+        cloudinaryBaseUrl: cloudinaryBaseUrl.trim(),
+        ...importOptions,
+      });
+      toast.success(`Imported ${result.summary.totalProducts} styles`);
+      onImported?.(result);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Bulk import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <Panel className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="lux-label">Bulk Excel Import</p>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+            Group rows by style code, then map each color and view to its Cloudinary image.
+          </p>
+        </div>
+        <label className="inline-flex cursor-pointer items-center rounded border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
+          Upload Sheet
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={handleSheetUpload}
+          />
+        </label>
+        <label className="inline-flex cursor-pointer items-center rounded border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
+          Upload Image Folder
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFolderUpload}
+            webkitdirectory=""
+            directory=""
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Cloudinary base URL (optional)">
+          <input
+            className={textInput}
+            value={cloudinaryBaseUrl}
+            onChange={(event) => setCloudinaryBaseUrl(event.target.value)}
+            placeholder="https://res.cloudinary.com/<cloud>/image/upload/v123/dearte/products"
+          />
+        </Field>
+        <Field label="Fallback metal color">
+          <select
+            className={textInput}
+            value={importOptions.metalColorId}
+            onChange={(event) => setImportOptions((current) => ({ ...current, metalColorId: event.target.value }))}
+          >
+            <option value="">Select metal color</option>
+            {(config?.metalOptions || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Category">
+          <select
+            className={textInput}
+            value={importOptions.categoryId}
+            onChange={(event) => setImportOptions((current) => ({
+              ...current,
+              categoryId: event.target.value,
+              subCategoryId: '',
+              collectionId: '',
+            }))}
+          >
+            <option value="">Select category</option>
+            {(config?.categories || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Sub-category">
+          <select
+            className={textInput}
+            value={importOptions.subCategoryId}
+            onChange={(event) => setImportOptions((current) => ({ ...current, subCategoryId: event.target.value, collectionId: '' }))}
+          >
+            <option value="">Select sub-category</option>
+            {availableSubCategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Collection">
+          <select
+            className={textInput}
+            value={importOptions.collectionId}
+            onChange={(event) => setImportOptions((current) => ({ ...current, collectionId: event.target.value }))}
+          >
+            <option value="">Select collection</option>
+            {availableCollections.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Default stock quantity">
+          <input
+            type="number"
+            min="0"
+            className={textInput}
+            value={importOptions.stockQuantity}
+            onChange={(event) => setImportOptions((current) => ({ ...current, stockQuantity: Number(event.target.value) }))}
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-sm text-[var(--color-text-muted)]">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={importOptions.isNewArrival}
+            onChange={(event) => setImportOptions((current) => ({ ...current, isNewArrival: event.target.checked }))}
+          />
+          Mark imported products as new arrivals
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={importOptions.isBestSeller}
+            onChange={(event) => setImportOptions((current) => ({ ...current, isBestSeller: event.target.checked }))}
+          />
+          Mark imported products as best sellers
+        </label>
+      </div>
+
+      <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
+        <p>File: {importFileName || 'No spreadsheet loaded yet'}</p>
+        <p>Sheet: {sheetName || '-'}</p>
+        <p>Rows: {parsedRows.length}</p>
+        <p>Styles detected: {summaryRows.length}</p>
+        <p>Folder images loaded: {folderFiles.length}</p>
+        <p>Sheet image matches: {sheetFileSummary.matched} / {sheetFileSummary.required}</p>
+      </div>
+
+      {sheetFileSummary.missingCount ? (
+        <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Missing {sheetFileSummary.missingCount} sheet image file(s) from the uploaded folder.
+          {sheetFileSummary.missing[0] ? ` First missing file: ${sheetFileSummary.missing[0]}` : ''}
+        </div>
+      ) : null}
+
+      {summaryRows.length ? (
+        <div className="max-h-[320px] overflow-y-auto rounded border border-[var(--color-border)]">
+          <DataTable
+            columns={[
+              { key: 'styleCode', label: 'Style Code' },
+              { key: 'rows', label: 'Rows' },
+              { key: 'colorCount', label: 'Colors' },
+              { key: 'views', label: 'Views', render: (value) => value.join(', ') || '-' },
+              { key: 'colors', label: 'Color Names', render: (value) => value.join(', ') || '-' },
+            ]}
+            rows={summaryRows}
+          />
+        </div>
+      ) : (
+        <div className="rounded border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
+          Upload the Excel first. Required columns are `Style No`, `Colour`, `View`, and either a Cloudinary URL column or `File Name`. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you.
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <Button onClick={handleImport} disabled={importing || !summaryRows.length}>
+          {importing ? 'Importing...' : 'Import / Update Products'}
+        </Button>
       </div>
     </Panel>
   );
@@ -770,8 +1192,11 @@ export function AdminProductsPage() {
     const payload = {
       ...form,
       media: form.media,
+      colorVariants: form.colorVariants || [],
       customizationOptions: {
-        goldColors: ['Yellow Gold', 'Rose Gold', 'White Gold'],
+        goldColors: form.colorVariants?.length
+          ? form.colorVariants.map((variant) => variant.color)
+          : ['Yellow Gold', 'Rose Gold', 'White Gold'],
         goldCarats: ['14K', '18K', '22K'],
         diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
       },
@@ -790,6 +1215,12 @@ export function AdminProductsPage() {
   return (
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Products, media, and stock now live in MongoDB and are editable from admin." />
+      <BulkProductImportPanel
+        config={config}
+        onImported={() => {
+          queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+        }}
+      />
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Panel className="space-y-4">
           <div className="flex items-center justify-between">
@@ -823,6 +1254,7 @@ export function AdminProductsPage() {
                     status: product.status,
                     description: product.description,
                     media: product.media || [],
+                    colorVariants: product.colorVariants || [],
                     isNewArrival: product.isNewArrival,
                     isBestSeller: product.isBestSeller,
                     sku: product.sku,

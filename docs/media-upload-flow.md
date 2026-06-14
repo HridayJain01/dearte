@@ -18,6 +18,13 @@ Use direct browser uploads to Cloudinary while keeping signature generation priv
 5. Browser sends the structured asset metadata in the normal CRUD payload
 6. Backend stores the normalized asset object in MongoDB
 
+Bulk import note:
+
+- the spreadsheet importer can also accept full Cloudinary URLs directly
+- if the sheet only contains `File Name`, admins can provide a Cloudinary base URL and the importer will build each final asset URL from that base path
+- admins can alternatively upload the local image folder from their computer; the browser uploads those files to Cloudinary and maps them to sheet rows by file name
+- imported products store both a flat fallback `media[]` gallery and structured `colorVariants[]` view mappings
+
 ## Folder convention
 
 - `dearte/products/<style-code>/`

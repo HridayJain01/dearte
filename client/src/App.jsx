@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { LoadingBlock } from './components/ui/Primitives';
@@ -62,6 +62,11 @@ function Meta({ title }) {
   );
 }
 
+function LegacyCollectionRedirect() {
+  const { category } = useParams();
+  return <Navigate to={category ? `/products?category=${encodeURIComponent(category)}` : '/products'} replace />;
+}
+
 function App() {
   return (
     <Suspense fallback={<div className="page-shell py-10"><LoadingBlock label="Loading view..." /></div>}>
@@ -77,7 +82,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="products" element={<ProductListPage />} />
           <Route path="collections" element={<CollectionsPage />} />
-          <Route path="collections/:category" element={<ProductListPage />} />
+          <Route path="collections/:category" element={<LegacyCollectionRedirect />} />
           <Route path="products/:styleCode" element={<ProductDetailPage />} />
           <Route path="cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
           <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />

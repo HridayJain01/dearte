@@ -77,8 +77,269 @@ function parseBoolean(value, defaultValue = false) {
   return Boolean(value);
 }
 
+function normalizeHeader(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function pickFirstDefined(record, keys) {
+  for (const key of keys) {
+    if (record[key] !== undefined && record[key] !== null && String(record[key]).trim() !== '') {
+      return record[key];
+    }
+  }
+
+  return '';
+}
+
+function parseNumber(value, fallback = 0) {
+  if (value === '' || value === null || value === undefined) return fallback;
+  const normalized = typeof value === 'string' ? value.replace(/,/g, '').trim() : value;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function dedupeStrings(values = []) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
+function normalizeColorVariantsInput(input = []) {
+  return (Array.isArray(input) ? input : [])
+    .map((variant) => ({
+      color: String(variant?.color || '').trim(),
+      views: (Array.isArray(variant?.views) ? variant.views : [])
+        .map((view) => ({
+          view: String(view?.view || '').trim(),
+          asset: normalizeAsset(view?.asset || view),
+        }))
+        .filter((view) => view.view && view.asset.secureUrl),
+    }))
+    .filter((variant) => variant.color && variant.views.length);
+}
+
+function buildPrimaryMedia(colorVariants = []) {
+  return (colorVariants[0]?.views || []).map((entry) => normalizeAsset(entry.asset)).filter((asset) => asset.secureUrl);
+}
+
+function mergeCustomizationOptions(bodyOptions, currentOptions, colorVariants) {
+  const incoming = bodyOptions || currentOptions || {};
+  const derivedColors = dedupeStrings(colorVariants.map((variant) => variant.color));
+
+  return {
+    goldColors: derivedColors.length
+      ? derivedColors
+      : dedupeStrings(incoming.goldColors || ['Yellow Gold', 'Rose Gold', 'White Gold']),
+    goldCarats: dedupeStrings(incoming.goldCarats || ['14K', '18K', '22K']),
+    diamondQualities: dedupeStrings(incoming.diamondQualities || ['SI-IJ', 'VS-GH', 'VVS-EF']),
+  };
+}
+
+function inferCloudinaryPublicId(secureUrl = '') {
+  if (!secureUrl || !secureUrl.includes('/upload/')) return '';
+
+  const [pathWithoutQuery] = secureUrl.split('?');
+  const uploadIndex = pathWithoutQuery.indexOf('/upload/');
+  if (uploadIndex === -1) return '';
+
+  let remainder = pathWithoutQuery.slice(uploadIndex + '/upload/'.length);
+  const parts = remainder.split('/').filter(Boolean);
+  let assetPathStart = 0;
+
+  while (assetPathStart < parts.length) {
+    const part = parts[assetPathStart];
+    if (/^v\d+$/.test(part)) {
+      assetPathStart += 1;
+      break;
+    }
+    if (!part.includes('_') && !part.includes(',')) {
+      break;
+    }
+    assetPathStart += 1;
+  }
+
+  const assetPath = parts.slice(assetPathStart).join('/');
+  return assetPath.replace(/\.[^.]+$/, '');
+}
+
+function createCloudinaryAsset({ secureUrl, alt = '', publicId = '' }) {
+  const normalizedUrl = String(secureUrl || '').trim();
+  return normalizeAsset({
+    secureUrl: normalizedUrl,
+    publicId: publicId || inferCloudinaryPublicId(normalizedUrl),
+    alt,
+  });
+}
+
+function joinCloudinaryBaseUrl(baseUrl, fileName) {
+  const safeBaseUrl = String(baseUrl || '').trim().replace(/\/+$/, '');
+  const safeFileName = String(fileName || '').trim().replace(/^\/+/, '');
+  if (!safeBaseUrl || !safeFileName) return '';
+  return `${safeBaseUrl}/${safeFileName}`;
+}
+
+function buildBulkImportPayloads(rows = [], options = {}) {
+  const normalizedRows = rows
+    .map((row) => {
+      const normalized = {};
+      for (const [key, value] of Object.entries(row || {})) {
+        normalized[normalizeHeader(key)] = value;
+      }
+      return normalized;
+    })
+    .filter((row) => Object.keys(row).length);
+
+  const productsByStyle = new Map();
+
+  for (const row of normalizedRows) {
+    const styleCode = String(
+      pickFirstDefined(row, ['styleno', 'stylecode', 'style', 'collectionstyleno']),
+    ).trim();
+    if (!styleCode) continue;
+
+    const color = String(pickFirstDefined(row, ['colour', 'color', 'metalcolor'])).trim();
+    const view = String(pickFirstDefined(row, ['view', 'imageview', 'angle'])).trim();
+    const fileName = String(pickFirstDefined(row, ['filename', 'file', 'image', 'imagename'])).trim();
+    const secureUrl = String(
+      pickFirstDefined(row, ['cloudinaryurl', 'imagelink', 'imageurl', 'url', 'secureurl']),
+    ).trim() || joinCloudinaryBaseUrl(options.cloudinaryBaseUrl, fileName);
+
+    if (!color || !view || !secureUrl) continue;
+
+    const current = productsByStyle.get(styleCode) || {
+      styleCode,
+      name: String(pickFirstDefined(row, ['productname', 'name'])).trim() || styleCode,
+      description: '',
+      metalType: String(pickFirstDefined(row, ['metaltype'])).trim(),
+      metal: String(pickFirstDefined(row, ['metal'])).trim(),
+      diamondWeight: parseNumber(
+        pickFirstDefined(row, ['diamondwt', 'diamondweight']),
+        0,
+      ),
+      goldWeight: parseNumber(
+        pickFirstDefined(row, ['netwt18kt', 'netwt18k', 'netwt14kt', 'netwt14k', 'goldweight']),
+        0,
+      ),
+      diamondQuality: String(pickFirstDefined(row, ['diamondquality'])).trim() || 'VS-GH',
+      settingType: String(pickFirstDefined(row, ['settingtype'])).trim(),
+      occasion: String(pickFirstDefined(row, ['occasion'])).trim(),
+      sku: String(pickFirstDefined(row, ['sku'])).trim() || styleCode,
+      stockType: options.stockType || 'Ready Stock',
+      stockQuantity: Number(options.stockQuantity ?? 0),
+      status: options.status || 'Active',
+      isNewArrival: parseBoolean(options.isNewArrival, false),
+      isBestSeller: parseBoolean(options.isBestSeller, false),
+      specificationPairs: [],
+      colorVariantsMap: new Map(),
+      goldCarats: new Set(),
+      rawCategory: String(pickFirstDefined(row, ['category'])).trim(),
+      rawCollection: String(pickFirstDefined(row, ['collection'])).trim(),
+    };
+
+    current.diamondWeight ||= parseNumber(
+      pickFirstDefined(row, ['diamondwt', 'diamondweight']),
+      0,
+    );
+    current.goldWeight ||= parseNumber(
+      pickFirstDefined(row, ['netwt18kt', 'netwt18k', 'netwt14kt', 'netwt14k', 'goldweight']),
+      0,
+    );
+
+    ['14k', '14kt', '18k', '18kt', '22k', '22kt'].forEach((carat) => {
+      const normalizedCarat = carat.replace('kt', 'k').toUpperCase();
+      const normalizedKey = carat.replace('kt', 'k');
+      const value = pickFirstDefined(row, [
+        `netwt${carat}`,
+        `netwt${normalizedKey}`,
+        `grosswt${carat}`,
+        `grosswt${normalizedKey}`,
+      ]);
+      if (String(value || '').trim()) {
+        current.goldCarats.add(normalizedCarat);
+      }
+    });
+
+    const specificationCandidates = [
+      ['Gross Wt(18K)', pickFirstDefined(row, ['grosswt18kt', 'grosswt18k'])],
+      ['Gross Wt(14K)', pickFirstDefined(row, ['grosswt14kt', 'grosswt14k'])],
+      ['Net Wt(18K)', pickFirstDefined(row, ['netwt18kt', 'netwt18k'])],
+      ['Net Wt(14K)', pickFirstDefined(row, ['netwt14kt', 'netwt14k'])],
+      ['Diamond Wt', pickFirstDefined(row, ['diamondwt', 'diamondweight'])],
+      ['Stone Wt', pickFirstDefined(row, ['colourstonewt', 'colorstonewt', 'stoneweight'])],
+    ];
+
+    specificationCandidates.forEach(([attribute, value]) => {
+      const trimmed = String(value || '').trim();
+      if (trimmed && !current.specificationPairs.find((item) => item.attribute === attribute && item.value === trimmed)) {
+        current.specificationPairs.push({ attribute, value: trimmed });
+      }
+    });
+
+    const currentVariantViews = current.colorVariantsMap.get(color) || [];
+    currentVariantViews.push({
+      view,
+      asset: createCloudinaryAsset({
+        secureUrl,
+        alt: `${styleCode} ${color} ${view}`,
+      }),
+    });
+    current.colorVariantsMap.set(color, currentVariantViews);
+
+    productsByStyle.set(styleCode, current);
+  }
+
+  return [...productsByStyle.values()].map((item) => {
+    const colorVariants = [...item.colorVariantsMap.entries()].map(([color, views]) => ({
+      color,
+      views: views.sort((a, b) => a.view.localeCompare(b.view)),
+    }));
+    const media = buildPrimaryMedia(colorVariants);
+    const goldCarats = item.goldCarats.size ? [...item.goldCarats] : ['14K', '18K', '22K'];
+
+    return {
+      styleCode: item.styleCode,
+      name: item.name,
+      description: item.description,
+      categoryId: options.categoryId,
+      subCategoryId: options.subCategoryId,
+      collectionId: options.collectionId,
+      metalColorId: options.metalColorId,
+      metalType: item.metalType,
+      metal: item.metal,
+      diamondWeight: item.diamondWeight,
+      goldWeight: item.goldWeight,
+      diamondQuality: item.diamondQuality,
+      settingType: item.settingType,
+      occasion: item.occasion,
+      sku: item.sku,
+      stockType: item.stockType,
+      stockQuantity: item.stockQuantity,
+      status: item.status,
+      isNewArrival: item.isNewArrival,
+      isBestSeller: item.isBestSeller,
+      media,
+      colorVariants,
+      customizationOptions: {
+        goldColors: colorVariants.map((variant) => variant.color),
+        goldCarats,
+        diamondQualities: ['SI-IJ', item.diamondQuality || 'VS-GH', 'VVS-EF'],
+      },
+      specifications: [
+        ...item.specificationPairs.map((pair) => ({
+          attribute: pair.attribute,
+          value: pair.attribute.includes('Wt') ? String(pair.value) : pair.value,
+        })),
+      ],
+    };
+  });
+}
+
 function sanitizeProductPayload(body, currentProduct = null) {
   const mediaInput = body.media || body.images || currentProduct?.media || [];
+  const colorVariants = normalizeColorVariantsInput(body.colorVariants || currentProduct?.colorVariants || []);
+  const media = normalizeAssetArray(mediaInput);
+  const derivedMedia = colorVariants.length ? buildPrimaryMedia(colorVariants) : media;
 
   return {
     styleCode: String(body.styleCode || currentProduct?.styleCode || '').trim(),
@@ -109,8 +370,13 @@ function sanitizeProductPayload(body, currentProduct = null) {
     status: body.status ?? currentProduct?.status ?? 'Active',
     isNewArrival: parseBoolean(body.isNewArrival, currentProduct?.isNewArrival ?? false),
     isBestSeller: parseBoolean(body.isBestSeller, currentProduct?.isBestSeller ?? false),
-    media: normalizeAssetArray(mediaInput),
-    customizationOptions: body.customizationOptions || currentProduct?.customizationOptions,
+    media: derivedMedia,
+    colorVariants,
+    customizationOptions: mergeCustomizationOptions(
+      body.customizationOptions,
+      currentProduct?.customizationOptions,
+      colorVariants,
+    ),
     specifications: Array.isArray(body.specifications)
       ? body.specifications
       : currentProduct?.specifications || [],
@@ -438,6 +704,73 @@ router.put('/products/:id', async (req, res) => {
     await product.save();
     await product.populate(productPopulate);
     return sendSuccess(res, serializeProduct(product), 'Product updated');
+  } catch (error) {
+    return sendError(res, error.message, error.status || 400);
+  }
+});
+
+router.post('/products/bulk-import', async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) {
+      return sendError(res, 'Spreadsheet rows are required for bulk import', 400);
+    }
+
+    const requiredIds = ['categoryId', 'subCategoryId', 'collectionId', 'metalColorId'];
+    for (const field of requiredIds) {
+      if (!isObjectId(req.body?.[field])) {
+        return sendError(res, `${field} is required for bulk import`, 400);
+      }
+    }
+
+    const payloads = buildBulkImportPayloads(rows, {
+      cloudinaryBaseUrl: req.body.cloudinaryBaseUrl,
+      categoryId: req.body.categoryId,
+      subCategoryId: req.body.subCategoryId,
+      collectionId: req.body.collectionId,
+      metalColorId: req.body.metalColorId,
+      stockType: req.body.stockType,
+      stockQuantity: req.body.stockQuantity,
+      status: req.body.status,
+      isNewArrival: req.body.isNewArrival,
+      isBestSeller: req.body.isBestSeller,
+    });
+
+    if (!payloads.length) {
+      return sendError(
+        res,
+        'No importable rows found. Make sure the sheet includes Style No, Colour, View, and either a Cloudinary URL or File Name.',
+        400,
+      );
+    }
+
+    const results = [];
+    for (const payload of payloads) {
+      const existing = await Product.findOne({ styleCode: payload.styleCode });
+      if (existing) {
+        Object.assign(existing, sanitizeProductPayload(payload, existing));
+        await existing.save();
+        await existing.populate(productPopulate);
+        results.push({ action: 'updated', product: serializeProduct(existing) });
+      } else {
+        const created = await Product.create(sanitizeProductPayload(payload));
+        await created.populate(productPopulate);
+        results.push({ action: 'created', product: serializeProduct(created) });
+      }
+    }
+
+    return sendSuccess(
+      res,
+      {
+        summary: {
+          totalProducts: results.length,
+          created: results.filter((item) => item.action === 'created').length,
+          updated: results.filter((item) => item.action === 'updated').length,
+        },
+        results,
+      },
+      'Bulk import completed',
+    );
   } catch (error) {
     return sendError(res, error.message, error.status || 400);
   }

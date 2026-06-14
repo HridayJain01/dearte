@@ -49,6 +49,7 @@
 - `isNewArrival`
 - `isBestSeller`
 - `media[]`
+- `colorVariants[]`
 - `customizationOptions`
 - `specifications[]`
 - `views`
@@ -100,6 +101,16 @@
 - `height`
 - `alt`
 - `resourceType`
+
+## Product color variant shape
+
+- `color`
+- `views[]`
+
+Each `views[]` entry contains:
+
+- `view`
+- `asset`
 
 ## Contracts that must stay documented
 

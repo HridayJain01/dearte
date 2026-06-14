@@ -20,6 +20,7 @@ import { formatDate } from '../utils/formatters';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutSchema } from '../utils/validators';
+import { useCollections } from '../hooks/useProducts';
 
 function ShopCategoryDiamondIcon({ className }) {
   return (
@@ -31,12 +32,12 @@ function ShopCategoryDiamondIcon({ className }) {
   );
 }
 
-function ShopCategoryCard({ label, categorySlug, imageSrc, className }) {
-  const to = `/collections/${encodeURIComponent(categorySlug)}`;
+function ShopCategoryCard({ label, categorySlug, imageSrc, className, to }) {
+  const target = to || `/products?category=${encodeURIComponent(categorySlug)}`;
 
   return (
     <Link
-      to={to}
+      to={target}
       className={`group relative isolate block overflow-hidden bg-neutral-200 ${className ?? ''}`}
     >
       <img
@@ -55,17 +56,30 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className }) {
   );
 }
 
-/** Shop-by-category landing: asymmetric grid landing on curated category product lists at `/collections/:category`. */
+const PRODUCT_CATEGORY_TILES = [
+  { label: 'Rings', categorySlug: 'Rings', imageSrc: '/images/shop-category/rings.jpg' },
+  { label: 'Earrings', categorySlug: 'Earrings', imageSrc: '/images/shop-category/earrings.jpg' },
+  { label: 'Bracelets', categorySlug: 'Bracelets', imageSrc: '/images/shop-category/bracelets.jpg' },
+  { label: 'Pendants', categorySlug: 'Necklaces', imageSrc: '/images/shop-category/pendants.jpg' },
+];
+
+/** Shop-by-collection landing: curated collection cards like Ocean Collection, Lunar Collection, and more. */
 export function CollectionsPage() {
+  const { data, isLoading } = useCollections();
+
   const navy = '#002130';
+
+  if (isLoading) {
+    return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading collections..." /></div>;
+  }
 
   return (
     <section className="page-shell animate-page-enter pb-14 pt-12 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20">
       <Helmet>
-        <title>Shop by Category | DeArte Jewellery</title>
+        <title>Collections | DeArte Jewellery</title>
         <meta
           name="description"
-          content="Discover lab-grown diamond jewellery by category — rings, earrings, bracelets, and pendants."
+          content="Discover curated jewellery collections like Ocean Collection, Lunar Collection, and more."
         />
       </Helmet>
 
@@ -75,47 +89,40 @@ export function CollectionsPage() {
           className="mt-5 text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[2rem] md:text-[2.25rem]"
           style={{ color: navy }}
         >
-          Shop by Category
+          Shop by Collection
         </h1>
         <p
           className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed sm:text-lg"
           style={{ color: `${navy}CC` }}
         >
-          Discover the perfect lab-grown diamond jewellery for everyday and special occasions.
+          Browse the curated collection families that shape each story, mood, and launch.
         </p>
       </header>
 
-      <div className="flex flex-col gap-4 sm:gap-[18px] lg:flex-row lg:items-stretch">
-        <ShopCategoryCard
-          label="Rings"
-          categorySlug="Rings"
-          imageSrc="/images/shop-category/rings.jpg"
-          className="aspect-[4/5] min-h-[17.5rem] w-full lg:aspect-auto lg:w-1/2 lg:self-stretch lg:min-h-[36rem]"
-        />
-
-        <div className="flex w-full min-h-0 flex-col gap-4 sm:gap-[18px] lg:w-1/2 lg:min-h-[36rem]">
-          <ShopCategoryCard
-            label="Earrings"
-            categorySlug="Earrings"
-            imageSrc="/images/shop-category/earrings.jpg"
-            className="aspect-[16/11] min-h-[12rem] w-full lg:aspect-auto lg:min-h-0 lg:flex-1"
-          />
-
-          <div className="grid min-h-[10.5rem] grid-cols-2 gap-4 sm:gap-[18px] lg:min-h-0 lg:flex-1">
-            <ShopCategoryCard
-              label="Bracelets"
-              categorySlug="Bracelets"
-              imageSrc="/images/shop-category/bracelets.jpg"
-              className="aspect-square min-h-[10.5rem] w-full lg:aspect-auto lg:min-h-0 lg:h-full"
-            />
-            <ShopCategoryCard
-              label="Pendants"
-              categorySlug="Necklaces"
-              imageSrc="/images/shop-category/pendants.jpg"
-              className="aspect-square min-h-[10.5rem] w-full lg:aspect-auto lg:min-h-0 lg:h-full"
-            />
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {data.map((collection) => (
+          <Link
+            key={collection.id}
+            to={`/products?collection=${encodeURIComponent(collection.name)}`}
+            className="group overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] transition duration-300 hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-lg"
+          >
+            <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-surface-alt)]">
+              {collection.image ? (
+                <img
+                  src={collection.image}
+                  alt={collection.name}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+              ) : null}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+            </div>
+            <div className="space-y-2 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Collection</p>
+              <h2 className="lux-heading text-2xl text-[var(--color-text)]">{collection.name}</h2>
+              <p className="text-sm text-[var(--color-text-muted)]">Tap to shop the pieces curated under this collection story.</p>
+            </div>
+          </Link>
+        ))}
       </div>
     </section>
   );
@@ -124,9 +131,12 @@ export function CollectionsPage() {
 export function ProductListPage() {
   const { category } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [page, setPage] = useState(1);
-  const { filters, sort, setSort, setFilter, resetFilters } = useFilters();
   const activeCategory = category ? decodeURIComponent(category) : searchParams.get('category') || '';
+  const activeCollection = searchParams.get('collection') || '';
+  const pageScope = `${activeCategory}::${activeCollection}`;
+  const [paging, setPaging] = useState({ scope: pageScope, page: 1 });
+  const { filters, sort, setSort, setFilter, resetFilters } = useFilters();
+  const page = paging.scope === pageScope ? paging.page : 1;
 
   useEffect(() => {
     const urlSort = searchParams.get('sort');
@@ -140,9 +150,9 @@ export function ProductListPage() {
       page,
       limit: 6,
       category: activeCategory,
+      collection: activeCollection || filters.collection.join(','),
       sort,
       subCategory: filters.subCategory.join(','),
-      collection: filters.collection.join(','),
       metalColor: filters.metalColor.join(','),
       diamondMin: filters.diamondMin,
       diamondMax: filters.diamondMax,
@@ -150,7 +160,7 @@ export function ProductListPage() {
       goldMax: filters.goldMax,
       stockType: filters.stockType,
     }),
-    [activeCategory, filters, page, sort],
+    [activeCategory, activeCollection, filters, page, sort],
   );
 
   const { data, isLoading } = useProducts(params);
@@ -162,11 +172,22 @@ export function ProductListPage() {
   return (
     <section className="page-shell section-gap">
       <SectionHeading
-        eyebrow="Collections"
-        title={activeCategory || 'All Jewellery Collections'}
-        description="Explore ready stock and make-to-order jewellery without exposing buyer pricing."
+        eyebrow="Products"
+        title={activeCategory || activeCollection || 'Shop by Product'}
+        description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
       />
       <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {PRODUCT_CATEGORY_TILES.map((tile) => (
+            <ShopCategoryCard
+              key={tile.label}
+              label={tile.label}
+              categorySlug={tile.categorySlug}
+              imageSrc={tile.imageSrc}
+              className="aspect-[4/5] min-h-[17rem] w-full"
+            />
+          ))}
+        </div>
         <ProductFilters
           filters={data.filters}
           activeFilters={filters}
@@ -180,7 +201,7 @@ export function ProductListPage() {
           <div>
             <p className="text-sm text-[var(--color-text-muted)]">{data.total} items found</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {[...filters.subCategory, ...filters.collection, ...filters.metalColor, filters.stockType]
+              {[activeCategory, activeCollection, ...filters.subCategory, ...filters.collection, ...filters.metalColor, filters.stockType]
                 .filter(Boolean)
                 .map((chip) => (
                   <span key={chip} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1 text-xs tracking-[0.08em] text-[var(--color-text-muted)] uppercase">
@@ -214,13 +235,13 @@ export function ProductListPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button variant="secondary" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
+          <Button variant="secondary" onClick={() => setPaging((current) => ({ scope: pageScope, page: Math.max(1, current.scope === pageScope ? current.page - 1 : 1) }))} disabled={page === 1}>
             Previous
           </Button>
           <p className="text-sm text-[var(--color-text-muted)]">
             Page {data.page} of {data.totalPages}
           </p>
-          <Button variant="secondary" onClick={() => setPage((value) => Math.min(data.totalPages, value + 1))} disabled={page >= data.totalPages}>
+          <Button variant="secondary" onClick={() => setPaging((current) => ({ scope: pageScope, page: Math.min(data.totalPages, current.scope === pageScope ? current.page + 1 : 2) }))} disabled={page >= data.totalPages}>
             Next
           </Button>
         </div>
@@ -232,11 +253,35 @@ export function ProductListPage() {
 export function ProductDetailPage() {
   const { styleCode } = useParams();
   const [activeImage, setActiveImage] = useState(0);
+  const [selection, setSelection] = useState({
+    goldColor: '',
+    goldCarat: '',
+    diamondQuality: '',
+  });
   const { data, isLoading } = useProduct(styleCode);
   const { addToCart } = useCart();
   const { addToWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const availableGoldColors = data?.customizationOptions?.goldColors || [];
+  const availableGoldCarats = data?.customizationOptions?.goldCarats || [];
+  const availableDiamondQualities = data?.customizationOptions?.diamondQualities || [];
+  const effectiveSelection = {
+    goldColor: availableGoldColors.includes(selection.goldColor)
+      ? selection.goldColor
+      : data?.colorVariants?.[0]?.color || availableGoldColors[0] || '',
+    goldCarat: availableGoldCarats.includes(selection.goldCarat)
+      ? selection.goldCarat
+      : availableGoldCarats[1] || availableGoldCarats[0] || '',
+    diamondQuality: availableDiamondQualities.includes(selection.diamondQuality)
+      ? selection.diamondQuality
+      : availableDiamondQualities[1] || availableDiamondQualities[0] || '',
+  };
+  const selectedVariant = data?.colorVariants?.find((variant) => variant.color === effectiveSelection.goldColor);
+  const activeImages = selectedVariant?.views?.map((item) => item.asset?.secureUrl).filter(Boolean)?.length
+    ? selectedVariant.views.map((item) => item.asset.secureUrl).filter(Boolean)
+    : data?.images || [];
+  const safeActiveImage = activeImages[activeImage] ? activeImage : 0;
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Preparing product atelier..." /></div>;
@@ -251,29 +296,38 @@ export function ProductDetailPage() {
     await callback();
   };
 
-  const defaultSelection = {
-    goldColor: data.customizationOptions.goldColors[0],
-    goldCarat: data.customizationOptions.goldCarats[1] || data.customizationOptions.goldCarats[0],
-    diamondQuality: data.customizationOptions.diamondQualities[1] || data.customizationOptions.diamondQualities[0],
-  };
+  return (
+    <section className="page-shell section-gap">
+      <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="space-y-4">
+          <Panel className="overflow-hidden p-0">
+            <TransformWrapper>
+              <TransformComponent wrapperClass="h-full w-full">
+                <img src={activeImages[safeActiveImage] || data.images[0]} alt={data.name} className="h-[360px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
+              </TransformComponent>
+            </TransformWrapper>
+          </Panel>
+          <div className="grid grid-cols-4 gap-3">
+            {activeImages.map((image, index) => (
+              <button key={image} className={`overflow-hidden border ${index === safeActiveImage ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`} onClick={() => setActiveImage(index)}>
+                <img src={image} alt="" className="h-16 w-full object-cover sm:h-24" />
+              </button>
+            ))}
+          </div>
+        </div>
 
-  const ProductDetailContent = ({ product }) => {
-    const [selection, setSelection] = useState(defaultSelection);
-
-    return (
-      <>
         <div className="space-y-6">
           <div>
-            <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">{product.styleCode}</p>
-            <h1 className="lux-heading mt-3 text-5xl">{product.name}</h1>
+            <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">{data.styleCode}</p>
+            <h1 className="lux-heading mt-3 text-5xl">{data.name}</h1>
             <p className="mt-3 text-sm text-[var(--color-text-muted)]">
-              {product.category} &gt; {product.subCategory} &gt; {product.collection}
+              {data.category} &gt; {data.subCategory} &gt; {data.collection}
             </p>
           </div>
 
           <Panel>
             <div className="grid gap-3 sm:grid-cols-2">
-              {product.specifications.map((spec) => (
+              {data.specifications.map((spec) => (
                 <div key={spec.attribute} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">{spec.attribute}</p>
                   <p className="mt-2 text-sm text-[var(--color-text)]">{spec.value}</p>
@@ -287,32 +341,35 @@ export function ProductDetailPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <label className="text-sm">
                 <span className="mb-2 block text-[var(--color-text-muted)]">Gold Color</span>
-                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] px-3 py-3 focus:border-[var(--color-border-active)] outline-none" value={selection.goldColor} onChange={(event) => setSelection((current) => ({ ...current, goldColor: event.target.value }))}>
-                  {product.customizationOptions.goldColors.map((option) => <option key={option}>{option}</option>)}
+                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]" value={effectiveSelection.goldColor} onChange={(event) => {
+                  setSelection((current) => ({ ...current, goldColor: event.target.value }));
+                  setActiveImage(0);
+                }}>
+                  {availableGoldColors.map((option) => <option key={option}>{option}</option>)}
                 </select>
               </label>
               <label className="text-sm">
                 <span className="mb-2 block text-[var(--color-text-muted)]">Gold Carat</span>
-                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] px-3 py-3 focus:border-[var(--color-border-active)] outline-none" value={selection.goldCarat} onChange={(event) => setSelection((current) => ({ ...current, goldCarat: event.target.value }))}>
-                  {product.customizationOptions.goldCarats.map((option) => <option key={option}>{option}</option>)}
+                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]" value={effectiveSelection.goldCarat} onChange={(event) => setSelection((current) => ({ ...current, goldCarat: event.target.value }))}>
+                  {availableGoldCarats.map((option) => <option key={option}>{option}</option>)}
                 </select>
               </label>
               <label className="text-sm">
                 <span className="mb-2 block text-[var(--color-text-muted)]">Diamond Quality</span>
-                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] px-3 py-3 focus:border-[var(--color-border-active)] outline-none" value={selection.diamondQuality} onChange={(event) => setSelection((current) => ({ ...current, diamondQuality: event.target.value }))}>
-                  {product.customizationOptions.diamondQualities.map((option) => <option key={option}>{option}</option>)}
+                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]" value={effectiveSelection.diamondQuality} onChange={(event) => setSelection((current) => ({ ...current, diamondQuality: event.target.value }))}>
+                  {availableDiamondQualities.map((option) => <option key={option}>{option}</option>)}
                 </select>
               </label>
             </div>
             <div className="mt-5 border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
-              Your Selection: {selection.goldColor}, {selection.goldCarat}, {selection.diamondQuality}
+              Your Selection: {effectiveSelection.goldColor}, {effectiveSelection.goldCarat}, {effectiveSelection.diamondQuality}
             </div>
           </Panel>
 
-          {product.stockType === 'Ready Stock' ? (
+          {data.stockType === 'Ready Stock' ? (
             <p className="text-sm text-[var(--color-text-muted)]">
-              {product.stockQuantity > 0 ? (
-                <span>{product.stockQuantity} in stock</span>
+              {data.stockQuantity > 0 ? (
+                <span>{data.stockQuantity} in stock</span>
               ) : (
                 <span className="text-[var(--color-primary)]">Out of stock</span>
               )}
@@ -323,20 +380,20 @@ export function ProductDetailPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button
               className="w-full sm:flex-1"
-              disabled={product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0}
-              onClick={() => requireAuth(() => addToCart({ productId: product.id, quantity: 1, customization: selection }))}
+              disabled={data.stockType === 'Ready Stock' && (data.stockQuantity ?? 0) <= 0}
+              onClick={() => requireAuth(() => addToCart({ productId: data.id, quantity: 1, customization: effectiveSelection }))}
             >
               Add to Cart
             </Button>
-            <Button variant="secondary" className="w-full sm:flex-1" onClick={() => requireAuth(() => addToWishlist({ productId: product.id }))}>
+            <Button variant="secondary" className="w-full sm:flex-1" onClick={() => requireAuth(() => addToWishlist({ productId: data.id }))}>
               Add to Wishlist
             </Button>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)]">
-            <span>{product.stockType}</span>
+            <span>{data.stockType}</span>
             <button
-              className="inline-flex items-center gap-2 hover:text-[var(--color-primary)] transition"
+              className="inline-flex items-center gap-2 transition hover:text-[var(--color-primary)]"
               onClick={async () => {
                 await navigator.clipboard.writeText(window.location.href);
                 toast.success('Product link copied');
@@ -355,31 +412,6 @@ export function ProductDetailPage() {
             </Link>
           </Panel>
         </div>
-      </>
-    );
-  };
-
-  return (
-    <section className="page-shell section-gap">
-      <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-4">
-          <Panel className="overflow-hidden p-0">
-            <TransformWrapper>
-              <TransformComponent wrapperClass="h-full w-full">
-                <img src={data.images[activeImage]} alt={data.name} className="h-[360px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
-              </TransformComponent>
-            </TransformWrapper>
-          </Panel>
-          <div className="grid grid-cols-4 gap-3">
-            {data.images.map((image, index) => (
-              <button key={image} className={`overflow-hidden border ${index === activeImage ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`} onClick={() => setActiveImage(index)}>
-                <img src={image} alt="" className="h-16 w-full object-cover sm:h-24" />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <ProductDetailContent key={data.id} product={data} />
       </div>
 
       <section className="pt-10 sm:pt-16">

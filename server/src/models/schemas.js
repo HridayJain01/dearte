@@ -12,6 +12,22 @@ export const assetSchema = new mongoose.Schema(
   { _id: false },
 );
 
+export const productColorViewSchema = new mongoose.Schema(
+  {
+    view: { type: String, required: true },
+    asset: { type: assetSchema, default: () => ({}) },
+  },
+  { _id: false },
+);
+
+export const productColorVariantSchema = new mongoose.Schema(
+  {
+    color: { type: String, required: true },
+    views: { type: [productColorViewSchema], default: [] },
+  },
+  { _id: false },
+);
+
 export const customizationOptionsSchema = new mongoose.Schema(
   {
     goldColors: { type: [String], default: ['Yellow Gold', 'Rose Gold', 'White Gold'] },

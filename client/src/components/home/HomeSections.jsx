@@ -21,7 +21,7 @@ function ShopCategoryDiamondIcon({ className }) {
 }
 
 function ShopCategoryCard({ label, categorySlug, imageSrc, className }) {
-  const to = `/collections/${encodeURIComponent(categorySlug)}`;
+  const to = `/products?category=${encodeURIComponent(categorySlug)}`;
 
   return (
     <Link

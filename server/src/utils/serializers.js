@@ -44,6 +44,19 @@ export function serializeProduct(doc) {
   const subCategoryName = doc.subCategory?.name || doc.subCategoryName || '';
   const collectionName = doc.collection?.name || doc.collectionName || '';
   const metalColorName = doc.metalColor?.name || doc.metalColorName || '';
+  const colorVariants = (doc.colorVariants || []).map((variant) => ({
+    color: variant.color,
+    views: (variant.views || []).map((view) => ({
+      view: view.view,
+      asset: normalizeAsset(view.asset),
+    })),
+  }));
+  const fallbackMedia = normalizeAssetArray(doc.media);
+  const primaryVariantImages = colorVariants[0]?.views?.map((item) => item.asset).filter((item) => item.secureUrl) || [];
+  const media = fallbackMedia.length ? fallbackMedia : primaryVariantImages;
+  const goldColors = colorVariants.length
+    ? colorVariants.map((variant) => variant.color).filter(Boolean)
+    : doc.customizationOptions?.goldColors || [];
 
   return {
     id: String(doc._id),
@@ -71,9 +84,13 @@ export function serializeProduct(doc) {
     status: doc.status,
     isNewArrival: doc.isNewArrival,
     isBestSeller: doc.isBestSeller,
-    media: normalizeAssetArray(doc.media),
-    images: normalizeAssetArray(doc.media).map((item) => item.secureUrl),
-    customizationOptions: doc.customizationOptions,
+    media,
+    images: media.map((item) => item.secureUrl),
+    colorVariants,
+    customizationOptions: {
+      ...(doc.customizationOptions?.toObject?.() || doc.customizationOptions || {}),
+      goldColors,
+    },
     specifications: doc.specifications || [],
     views: doc.views,
     cartAdds: doc.cartAdds,
