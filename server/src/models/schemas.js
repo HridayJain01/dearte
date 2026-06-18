@@ -31,7 +31,7 @@ export const productColorVariantSchema = new mongoose.Schema(
 export const customizationOptionsSchema = new mongoose.Schema(
   {
     goldColors: { type: [String], default: ['Yellow Gold', 'Rose Gold', 'White Gold'] },
-    goldCarats: { type: [String], default: ['14K', '18K', '22K'] },
+    goldCarats: { type: [String], default: ['9K', '14K', '18K'] },
     diamondQualities: { type: [String], default: ['SI-IJ', 'VS-GH', 'VVS-EF'] },
   },
   { _id: false },
@@ -53,6 +53,7 @@ export const orderItemSchema = new mongoose.Schema(
       goldColor: { type: String, default: '' },
       goldCarat: { type: String, default: '' },
       diamondQuality: { type: String, default: '' },
+      note: { type: String, default: '' },
     },
   },
   { _id: true },
@@ -76,6 +77,7 @@ export const cartItemSchema = new mongoose.Schema(
       goldColor: { type: String, default: '' },
       goldCarat: { type: String, default: '' },
       diamondQuality: { type: String, default: '' },
+      note: { type: String, default: '' },
     },
   },
   { _id: true },

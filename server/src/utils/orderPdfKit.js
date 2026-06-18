@@ -37,7 +37,6 @@ export function generateOrderPdfBuffer(order) {
       doc.text(`Order reference: ${order.orderId || '—'}`);
       doc.text(`Placed: ${order.createdAt ? new Date(order.createdAt).toISOString().slice(0, 16).replace('T', ' ') : '—'} UTC`);
       doc.text(`Status: ${order.status || 'Pending'}`);
-      doc.text(`Payment: ${order.paymentMethod || '—'}`);
       doc.moveDown();
 
       doc.fontSize(11).fillColor('#b68a3f').text('Buyer');
@@ -51,11 +50,6 @@ export function generateOrderPdfBuffer(order) {
       }
       doc.moveDown();
 
-      doc.fontSize(11).fillColor('#b68a3f').text('Shipping');
-      doc.fontSize(10).fillColor('#1f1d1a');
-      doc.text(String(order.shippingAddress || '(Not provided yet)'), { paragraphGap: 2 });
-      doc.moveDown();
-
       doc.fontSize(11).fillColor('#b68a3f').text('Line items');
       doc.fontSize(10).fillColor('#1f1d1a');
       for (const item of order.items || []) {
@@ -65,6 +59,7 @@ export function generateOrderPdfBuffer(order) {
         const extras = [c.goldColor, c.goldCarat, c.diamondQuality].filter(Boolean).join(' · ');
         doc.text(`${qty}x ${line}`);
         if (extras) doc.fillColor('#6f685f').text(`    ${extras}`).fillColor('#1f1d1a');
+        if (c.note) doc.fillColor('#6f685f').text(`    Custom request: ${c.note}`).fillColor('#1f1d1a');
       }
       // compute and print totals: total gold weight (g) and total diamond carats (ct)
       const totalGold = (order.items || []).reduce((s, it) => s + ((it.product?.goldWeight || 0) * (it.quantity || 0)), 0);

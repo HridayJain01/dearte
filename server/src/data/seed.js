@@ -72,7 +72,7 @@ const makeProduct = ({
       'https://player.vimeo.com/external/370467553.sd.mp4?s=4df4b3b89eb6e5747aa0f248ab0bf36d5ef4d9e0&profile_id=164&oauth2_token_id=57447761',
     customizationOptions: {
       goldColors: ['Yellow Gold', 'Rose Gold', 'White Gold'],
-      goldCarats: ['14K', '18K', '22K'],
+      goldCarats: ['9K', '14K', '18K'],
       diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
     },
     specifications: [
@@ -331,7 +331,7 @@ export const seedData = {
       sections: [
         {
           title: 'Gold Purity',
-          bullets: ['14K offers durability for daily wear.', '18K balances richness and resilience.', '22K delivers higher gold content with a softer feel.'],
+          bullets: ['9K is available for select designs with a higher gold ratio.', '14K offers durability for daily wear.', '18K balances richness and resilience.'],
         },
         {
           title: 'Metal Colors',
