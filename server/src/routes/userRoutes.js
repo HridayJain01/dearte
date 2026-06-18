@@ -8,6 +8,7 @@ import {
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } from '../utils/serializers.js';
 import { notifyWhatsappOrderPlaced } from '../services/orderWhatsappNotifications.js';
+import { notifyEmailOrderPlaced } from '../services/orderEmailNotifications.js';
 
 const router = express.Router();
 
@@ -393,6 +394,9 @@ router.post('/orders', async (req, res) => {
   setImmediate(() => {
     notifyWhatsappOrderPlaced(order).catch((e) =>
       console.error('[whatsapp] order-placed notifications failed', e.message),
+    );
+    notifyEmailOrderPlaced(order).catch((e) =>
+      console.error('[email] order-placed notifications failed', e.message),
     );
   });
 

@@ -15,6 +15,8 @@ const siteSettingsSchema = new mongoose.Schema(
     newsletterBlurb: { type: String, default: '' },
     /** WhatsApp ops: comma-separated admin numbers who receive PDF copies when orders are placed (E.164 digits or local with default country prefix). */
     whatsappOperationsNumbers: { type: String, default: '' },
+    /** Email ops: comma-separated admin emails who receive a copy of each new order. */
+    orderNotificationEmails: { type: String, default: '' },
   },
   { timestamps: true },
 );

@@ -35,6 +35,11 @@ import {
   broadcastWhatsappToUsers,
   notifyWhatsappOrderStatus,
 } from '../services/orderWhatsappNotifications.js';
+import { getEmailConfigStatus } from '../services/email/transport.js';
+import {
+  broadcastEmailToUsers,
+  notifyEmailOrderStatus,
+} from '../services/orderEmailNotifications.js';
 
 const router = express.Router();
 
@@ -495,6 +500,7 @@ function sanitizeSiteSettings(body, current = null) {
     mapsEmbed: body.mapsEmbed ?? current?.mapsEmbed ?? '',
     newsletterBlurb: body.newsletterBlurb ?? current?.newsletterBlurb ?? '',
     whatsappOperationsNumbers: body.whatsappOperationsNumbers ?? current?.whatsappOperationsNumbers ?? '',
+    orderNotificationEmails: body.orderNotificationEmails ?? current?.orderNotificationEmails ?? '',
   };
 }
 
@@ -651,6 +657,74 @@ router.post('/whatsapp/broadcast', async (req, res) => {
       mediaKind: trimmedUrl ? kind : 'none',
       mediaUrl: trimmedUrl,
       mediaFilename,
+    });
+
+    const sent = results.filter((r) => r.ok).length;
+    const skipped = results.filter((r) => r.skipped).length;
+    const failed = results.filter((r) => r.ok === false).length;
+
+    return sendSuccess(
+      res,
+      { results, totals: { sent, skipped, failed, targeted: users.length } },
+      'Broadcast finished',
+    );
+  } catch (error) {
+    return sendError(res, error.message, 400);
+  }
+});
+
+router.get('/email/status', (_req, res) => sendSuccess(res, getEmailConfigStatus()));
+
+router.post('/email/broadcast', async (req, res) => {
+  const {
+    audience,
+    userIds = [],
+    subject = '',
+    heading = '',
+    bodyHtml = '',
+    bodyText = '',
+    ctaLabel = '',
+    ctaUrl = '',
+  } = req.body || {};
+
+  if (!['all_active_buyers', 'selected'].includes(audience)) {
+    return sendError(res, 'audience must be all_active_buyers or selected', 400);
+  }
+  if (!String(subject || '').trim()) {
+    return sendError(res, 'subject is required', 400);
+  }
+  if (!String(bodyHtml || bodyText || '').trim()) {
+    return sendError(res, 'message body is required', 400);
+  }
+
+  const trimmedCtaUrl = typeof ctaUrl === 'string' ? ctaUrl.trim() : '';
+  if (trimmedCtaUrl && !/^https?:\/\//.test(trimmedCtaUrl)) {
+    return sendError(res, 'ctaUrl must be an http(s) URL', 400);
+  }
+
+  let usersQuery;
+  if (audience === 'all_active_buyers') {
+    usersQuery = User.find({ role: 'buyer', status: 'Active' }).sort({ createdAt: -1 });
+  } else {
+    const objectIds = (Array.isArray(userIds) ? userIds : [])
+      .filter((id) => isObjectId(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    if (!objectIds.length) {
+      return sendError(res, 'userIds required when audience is selected', 400);
+    }
+    usersQuery = User.find({ _id: { $in: objectIds }, role: 'buyer' });
+  }
+
+  const users = await usersQuery.exec();
+
+  try {
+    const results = await broadcastEmailToUsers(users, {
+      subject: String(subject).trim(),
+      heading: String(heading || '').trim(),
+      bodyHtml,
+      bodyText,
+      ctaLabel: String(ctaLabel || '').trim(),
+      ctaUrl: trimmedCtaUrl,
     });
 
     const sent = results.filter((r) => r.ok).length;
@@ -1213,6 +1287,7 @@ router.put('/orders/:id', async (req, res) => {
   const nextStatus = req.body.status ?? order.status;
 
   const notifyCustomerViaWhatsapp = parseBoolean(req.body.notifyCustomerViaWhatsapp, false);
+  const notifyCustomerViaEmail = parseBoolean(req.body.notifyCustomerViaEmail, false);
   const notifyCustomerMessage =
     typeof req.body.notifyCustomerMessage === 'string' ? req.body.notifyCustomerMessage : '';
 
@@ -1256,14 +1331,25 @@ router.put('/orders/:id', async (req, res) => {
     await order.save();
     await order.populate(orderPopulate);
 
-    if (notifyCustomerViaWhatsapp && nextStatus !== previousStatus) {
-      setImmediate(() => {
-        notifyWhatsappOrderStatus(order, {
-          previousStatus,
-          nextStatus,
-          customNote: notifyCustomerMessage.trim(),
-        }).catch((e) => console.error('[whatsapp] status notify failed', e.message));
-      });
+    if (nextStatus !== previousStatus) {
+      if (notifyCustomerViaWhatsapp) {
+        setImmediate(() => {
+          notifyWhatsappOrderStatus(order, {
+            previousStatus,
+            nextStatus,
+            customNote: notifyCustomerMessage.trim(),
+          }).catch((e) => console.error('[whatsapp] status notify failed', e.message));
+        });
+      }
+      if (notifyCustomerViaEmail) {
+        setImmediate(() => {
+          notifyEmailOrderStatus(order, {
+            previousStatus,
+            nextStatus,
+            customNote: notifyCustomerMessage.trim(),
+          }).catch((e) => console.error('[email] status notify failed', e.message));
+        });
+      }
     }
 
     return sendSuccess(res, serializeOrder(order), 'Order updated');

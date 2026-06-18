@@ -89,6 +89,7 @@ const emptySiteSettings = {
   phone: '',
   whatsapp: '',
   whatsappOperationsNumbers: '',
+  orderNotificationEmails: '',
   instagram: '',
   linkedin: '',
   facebook: '',
@@ -1334,19 +1335,21 @@ export function AdminOrdersPage() {
 
   const displayedStatusSelect = statusChangeFlow?.next ?? selectedOrder?.status ?? 'Pending';
 
-  const applyOrderStatusChange = async (notifyCustomerViaWhatsapp) => {
+  const applyOrderStatusChange = async ({ whatsapp = false, email = false } = {}) => {
     if (!selectedOrder || !statusChangeFlow?.next || statusSaving) return;
     try {
       setStatusSaving(true);
       await adminService.updateOrder(selectedOrder.id, {
         status: statusChangeFlow.next,
-        notifyCustomerViaWhatsapp,
+        notifyCustomerViaWhatsapp: whatsapp,
+        notifyCustomerViaEmail: email,
         notifyCustomerMessage: statusNotifyOptionalNote,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       setStatusChangeFlow(null);
       setStatusNotifyOptionalNote('');
-      toast.success(notifyCustomerViaWhatsapp ? 'Order saved and WhatsApp sent (if buyer has mobile configured).' : 'Order saved.');
+      const channels = [whatsapp && 'WhatsApp', email && 'email'].filter(Boolean).join(' & ');
+      toast.success(channels ? `Order saved and ${channels} sent (if buyer details on file).` : 'Order saved.');
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Could not update order.';
       toast.error(msg);
@@ -1408,9 +1411,9 @@ export function AdminOrdersPage() {
             {statusChangeFlow ? (
               <div className="space-y-3 rounded border border-[var(--color-border-active)] bg-[var(--color-surface-alt)] p-4">
                 <p className="text-sm text-[var(--color-text)]">
-                  Status goes from “{selectedOrder.status}” to “{statusChangeFlow.next}”. Should we send a WhatsApp text to the buyer (mobile on profile)?
+                  Status goes from “{selectedOrder.status}” to “{statusChangeFlow.next}”. Choose how to notify the buyer, then save.
                 </p>
-                <Field label="Optional note for buyer (appended to WhatsApp)">
+                <Field label="Optional note for buyer (added to the notification)">
                   <textarea
                     className={textareaInput}
                     value={statusNotifyOptionalNote}
@@ -1420,8 +1423,10 @@ export function AdminOrdersPage() {
                   />
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                  <Button loading={statusSaving} onClick={() => applyOrderStatusChange(true)}>Notify on WhatsApp and save</Button>
-                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange(false)}>Save without WhatsApp</Button>
+                  <Button loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true, email: true })}>Notify WhatsApp + Email and save</Button>
+                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ email: true })}>Email only and save</Button>
+                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true })}>WhatsApp only and save</Button>
+                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({})}>Save without notifying</Button>
                   <Button variant="ghost" disabled={statusSaving} onClick={() => setStatusChangeFlow(null)}>Cancel</Button>
                 </div>
               </div>
@@ -1626,6 +1631,10 @@ export function AdminWhatsAppPage() {
     queryKey: ['admin-whatsapp-status'],
     queryFn: adminService.whatsappStatus,
   });
+  const { data: emailStatus, isLoading: emailLoading } = useQuery({
+    queryKey: ['admin-email-status'],
+    queryFn: adminService.emailStatus,
+  });
   const { data: buyers = [], isLoading: usersLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: adminService.users,
@@ -1639,9 +1648,16 @@ export function AdminWhatsAppPage() {
   const [mediaFilename, setMediaFilename] = useState('attachment.pdf');
   const [sending, setSending] = useState(false);
 
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailHeading, setEmailHeading] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailCtaLabel, setEmailCtaLabel] = useState('');
+  const [emailCtaUrl, setEmailCtaUrl] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+
   const buyerSearchList = useMemo(() => [...buyers].sort((a, b) => a.name.localeCompare(b.name)), [buyers]);
 
-  if (waLoading || usersLoading) return <LoadingBlock />;
+  if (waLoading || emailLoading || usersLoading) return <LoadingBlock />;
 
   const toggleBuyer = (id) => {
     setSelectedBuyerIds((current) => {
@@ -1687,6 +1703,53 @@ export function AdminWhatsAppPage() {
     }
   };
 
+  const runEmailBroadcast = async () => {
+    const subject = emailSubject.trim();
+    const body = emailBody.trim();
+    if (!subject) {
+      toast.error('Enter an email subject.');
+      return;
+    }
+    if (!body) {
+      toast.error('Enter an email message.');
+      return;
+    }
+    const userIds = audience === 'selected' ? [...selectedBuyerIds] : [];
+    if (audience === 'selected' && userIds.length === 0) {
+      toast.error('Select at least one buyer.');
+      return;
+    }
+
+    // Convert newlines to <br> so plain-typed paragraphs render in HTML email.
+    const bodyHtml = body
+      .split(/\n{2,}/)
+      .map((para) => `<p>${para.replace(/\n/g, '<br/>')}</p>`)
+      .join('');
+
+    const payload = {
+      audience,
+      userIds,
+      subject,
+      heading: emailHeading.trim(),
+      bodyHtml,
+      bodyText: body,
+      ctaLabel: emailCtaLabel.trim(),
+      ctaUrl: emailCtaUrl.trim(),
+    };
+
+    try {
+      setEmailSending(true);
+      const result = await adminService.emailBroadcast(payload);
+      const totals = result?.totals || {};
+      toast.success(`Sent ${totals.sent || 0}, skipped ${totals.skipped || 0}, failed ${totals.failed || 0}.`);
+      queryClient.invalidateQueries({ queryKey: ['admin-email-status'] });
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || 'Email broadcast failed.');
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   return (
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading
@@ -1723,7 +1786,8 @@ export function AdminWhatsAppPage() {
               <label key={user.id} className="flex cursor-pointer items-center gap-3 text-sm">
                 <input type="checkbox" checked={selectedBuyerIds.has(user.id)} onChange={() => toggleBuyer(user.id)} />
                 <span className="font-medium text-[var(--color-text)]">{user.name}</span>
-                <span className="text-[var(--color-text-muted)]">{user.mobile || 'No mobile'}</span>
+                <span className="text-[var(--color-text-muted)]">{user.email || 'No email'}</span>
+                <span className="text-[var(--color-text-muted)]">· {user.mobile || 'No mobile'}</span>
               </label>
             ))}
           </div>
@@ -1754,6 +1818,49 @@ export function AdminWhatsAppPage() {
 
         <Button loading={sending} onClick={runBroadcast} disabled={!waStatus?.configured}>
           Send broadcast
+        </Button>
+      </Panel>
+
+      <SectionHeading
+        eyebrow="Email"
+        title="Promotional email broadcasts"
+        description="Send a branded email to the audience selected above. Uses the same buyer selection as the WhatsApp panel."
+      />
+
+      <Panel className="space-y-4">
+        <p className="lux-label">Connection status</p>
+        {emailStatus?.configured ? (
+          <p className="text-sm text-[var(--color-text-muted)]">Email is configured on the server (from {emailStatus?.from || 'configured sender'}).</p>
+        ) : (
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Not ready: {(emailStatus?.missing || []).join(', ') || 'Set EMAIL_USER and EMAIL_PASSWORD'}.
+          </p>
+        )}
+      </Panel>
+
+      <Panel className="space-y-4">
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Sending to: {audience === 'all_active_buyers' ? 'all active buyers' : `${selectedBuyerIds.size} selected buyer(s)`}. Change the audience in the panel above.
+        </p>
+        <Field label="Subject">
+          <input className={textInput} value={emailSubject} onChange={(event) => setEmailSubject(event.target.value)} placeholder="New collection preview from De Arté" />
+        </Field>
+        <Field label="Heading (optional, shown large at top)">
+          <input className={textInput} value={emailHeading} onChange={(event) => setEmailHeading(event.target.value)} placeholder="Introducing the Aurora line" />
+        </Field>
+        <Field label="Message body (plain text — blank lines become paragraphs)">
+          <textarea className={textareaInput} rows={6} value={emailBody} onChange={(event) => setEmailBody(event.target.value)} placeholder="Dear patron,&#10;&#10;We're delighted to share..." />
+        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Button label (optional)">
+            <input className={textInput} value={emailCtaLabel} onChange={(event) => setEmailCtaLabel(event.target.value)} placeholder="View the collection" />
+          </Field>
+          <Field label="Button link (optional, https)">
+            <input className={textInput} value={emailCtaUrl} onChange={(event) => setEmailCtaUrl(event.target.value)} placeholder="https://dearte.com/collections" />
+          </Field>
+        </div>
+        <Button loading={emailSending} onClick={runEmailBroadcast} disabled={!emailStatus?.configured}>
+          Send email broadcast
         </Button>
       </Panel>
     </div>
@@ -1792,6 +1899,7 @@ export function AdminConfigPage() {
           <Field label="Hours"><input className={textInput} value={siteSettings.hours} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), hours: event.target.value }))} /></Field>
           <Field label="WhatsApp (public link)"><input className={textInput} value={siteSettings.whatsapp} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), whatsapp: event.target.value }))} /></Field>
           <Field label="WhatsApp ops numbers (order PDF copies)"><input className={textInput} value={siteSettings.whatsappOperationsNumbers || ''} placeholder="9198..., 9197... (comma-separated)" onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), whatsappOperationsNumbers: event.target.value }))} /></Field>
+          <Field label="Order notification emails (admin copies)"><input className={textInput} value={siteSettings.orderNotificationEmails || ''} placeholder="ops@dearte.com, sales@dearte.com (comma-separated)" onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), orderNotificationEmails: event.target.value }))} /></Field>
           <Field label="Instagram"><input className={textInput} value={siteSettings.instagram} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), instagram: event.target.value }))} /></Field>
           <Field label="LinkedIn"><input className={textInput} value={siteSettings.linkedin} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), linkedin: event.target.value }))} /></Field>
           <Field label="Facebook"><input className={textInput} value={siteSettings.facebook} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), facebook: event.target.value }))} /></Field>
