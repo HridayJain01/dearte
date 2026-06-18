@@ -8,16 +8,18 @@ import { formatWeight } from '../../utils/formatters';
 
 export function ProductCard({ product }) {
   const { isAuthenticated } = useAuth();
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateCart, removeFromCart } = useCart();
   const { addToWishlist } = useWishlist();
   const navigate = useNavigate();
+
+  const cartItem = cart?.items?.find((i) => i.product?.id === product.id);
+  const isOutOfStock = product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0;
 
   const ensureAuth = async (action) => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-
     await action();
   };
 
@@ -54,7 +56,6 @@ export function ProductCard({ product }) {
                 {product.styleCode}
               </p>
             </div>
-            
           </div>
 
           <p className="text-xs text-[var(--color-text-muted)]">
@@ -62,28 +63,58 @@ export function ProductCard({ product }) {
           </p>
 
           <div className="pt-1">
-            <Button
-              variant="secondary"
-              className="w-full border-[#ddd] bg-transparent text-[#303030] hover:bg-[var(--color-surface-alt)]"
-              icon={ShoppingBag}
-              disabled={product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0}
-              onClick={(e) => {
-                e.preventDefault();
-                ensureAuth(() =>
-                  addToCart({
-                    productId: product.id,
-                    quantity: 1,
-                    customization: {
-                      goldColor: product.customizationOptions.goldColors[0],
-                      goldCarat: product.customizationOptions.goldCarats[1] || product.customizationOptions.goldCarats[0],
-                      diamondQuality: product.customizationOptions.diamondQualities[1] || product.customizationOptions.diamondQualities[0],
-                    },
-                  }),
-                )
-              }}
-            >
-              {product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0 ? 'Out of stock' : 'Add to cart'}
-            </Button>
+            {cartItem ? (
+              <div className="flex w-full items-center border border-[var(--color-border)]">
+                <button
+                  className="flex h-11 flex-1 items-center justify-center text-xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    ensureAuth(() =>
+                      cartItem.quantity <= 1
+                        ? removeFromCart(cartItem.id)
+                        : updateCart(cartItem.id, { quantity: cartItem.quantity - 1 }),
+                    );
+                  }}
+                >
+                  −
+                </button>
+                <span className="w-10 border-x border-[var(--color-border)] text-center text-sm font-medium text-[var(--color-text)]">
+                  {cartItem.quantity}
+                </span>
+                <button
+                  className="flex h-11 flex-1 items-center justify-center text-xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    ensureAuth(() => updateCart(cartItem.id, { quantity: cartItem.quantity + 1 }));
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            ) : (
+              <Button
+                variant="secondary"
+                className="w-full border-[#ddd] bg-transparent text-[#303030] hover:bg-[var(--color-surface-alt)]"
+                icon={ShoppingBag}
+                disabled={isOutOfStock}
+                onClick={(e) => {
+                  e.preventDefault();
+                  ensureAuth(() =>
+                    addToCart({
+                      productId: product.id,
+                      quantity: 1,
+                      customization: {
+                        goldColor: product.customizationOptions.goldColors[0],
+                        goldCarat: product.customizationOptions.goldCarats[1] || product.customizationOptions.goldCarats[0],
+                        diamondQuality: product.customizationOptions.diamondQualities[1] || product.customizationOptions.diamondQualities[0],
+                      },
+                    }),
+                  );
+                }}
+              >
+                {isOutOfStock ? 'Out of stock' : 'Add to cart'}
+              </Button>
+            )}
           </div>
 
           <div className="flex gap-3 pt-1">

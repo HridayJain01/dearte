@@ -1,6 +1,6 @@
 import { ChevronDown, Menu } from 'lucide-react';
-import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ADMIN_LINKS } from '../../utils/constants';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,6 +9,11 @@ import { Button } from '../ui/Primitives';
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-primary-bg text-text">
@@ -33,7 +38,7 @@ export function AdminLayout() {
             </button>
           </div>
 
-          <div className={`${menuOpen ? 'mt-6 block' : 'hidden'} lg:mt-8 lg:block`}>
+          <div className={`${menuOpen ? 'mt-4 block border-t border-border pt-5' : 'hidden'} lg:mt-6 lg:block lg:border-t lg:border-border lg:pt-6`}>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-1">
               {ADMIN_LINKS.map((item) => {
                 const Icon = item.icon;

@@ -33,7 +33,5 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const checkoutSchema = z.object({
-  shippingAddress: z.string().min(6),
   notes: z.string().optional(),
-  paymentMethod: z.enum(['Cash on Delivery', 'Offline Payment']),
 });

@@ -3,8 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { adminService } from '../services/adminService';
-import { Button, LoadingBlock, Panel, SectionHeading, StatCard } from '../components/ui/Primitives';
-import { Download } from 'lucide-react';
+import { Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
+import { Download, Plus, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 
 const textInput =
@@ -33,6 +33,7 @@ const emptyProduct = {
   description: '',
   media: [],
   colorVariants: [],
+  specifications: [],
   isNewArrival: false,
   isBestSeller: false,
   sku: '',
@@ -171,18 +172,30 @@ function Thumbnail({ asset, alt = '', size = 'h-12 w-12' }) {
   return <img src={src} alt={alt} className={`${size} rounded object-cover`} />;
 }
 
-function DataTable({ columns, rows }) {
+function DataTable({ columns, rows, emptyMessage = 'No records.' }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="text-[var(--color-text-muted)]">
-          <tr>{columns.map((column) => <th key={column.key} className="pb-4">{column.label}</th>)}</tr>
+        <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+          <tr>
+            {columns.map((column) => (
+              <th key={column.key} className="py-2.5 pr-4 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">
+                {column.label}
+              </th>
+            ))}
+          </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => (
-            <tr key={row.id || index} className="border-t border-[var(--color-border)]">
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="py-10 text-center text-sm text-[var(--color-text-muted)]">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : rows.map((row, index) => (
+            <tr key={row.id || index} className="border-b border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-alt)]">
               {columns.map((column) => (
-                <td key={column.key} className="py-4 align-top">
+                <td key={column.key} className="py-3.5 pr-4 align-middle">
                   {column.render ? column.render(row[column.key], row) : row[column.key]}
                 </td>
               ))}
@@ -349,8 +362,20 @@ function MediaField({ value, onChange, folder }) {
   );
 }
 
+function roundSpecificationValue(attribute, value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+
+  if (!/(wt|weight|carat)/i.test(attribute)) return trimmed;
+
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) return trimmed;
+
+  return parsed.toFixed(2);
+}
+
 function buildProductSpecifications(form) {
-  return [
+  const baseSpecifications = [
     { attribute: 'Metal', value: form.metal || '' },
     { attribute: 'Diamond Weight', value: `${Number(form.diamondWeight || 0).toFixed(2)} ct` },
     { attribute: 'Gold Weight', value: `${Number(form.goldWeight || 0).toFixed(2)} g` },
@@ -359,6 +384,33 @@ function buildProductSpecifications(form) {
     { attribute: 'Occasion', value: form.occasion || '' },
     { attribute: 'SKU', value: form.sku || `${form.styleCode}-SKU` },
   ].filter((item) => item.value);
+
+  const seen = new Set(baseSpecifications.map((item) => item.attribute.toLowerCase()));
+  const extraSpecifications = (Array.isArray(form.specifications) ? form.specifications : [])
+    .map((item) => ({
+      attribute: String(item?.attribute || '').trim(),
+      value: roundSpecificationValue(item?.attribute, item?.value),
+    }))
+    .filter((item) => item.attribute && item.value)
+    .filter((item) => {
+      const key = item.attribute.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  return [...baseSpecifications, ...extraSpecifications];
+}
+
+// Cleans the editable specification rows for persistence: trims labels, rounds
+// weight/carat values, and drops empty rows. What admins see is what gets saved.
+function normalizeEditedSpecifications(form) {
+  return (Array.isArray(form.specifications) ? form.specifications : [])
+    .map((item) => ({
+      attribute: String(item?.attribute || '').trim(),
+      value: roundSpecificationValue(item?.attribute, item?.value),
+    }))
+    .filter((item) => item.attribute && item.value);
 }
 
 function normalizeSheetHeader(value) {
@@ -401,16 +453,25 @@ function summarizeImportRows(rows) {
     ).trim();
     const color = String(normalized.colour || normalized.color || '').trim();
     const view = String(normalized.view || '').trim();
+    const category = String(normalized.category || normalized.productcategory || '').trim();
+    const subCategory = String(normalized.subcategory || normalized.subcategoryname || '').trim();
+    const collection = String(normalized.collection || normalized.collectionname || '').trim();
 
     if (!styleCode) return;
 
     const current = summaryMap.get(styleCode) || {
       styleCode,
+      categories: new Set(),
+      subCategories: new Set(),
+      collections: new Set(),
       colors: new Set(),
       views: new Set(),
       rows: 0,
     };
 
+    if (category) current.categories.add(category);
+    if (subCategory) current.subCategories.add(subCategory);
+    if (collection) current.collections.add(collection);
     if (color) current.colors.add(color);
     if (view) current.views.add(view);
     current.rows += 1;
@@ -421,6 +482,9 @@ function summarizeImportRows(rows) {
     .map((item) => ({
       styleCode: item.styleCode,
       colorCount: item.colors.size,
+      categories: [...item.categories],
+      subCategories: [...item.subCategories],
+      collections: [...item.collections],
       colors: [...item.colors],
       views: [...item.views],
       rows: item.rows,
@@ -479,8 +543,34 @@ function ProductEditor({
       (!form.subCategoryId || item.subCategoryId === form.subCategoryId),
   );
 
+  const addSpecification = () => {
+    setForm((current) => ({
+      ...current,
+      specifications: [...(current.specifications || []), { attribute: '', value: '' }],
+    }));
+  };
+
+  const updateSpecification = (index, key, value) => {
+    setForm((current) => {
+      const next = [...(current.specifications || [])];
+      next[index] = { ...next[index], [key]: value };
+      return { ...current, specifications: next };
+    });
+  };
+
+  const removeSpecification = (index) => {
+    setForm((current) => ({
+      ...current,
+      specifications: (current.specifications || []).filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  const autofillSpecifications = () => {
+    setForm((current) => ({ ...current, specifications: buildProductSpecifications(current) }));
+  };
+
   return (
-    <Panel className="space-y-4">
+    <Panel className="max-h-[780px] space-y-4 overflow-y-auto">
       <p className="lux-label">Product Editor</p>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Style Code"><input className={textInput} value={form.styleCode} onChange={(event) => setForm((current) => ({ ...current, styleCode: event.target.value }))} /></Field>
@@ -549,6 +639,54 @@ function ProductEditor({
         </div>
       ) : null}
 
+      <div className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-medium text-[var(--color-text)]">Specifications</p>
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              Attribute and value pairs shown on the product page. Imported rows are editable.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" type="button" onClick={autofillSpecifications}>Auto-fill from fields</Button>
+            <Button variant="secondary" type="button" icon={Plus} onClick={addSpecification}>Add Row</Button>
+          </div>
+        </div>
+
+        {form.specifications?.length ? (
+          <div className="mt-4 space-y-2">
+            {form.specifications.map((item, index) => (
+              <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  className={textInput}
+                  placeholder="Attribute"
+                  value={item.attribute || ''}
+                  onChange={(event) => updateSpecification(index, 'attribute', event.target.value)}
+                />
+                <input
+                  className={textInput}
+                  placeholder="Value"
+                  value={item.value ?? ''}
+                  onChange={(event) => updateSpecification(index, 'value', event.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSpecification(index)}
+                  aria-label="Remove specification"
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-[var(--color-text-muted)]">
+            No specifications yet. Add a row or import a sheet to populate them.
+          </p>
+        )}
+      </div>
+
       <MediaField value={form.media} onChange={(media) => setForm((current) => ({ ...current, media }))} folder={`dearte/products/${form.styleCode || 'draft'}`} />
 
       <div className="flex gap-3">
@@ -559,12 +697,11 @@ function ProductEditor({
   );
 }
 
-function BulkProductImportPanel({ config, onImported }) {
+function BulkProductImportPanel({ onImported }) {
   const [importFileName, setImportFileName] = useState('');
   const [sheetName, setSheetName] = useState('');
   const [parsedRows, setParsedRows] = useState([]);
   const [summaryRows, setSummaryRows] = useState([]);
-  const [cloudinaryBaseUrl, setCloudinaryBaseUrl] = useState('');
   const [folderFiles, setFolderFiles] = useState([]);
   const [folderFileMap, setFolderFileMap] = useState(new Map());
   const [sheetFileSummary, setSheetFileSummary] = useState({
@@ -574,43 +711,6 @@ function BulkProductImportPanel({ config, onImported }) {
     missing: [],
   });
   const [importing, setImporting] = useState(false);
-  const [importOptions, setImportOptions] = useState({
-    categoryId: config?.categories?.[0]?.id || '',
-    subCategoryId: config?.subCategories?.[0]?.id || '',
-    collectionId: config?.collections?.[0]?.id || '',
-    metalColorId: config?.metalOptions?.[0]?.id || '',
-    stockType: 'Ready Stock',
-    stockQuantity: 10,
-    status: 'Active',
-    isNewArrival: false,
-    isBestSeller: false,
-  });
-
-  useEffect(() => {
-    setImportOptions((current) => ({
-      ...current,
-      categoryId: current.categoryId || config?.categories?.[0]?.id || '',
-      subCategoryId: current.subCategoryId || config?.subCategories?.[0]?.id || '',
-      collectionId: current.collectionId || config?.collections?.[0]?.id || '',
-      metalColorId: current.metalColorId || config?.metalOptions?.[0]?.id || '',
-    }));
-  }, [config]);
-
-  const availableSubCategories = useMemo(
-    () => (config?.subCategories || []).filter(
-      (item) => !importOptions.categoryId || item.categoryId === importOptions.categoryId,
-    ),
-    [config, importOptions.categoryId],
-  );
-
-  const availableCollections = useMemo(
-    () => (config?.collections || []).filter(
-      (item) =>
-        (!importOptions.categoryId || item.categoryId === importOptions.categoryId) &&
-        (!importOptions.subCategoryId || item.subCategoryId === importOptions.subCategoryId),
-    ),
-    [config, importOptions.categoryId, importOptions.subCategoryId],
-  );
 
   const handleSheetUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -685,11 +785,6 @@ function BulkProductImportPanel({ config, onImported }) {
       return;
     }
 
-    if (!importOptions.categoryId || !importOptions.subCategoryId || !importOptions.collectionId || !importOptions.metalColorId) {
-      toast.error('Choose category, sub-category, collection, and fallback metal color first.');
-      return;
-    }
-
     try {
       setImporting(true);
       let rowsForImport = parsedRows;
@@ -700,8 +795,6 @@ function BulkProductImportPanel({ config, onImported }) {
 
       const result = await adminService.bulkImportProducts({
         rows: rowsForImport,
-        cloudinaryBaseUrl: cloudinaryBaseUrl.trim(),
-        ...importOptions,
       });
       toast.success(`Imported ${result.summary.totalProducts} styles`);
       onImported?.(result);
@@ -721,113 +814,31 @@ function BulkProductImportPanel({ config, onImported }) {
             Group rows by style code, then map each color and view to its Cloudinary image.
           </p>
         </div>
-        <label className="inline-flex cursor-pointer items-center rounded border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
-          Upload Sheet
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={handleSheetUpload}
-          />
-        </label>
-        <label className="inline-flex cursor-pointer items-center rounded border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
-          Upload Image Folder
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFolderUpload}
-            webkitdirectory=""
-            directory=""
-          />
-        </label>
+        <div className="flex flex-wrap gap-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+            Upload Sheet
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleSheetUpload}
+            />
+          </label>
+          <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+            Upload Image Folder
+            <input
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFolderUpload}
+              webkitdirectory=""
+              directory=""
+            />
+          </label>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Cloudinary base URL (optional)">
-          <input
-            className={textInput}
-            value={cloudinaryBaseUrl}
-            onChange={(event) => setCloudinaryBaseUrl(event.target.value)}
-            placeholder="https://res.cloudinary.com/<cloud>/image/upload/v123/dearte/products"
-          />
-        </Field>
-        <Field label="Fallback metal color">
-          <select
-            className={textInput}
-            value={importOptions.metalColorId}
-            onChange={(event) => setImportOptions((current) => ({ ...current, metalColorId: event.target.value }))}
-          >
-            <option value="">Select metal color</option>
-            {(config?.metalOptions || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Category">
-          <select
-            className={textInput}
-            value={importOptions.categoryId}
-            onChange={(event) => setImportOptions((current) => ({
-              ...current,
-              categoryId: event.target.value,
-              subCategoryId: '',
-              collectionId: '',
-            }))}
-          >
-            <option value="">Select category</option>
-            {(config?.categories || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Sub-category">
-          <select
-            className={textInput}
-            value={importOptions.subCategoryId}
-            onChange={(event) => setImportOptions((current) => ({ ...current, subCategoryId: event.target.value, collectionId: '' }))}
-          >
-            <option value="">Select sub-category</option>
-            {availableSubCategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Collection">
-          <select
-            className={textInput}
-            value={importOptions.collectionId}
-            onChange={(event) => setImportOptions((current) => ({ ...current, collectionId: event.target.value }))}
-          >
-            <option value="">Select collection</option>
-            {availableCollections.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Default stock quantity">
-          <input
-            type="number"
-            min="0"
-            className={textInput}
-            value={importOptions.stockQuantity}
-            onChange={(event) => setImportOptions((current) => ({ ...current, stockQuantity: Number(event.target.value) }))}
-          />
-        </Field>
-      </div>
-
-      <div className="flex flex-wrap gap-4 text-sm text-[var(--color-text-muted)]">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={importOptions.isNewArrival}
-            onChange={(event) => setImportOptions((current) => ({ ...current, isNewArrival: event.target.checked }))}
-          />
-          Mark imported products as new arrivals
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={importOptions.isBestSeller}
-            onChange={(event) => setImportOptions((current) => ({ ...current, isBestSeller: event.target.checked }))}
-          />
-          Mark imported products as best sellers
-        </label>
-      </div>
-
-      <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
+      <div className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
         <p>File: {importFileName || 'No spreadsheet loaded yet'}</p>
         <p>Sheet: {sheetName || '-'}</p>
         <p>Rows: {parsedRows.length}</p>
@@ -837,7 +848,7 @@ function BulkProductImportPanel({ config, onImported }) {
       </div>
 
       {sheetFileSummary.missingCount ? (
-        <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Missing {sheetFileSummary.missingCount} sheet image file(s) from the uploaded folder.
           {sheetFileSummary.missing[0] ? ` First missing file: ${sheetFileSummary.missing[0]}` : ''}
         </div>
@@ -849,6 +860,9 @@ function BulkProductImportPanel({ config, onImported }) {
             columns={[
               { key: 'styleCode', label: 'Style Code' },
               { key: 'rows', label: 'Rows' },
+              { key: 'categories', label: 'Category', render: (value) => value.join(', ') || '-' },
+              { key: 'subCategories', label: 'Sub-category', render: (value) => value.join(', ') || '-' },
+              { key: 'collections', label: 'Collection', render: (value) => value.join(', ') || '-' },
               { key: 'colorCount', label: 'Colors' },
               { key: 'views', label: 'Views', render: (value) => value.join(', ') || '-' },
               { key: 'colors', label: 'Color Names', render: (value) => value.join(', ') || '-' },
@@ -857,8 +871,8 @@ function BulkProductImportPanel({ config, onImported }) {
           />
         </div>
       ) : (
-        <div className="rounded border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
-          Upload the Excel first. Required columns are `Style No`, `Colour`, `View`, and either a Cloudinary URL column or `File Name`. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you.
+        <div className="border border-dashed border-[var(--color-border)] px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">
+          Upload an Excel sheet first. Required columns: Style No, Colour, View, and either a Cloudinary URL column or File Name.
         </div>
       )}
 
@@ -936,7 +950,7 @@ export function AdminDashboardPage() {
           columns={[
             { key: 'orderId', label: 'Order ID' },
             { key: 'user', label: 'Buyer', render: (value) => value?.name || '-' },
-            { key: 'status', label: 'Status' },
+            { key: 'status', label: 'Status', render: (value) => <StatusBadge status={value} /> },
             { key: 'createdAt', label: 'Created', render: (value) => new Date(value).toLocaleString('en-IN') },
             {
               key: 'download',
@@ -1197,10 +1211,10 @@ export function AdminProductsPage() {
         goldColors: form.colorVariants?.length
           ? form.colorVariants.map((variant) => variant.color)
           : ['Yellow Gold', 'Rose Gold', 'White Gold'],
-        goldCarats: ['14K', '18K', '22K'],
+        goldCarats: ['9K', '14K', '18K'],
         diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
       },
-      specifications: buildProductSpecifications(form),
+      specifications: normalizeEditedSpecifications(form),
     };
 
     if (editingId) await adminService.updateProduct(editingId, payload);
@@ -1216,7 +1230,6 @@ export function AdminProductsPage() {
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Products, media, and stock now live in MongoDB and are editable from admin." />
       <BulkProductImportPanel
-        config={config}
         onImported={() => {
           queryClient.invalidateQueries({ queryKey: ['admin-products'] });
         }}
@@ -1231,7 +1244,7 @@ export function AdminProductsPage() {
             {products.map((product) => (
               <button
                 key={product.id}
-                className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)]"
+                className={`flex w-full items-center gap-3 border p-4 text-left transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
                 onClick={() => {
                   setEditingId(product.id);
                   setForm({
@@ -1255,6 +1268,7 @@ export function AdminProductsPage() {
                     description: product.description,
                     media: product.media || [],
                     colorVariants: product.colorVariants || [],
+                    specifications: product.specifications || [],
                     isNewArrival: product.isNewArrival,
                     isBestSeller: product.isBestSeller,
                     sku: product.sku,
@@ -1263,8 +1277,14 @@ export function AdminProductsPage() {
               >
                 <Thumbnail asset={product.media?.[0]} alt={product.name} />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-[var(--color-text)]">{product.styleCode}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-[var(--color-text)]">{product.styleCode}</p>
+                    <StatusBadge status={product.status} />
+                  </div>
                   <p className="truncate text-sm text-[var(--color-text-muted)]">{product.name}</p>
+                  <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
+                    {[product.category, product.collection].filter(Boolean).join(' › ') || 'No collection'}
+                  </p>
                   <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                     {product.stockType === 'Ready Stock' ? `${product.stockQuantity} units` : 'Made to order'}
                   </p>
@@ -1299,6 +1319,8 @@ export function AdminOrdersPage() {
   const { data = [], isLoading } = useQuery({ queryKey: ['admin-orders'], queryFn: adminService.orders });
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const selectedOrder = data.find((item) => item.id === selectedOrderId) || data[0];
+  const orderTotalDiamondWeight = (selectedOrder?.items || []).reduce((s, it) => s + (Number(it.product?.diamondWeight || 0) * (it.quantity || 1)), 0);
+  const orderTotalGoldWeight = (selectedOrder?.items || []).reduce((s, it) => s + (Number(it.product?.goldWeight || 0) * (it.quantity || 1)), 0);
   const [statusChangeFlow, setStatusChangeFlow] = useState(null);
   const [statusNotifyOptionalNote, setStatusNotifyOptionalNote] = useState('');
   const [statusSaving, setStatusSaving] = useState(false);
@@ -1337,11 +1359,18 @@ export function AdminOrdersPage() {
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Orders" title="Review and edit buyer orders" description="When you change order status, confirm whether WhatsApp notification should reach the buyer. Order confirmations with PDF attach automatically." />
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Panel className="space-y-3">
+        <Panel className="space-y-2">
           {data.map((order) => (
-            <button key={order.id} className="w-full rounded border border-[var(--color-border)] p-4 text-left hover:border-[var(--color-border-active)]" onClick={() => setSelectedOrderId(order.id)}>
-              <p className="font-semibold text-[var(--color-text)]">{order.orderId}</p>
-              <p className="text-sm text-[var(--color-text-muted)]">{order.user?.name} • {order.status}</p>
+            <button
+              key={order.id}
+              className={`w-full border p-4 text-left transition hover:border-[var(--color-border-active)] ${selectedOrderId === order.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
+              onClick={() => setSelectedOrderId(order.id)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-semibold text-[var(--color-text)]">{order.orderId}</p>
+                <StatusBadge status={order.status} />
+              </div>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{order.user?.name}</p>
               <p className="text-xs text-[var(--color-text-muted)]">{new Date(order.createdAt).toLocaleString('en-IN')}</p>
             </button>
           ))}
@@ -1351,10 +1380,6 @@ export function AdminOrdersPage() {
             <p className="lux-label">Order detail</p>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Buyer"><input className={textInput} value={selectedOrder.user?.name || ''} readOnly /></Field>
-              <Field label="Payment method"><input className={textInput} value={selectedOrder.paymentMethod || ''} onChange={async (event) => {
-                await adminService.updateOrder(selectedOrder.id, { paymentMethod: event.target.value });
-                queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-              }} /></Field>
               <Field label="Status">
                 <select
                   key={selectedOrder.id}
@@ -1401,12 +1426,6 @@ export function AdminOrdersPage() {
                 </div>
               </div>
             ) : null}
-            <Field label="Shipping address">
-              <textarea className={textareaInput} defaultValue={selectedOrder.shippingAddress || ''} onBlur={async (event) => {
-                await adminService.updateOrder(selectedOrder.id, { shippingAddress: event.target.value });
-                queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-              }} />
-            </Field>
             <Field label="Notes">
               <textarea className={textareaInput} defaultValue={selectedOrder.notes || ''} onBlur={async (event) => {
                 await adminService.updateOrder(selectedOrder.id, { notes: event.target.value });
@@ -1422,9 +1441,22 @@ export function AdminOrdersPage() {
                     <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
                     <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
                     <p className="text-xs text-[var(--color-text-muted)]">{item.customization?.goldColor} • {item.customization?.goldCarat} • {item.customization?.diamondQuality}</p>
+                    {item.customization?.note ? (
+                      <p className="mt-1 text-xs text-[var(--color-text)]">Custom request: {item.customization.note}</p>
+                    ) : null}
                   </div>
                 </div>
               ))}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="rounded border border-[var(--color-border)] p-3">
+                  <p className="text-xs text-[var(--color-text-muted)]">Total Diamond Weight</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalDiamondWeight.toFixed(2)} ct</p>
+                </div>
+                <div className="rounded border border-[var(--color-border)] p-3">
+                  <p className="text-xs text-[var(--color-text-muted)]">Total Gold Weight</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalGoldWeight.toFixed(2)} g</p>
+                </div>
+              </div>
             </div>
           </Panel>
         ) : null}

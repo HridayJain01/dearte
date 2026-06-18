@@ -89,8 +89,6 @@ function mapCart(cart) {
     title: 'De Arté Cart Catalogue',
     reference: 'Draft Catalogue',
     status: 'In progress',
-    paymentMethod: '',
-    shippingAddress: '',
     notes: cart?.specialInstructions || '',
     createdAt: new Date(),
     items: buildItems(cart?.items),
@@ -103,8 +101,6 @@ function mapOrder(order) {
     title: 'De Arté Order Catalogue',
     reference: order?.orderId || 'Order',
     status: order?.status || '',
-    paymentMethod: order?.paymentMethod || '',
-    shippingAddress: order?.shippingAddress || '',
     notes: order?.notes || '',
     createdAt: order?.createdAt || new Date(),
     items: buildItems(order?.items),
@@ -238,6 +234,11 @@ function drawItemCard(doc, item, imageDataUrl, x, y, w, h) {
     doc.text(customizationLines.slice(0, 2), detailsX, y + 34.5);
   }
 
+  if (item.customization?.note) {
+    const noteLines = doc.splitTextToSize(`Custom request: ${item.customization.note}`, w - 75);
+    doc.text(noteLines.slice(0, 2), detailsX, y + 39);
+  }
+
   doc.setDrawColor(BRAND.gold);
   doc.setFillColor(BRAND.goldSoft);
   doc.roundedRect(rightX - 17, y + 13.5, 17, 6, 1.5, 1.5, 'FD');
@@ -304,7 +305,6 @@ async function generatePdf({ payload, user, filename }) {
 
   const orderLines = [
     payload.status ? `Status: ${payload.status}` : '',
-    payload.shippingAddress ? `Shipping: ${payload.shippingAddress}` : '',
     payload.notes ? `Notes: ${payload.notes}` : '',
   ].filter(Boolean);
 

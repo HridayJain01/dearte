@@ -69,10 +69,30 @@ export function StatCard({ label, title, value, caption, detail }) {
 
   return (
     <Panel className="min-h-[140px]">
-      <p className="lux-label mb-6">{heading}</p>
-      <p className="text-4xl font-semibold text-[var(--color-primary)]">{value}</p>
+      <p className="lux-label mb-5">{heading}</p>
+      <p className="text-[2.75rem] font-semibold leading-none text-[var(--color-primary)]">{value}</p>
       {subtext ? <p className="mt-4 text-sm text-[var(--color-text-muted)]">{subtext}</p> : null}
     </Panel>
+  );
+}
+
+export function StatusBadge({ status }) {
+  const map = {
+    Active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    Inactive: 'bg-gray-50 text-gray-500 border-gray-200',
+    Pending: 'bg-amber-50 text-amber-700 border-amber-200',
+    Reviewed: 'bg-sky-50 text-sky-700 border-sky-200',
+    Approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    Processing: 'bg-blue-50 text-blue-700 border-blue-200',
+    Shipped: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    Fulfilled: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    Cancelled: 'bg-red-50 text-red-700 border-red-200',
+  };
+  const classes = map[status] ?? 'bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] border-[var(--color-border)]';
+  return (
+    <span className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${classes}`}>
+      {status}
+    </span>
   );
 }
 
