@@ -7,7 +7,8 @@ Admins can:
 - create and edit products
 - bulk import products from spreadsheet rows grouped by `Style No`
 - bulk import with a local image folder, matched to spreadsheet `File Name` values
-- assign category, subcategory, collection, and metal option IDs
+- import category, subcategory, collection, and metal option values from the spreadsheet when present, with admin selectors used as fallback values
+- preserve 9K gold detail columns from the spreadsheet as product specifications
 - upload and reorder media
 - map color-wise Cloudinary images so each product color switches to the right view set
 - set stock type and stock quantity

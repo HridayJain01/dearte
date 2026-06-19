@@ -9,6 +9,10 @@ export function sanitizeSiteSettingsForPublic(doc) {
       ? doc.toObject({ flattenMaps: true })
       : { ...doc };
 
-  const { whatsappOperationsNumbers: _omit, ...rest } = plain;
+  const {
+    whatsappOperationsNumbers: _omitWa,
+    orderNotificationEmails: _omitEmail,
+    ...rest
+  } = plain;
   return rest;
 }

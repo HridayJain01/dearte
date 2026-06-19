@@ -1,5 +1,28 @@
 import { normalizeAsset, normalizeAssetArray } from './assets.js';
 
+const NINE_K_GROSS_RE = /^\s*(gross\s*wt|grosswt)\s*[\(\[]?\s*9\s*[kK][tT]?\s*[\)\]]?\s*$/i;
+const NINE_K_NET_RE = /^\s*(net\s*wt|netwt)\s*[\(\[]?\s*9\s*[kK][tT]?\s*[\)\]]?\s*$/i;
+
+function normalizeProductSpecifications(specs = []) {
+  const normalized = specs.map((spec) => {
+    // Read fields explicitly: `spec` may be a Mongoose subdocument, and spreading
+    // it with `{ ...spec }` copies internal props instead of attribute/value,
+    // which previously blanked out the 9K weights.
+    const attribute = String(spec.attribute || '');
+    const value = spec.value;
+    if (NINE_K_GROSS_RE.test(attribute)) return { attribute: 'Gross Wt(9K)', value };
+    if (NINE_K_NET_RE.test(attribute)) return { attribute: 'Net Wt(9K)', value };
+    return { attribute, value };
+  });
+
+  const diamondIdx = normalized.findIndex((s) => s.attribute === 'Diamond Wt');
+  if (diamondIdx !== -1 && diamondIdx !== normalized.length - 1) {
+    const [diamondSpec] = normalized.splice(diamondIdx, 1);
+    normalized.push(diamondSpec);
+  }
+  return normalized;
+}
+
 export function serializeTaxonomy(doc) {
   if (!doc) return null;
   return {
@@ -87,11 +110,27 @@ export function serializeProduct(doc) {
     media,
     images: media.map((item) => item.secureUrl),
     colorVariants,
-    customizationOptions: {
-      ...(doc.customizationOptions?.toObject?.() || doc.customizationOptions || {}),
-      goldColors,
-    },
-    specifications: doc.specifications || [],
+    customizationOptions: (() => {
+      const base = doc.customizationOptions?.toObject?.() || doc.customizationOptions || {};
+      const rawCarats = base.goldCarats || [];
+      const normalizedSpecs = normalizeProductSpecifications(doc.specifications || []);
+      // Pull every karat referenced by a weight spec (e.g. "Gold Wt (9K)") so the
+      // carat selector matches what the specifications actually list.
+      const caratsFromSpecs = [];
+      normalizedSpecs.forEach((s) => {
+        const match = String(s.attribute || '').match(/(\d+)\s*k\b/i);
+        if (match) {
+          const carat = `${match[1]}K`;
+          if (!caratsFromSpecs.includes(carat)) caratsFromSpecs.push(carat);
+        }
+      });
+      const ordered = ['9K', '14K', '18K'];
+      const goldCaratsFinal = [...new Set([...rawCarats, ...caratsFromSpecs])].sort(
+        (a, b) => ordered.indexOf(a) - ordered.indexOf(b),
+      );
+      return { ...base, goldColors, goldCarats: goldCaratsFinal.length ? goldCaratsFinal : rawCarats };
+    })(),
+    specifications: normalizeProductSpecifications(doc.specifications || []),
     views: doc.views,
     cartAdds: doc.cartAdds,
     orderCount: doc.orderCount,

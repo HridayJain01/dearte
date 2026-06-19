@@ -8,6 +8,7 @@ import {
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } from '../utils/serializers.js';
 import { notifyWhatsappOrderPlaced } from '../services/orderWhatsappNotifications.js';
+import { notifyEmailOrderPlaced } from '../services/orderEmailNotifications.js';
 
 const router = express.Router();
 
@@ -172,7 +173,8 @@ router.post('/cart/add', async (req, res) => {
       String(item.product) === String(productId) &&
       item.customization?.goldColor === customization.goldColor &&
       item.customization?.goldCarat === customization.goldCarat &&
-      item.customization?.diamondQuality === customization.diamondQuality,
+      item.customization?.diamondQuality === customization.diamondQuality &&
+      (item.customization?.note || '') === (customization.note || ''),
   );
 
   const nextTotal = totalUnitsForProductInCart(req.user, productId) + addQty;
@@ -195,6 +197,7 @@ router.post('/cart/add', async (req, res) => {
         goldCarat: customization.goldCarat || product.customizationOptions?.goldCarats?.[0] || '',
         diamondQuality:
           customization.diamondQuality || product.customizationOptions?.diamondQualities?.[0] || '',
+        note: customization.note || '',
       },
     });
   }
@@ -360,8 +363,6 @@ router.post('/orders', async (req, res) => {
         changedBy: req.user._id,
       },
     ],
-    paymentMethod: req.body.paymentMethod || 'Cash on Delivery',
-    shippingAddress: req.body.shippingAddress || '',
     notes: req.body.notes || req.user.cart?.specialInstructions || '',
     items: cartItems.map((item) => ({
       product: item.product?._id || item.product,
@@ -393,6 +394,9 @@ router.post('/orders', async (req, res) => {
   setImmediate(() => {
     notifyWhatsappOrderPlaced(order).catch((e) =>
       console.error('[whatsapp] order-placed notifications failed', e.message),
+    );
+    notifyEmailOrderPlaced(order).catch((e) =>
+      console.error('[email] order-placed notifications failed', e.message),
     );
   });
 

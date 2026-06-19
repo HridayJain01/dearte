@@ -12,7 +12,7 @@ import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
-import { Button, EmptyState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
+import { Button, EmptyState, LoadingBlock, Panel, SectionHeading, StatusBadge } from '../components/ui/Primitives';
 import { ProductCard } from '../components/product/ProductCard';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
@@ -177,17 +177,19 @@ export function ProductListPage() {
         description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
       />
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {PRODUCT_CATEGORY_TILES.map((tile) => (
-            <ShopCategoryCard
-              key={tile.label}
-              label={tile.label}
-              categorySlug={tile.categorySlug}
-              imageSrc={tile.imageSrc}
-              className="aspect-[4/5] min-h-[17rem] w-full"
-            />
-          ))}
-        </div>
+        {!activeCategory && !activeCollection && (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {PRODUCT_CATEGORY_TILES.map((tile) => (
+              <ShopCategoryCard
+                key={tile.label}
+                label={tile.label}
+                categorySlug={tile.categorySlug}
+                imageSrc={tile.imageSrc}
+                className="aspect-[4/5] min-h-[17rem] w-full"
+              />
+            ))}
+          </div>
+        )}
         <ProductFilters
           filters={data.filters}
           activeFilters={filters}
@@ -257,12 +259,14 @@ export function ProductDetailPage() {
     goldColor: '',
     goldCarat: '',
     diamondQuality: '',
+    note: '',
   });
   const { data, isLoading } = useProduct(styleCode);
-  const { addToCart } = useCart();
-  const { addToWishlist } = useWishlist();
+  const { cart, addToCart, updateCart, removeFromCart } = useCart();
+  const { wishlist, addToWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [wishlistCollectionId, setWishlistCollectionId] = useState('');
   const availableGoldColors = data?.customizationOptions?.goldColors || [];
   const availableGoldCarats = data?.customizationOptions?.goldCarats || [];
   const availableDiamondQualities = data?.customizationOptions?.diamondQualities || [];
@@ -276,12 +280,23 @@ export function ProductDetailPage() {
     diamondQuality: availableDiamondQualities.includes(selection.diamondQuality)
       ? selection.diamondQuality
       : availableDiamondQualities[1] || availableDiamondQualities[0] || '',
+    note: selection.note || '',
   };
   const selectedVariant = data?.colorVariants?.find((variant) => variant.color === effectiveSelection.goldColor);
   const activeImages = selectedVariant?.views?.map((item) => item.asset?.secureUrl).filter(Boolean)?.length
     ? selectedVariant.views.map((item) => item.asset.secureUrl).filter(Boolean)
     : data?.images || [];
   const safeActiveImage = activeImages[activeImage] ? activeImage : 0;
+
+  const cartItem = cart?.items?.find(
+    (i) =>
+      i.product?.id === data?.id &&
+      i.customization?.goldColor === effectiveSelection.goldColor &&
+      i.customization?.goldCarat === effectiveSelection.goldCarat &&
+      i.customization?.diamondQuality === effectiveSelection.diamondQuality &&
+      (i.customization?.note || '') === effectiveSelection.note,
+  );
+  const effectiveWishlistCollectionId = wishlistCollectionId || wishlist?.collections?.[0]?.id || '';
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Preparing product atelier..." /></div>;
@@ -327,8 +342,8 @@ export function ProductDetailPage() {
 
           <Panel>
             <div className="grid gap-3 sm:grid-cols-2">
-              {data.specifications.map((spec) => (
-                <div key={spec.attribute} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
+              {data.specifications.map((spec, specIndex) => (
+                <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">{spec.attribute}</p>
                   <p className="mt-2 text-sm text-[var(--color-text)]">{spec.value}</p>
                 </div>
@@ -361,8 +376,18 @@ export function ProductDetailPage() {
                 </select>
               </label>
             </div>
+            <label className="mt-4 block text-sm">
+              <span className="mb-2 block text-[var(--color-text-muted)]">Custom request for this piece (optional)</span>
+              <textarea
+                value={selection.note}
+                onChange={(event) => setSelection((current) => ({ ...current, note: event.target.value }))}
+                placeholder="e.g. engrave initials, specific ring size, alter chain length, special finishing..."
+                className="min-h-[96px] w-full border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+              />
+            </label>
             <div className="mt-5 border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
               Your Selection: {effectiveSelection.goldColor}, {effectiveSelection.goldCarat}, {effectiveSelection.diamondQuality}
+              {effectiveSelection.note ? <span className="mt-1 block">Custom request: {effectiveSelection.note}</span> : null}
             </div>
           </Panel>
 
@@ -377,17 +402,60 @@ export function ProductDetailPage() {
           ) : (
             <p className="text-sm text-[var(--color-text-muted)]">Made to order — not held as finished stock.</p>
           )}
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Button
-              className="w-full sm:flex-1"
-              disabled={data.stockType === 'Ready Stock' && (data.stockQuantity ?? 0) <= 0}
-              onClick={() => requireAuth(() => addToCart({ productId: data.id, quantity: 1, customization: effectiveSelection }))}
-            >
-              Add to Cart
-            </Button>
-            <Button variant="secondary" className="w-full sm:flex-1" onClick={() => requireAuth(() => addToWishlist({ productId: data.id }))}>
-              Add to Wishlist
-            </Button>
+          <div className="flex flex-col gap-3">
+            {cartItem ? (
+              <div className="flex w-full items-center border border-[var(--color-border)]">
+                <button
+                  className="flex h-12 flex-1 items-center justify-center text-2xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+                  onClick={() =>
+                    requireAuth(() =>
+                      cartItem.quantity <= 1
+                        ? removeFromCart(cartItem.id)
+                        : updateCart(cartItem.id, { quantity: cartItem.quantity - 1 }),
+                    )
+                  }
+                >
+                  −
+                </button>
+                <span className="min-w-[3rem] border-x border-[var(--color-border)] py-3 text-center text-sm font-medium text-[var(--color-text)]">
+                  {cartItem.quantity}
+                </span>
+                <button
+                  className="flex h-12 flex-1 items-center justify-center text-2xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+                  onClick={() => requireAuth(() => updateCart(cartItem.id, { quantity: cartItem.quantity + 1 }))}
+                >
+                  +
+                </button>
+              </div>
+            ) : (
+              <Button
+                className="w-full"
+                disabled={data.stockType === 'Ready Stock' && (data.stockQuantity ?? 0) <= 0}
+                onClick={() => requireAuth(() => addToCart({ productId: data.id, quantity: 1, customization: effectiveSelection }))}
+              >
+                Add to Cart
+              </Button>
+            )}
+            <div className="flex items-stretch gap-2">
+              {(wishlist?.collections?.length ?? 0) > 1 && (
+                <select
+                  className="flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                  value={effectiveWishlistCollectionId}
+                  onChange={(e) => setWishlistCollectionId(e.target.value)}
+                >
+                  {wishlist.collections.map((col) => (
+                    <option key={col.id} value={col.id}>{col.name}</option>
+                  ))}
+                </select>
+              )}
+              <Button
+                variant="secondary"
+                className={(wishlist?.collections?.length ?? 0) > 1 ? '' : 'w-full'}
+                onClick={() => requireAuth(() => addToWishlist({ productId: data.id, collectionId: effectiveWishlistCollectionId || undefined }))}
+              >
+                Add to Wishlist
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)]">
@@ -404,13 +472,6 @@ export function ProductDetailPage() {
             </button>
           </div>
 
-          <Panel>
-            <p className="lux-label mb-3">Education Teaser</p>
-            <h3 className="text-2xl font-semibold text-[var(--color-text)]">Need help explaining quality? Start with our diamond guide.</h3>
-            <Link to="/education/diamond" className="mt-4 inline-flex text-sm text-[var(--color-primary)] hover:underline">
-              Explore Diamond Education
-            </Link>
-          </Panel>
         </div>
       </div>
 
@@ -430,6 +491,9 @@ export function CartPage() {
   const { cart, updateCart, removeFromCart } = useCart();
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  const totalDiamondWeight = cart.items.reduce((sum, item) => sum + (Number(item.product?.diamondWeight || 0) * (item.quantity || 1)), 0);
+  const totalGoldWeight = cart.items.reduce((sum, item) => sum + (Number(item.product?.goldWeight || 0) * (item.quantity || 1)), 0);
 
   const handleDownloadPdf = async () => {
     try {
@@ -461,39 +525,88 @@ export function CartPage() {
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           {cart.items.map((item) => (
-            <Panel key={item.id} className="flex flex-col gap-4 md:flex-row">
-              <img src={item.product.images[0]} alt={item.product.name} className="h-24 w-full object-cover sm:w-24" />
-              <div className="flex-1">
-                <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{item.product.styleCode}</p>
-                <h3 className="mt-2 text-xl font-semibold text-[var(--color-text)]">{item.product.name}</h3>
-                <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                  {item.customization.goldColor}, {item.customization.goldCarat}, {item.customization.diamondQuality}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <Button variant="secondary" onClick={() => updateCart(item.id, { quantity: Math.max(1, item.quantity - 1) })}>-</Button>
-                <span>{item.quantity}</span>
-                <Button variant="secondary" onClick={() => updateCart(item.id, { quantity: item.quantity + 1 })}>+</Button>
-                <button onClick={() => removeFromCart(item.id)} className="border border-[var(--color-border)] p-3 text-[var(--color-text)] hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition">
-                  <Trash2 className="h-4 w-4" />
-                </button>
+            <Panel key={item.id} className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <img
+                src={item.product.images[0]}
+                alt={item.product.name}
+                className="h-40 w-full flex-shrink-0 object-cover sm:h-28 sm:w-28"
+              />
+              <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
+                <div className="min-w-0 flex-1">
+                  <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{item.product.styleCode}</p>
+                  <h3 className="mt-1.5 text-lg font-semibold leading-tight text-[var(--color-text)]">{item.product.name}</h3>
+                  <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                    {item.customization.goldColor} · {item.customization.goldCarat} · {item.customization.diamondQuality}
+                  </p>
+                  {item.customization.note ? (
+                    <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                      <span className="text-[var(--color-text)]">Custom request:</span> {item.customization.note}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center border border-[var(--color-border)]">
+                    <button
+                      className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+                      onClick={() => updateCart(item.id, { quantity: Math.max(1, item.quantity - 1) })}
+                    >
+                      −
+                    </button>
+                    <span className="w-8 border-x border-[var(--color-border)] text-center text-sm font-medium text-[var(--color-text)]">
+                      {item.quantity}
+                    </span>
+                    <button
+                      className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+                      onClick={() => updateCart(item.id, { quantity: item.quantity + 1 })}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    className="flex h-9 w-9 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </Panel>
           ))}
         </div>
 
-        <Panel className="h-fit space-y-4">
+        <Panel className="h-fit space-y-5">
           <p className="lux-label">Order Summary</p>
-          <p className="text-4xl font-semibold text-[var(--color-primary)]">{cart.items.length} Items</p>
-          <p className="text-sm text-[var(--color-text-muted)]">Pricing will be confirmed by your sales representative after review.</p>
-          <p className="text-sm text-[var(--color-text-muted)]">Special Instructions: {cart.specialInstructions || 'Add at checkout'}</p>
-          <Button variant="secondary" className="w-full" icon={Download} loading={isDownloadingPdf} onClick={handleDownloadPdf}>
-            Download Catalogue PDF
-          </Button>
-          <Link to="/checkout">
-            <Button className="mt-4 w-full">Proceed to Checkout</Button>
+          <div className="border-t border-[var(--color-border)] pt-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[var(--color-text-muted)]">Total Items</span>
+              <span className="text-3xl font-light text-[var(--color-primary)]">{cart.items.length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[var(--color-text-muted)]">Total Diamond Weight</span>
+              <span className="text-xl font-light text-[var(--color-primary)]">{totalDiamondWeight.toFixed(2)} ct</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[var(--color-text-muted)]">Total Gold Weight</span>
+              <span className="text-xl font-light text-[var(--color-primary)]">{totalGoldWeight.toFixed(2)} g</span>
+            </div>
+          </div>
+          <div className="space-y-1.5 border-t border-[var(--color-border)] pt-4 text-sm text-[var(--color-text-muted)]">
+            <p>Pricing confirmed by your sales representative after review.</p>
+            {cart.specialInstructions ? (
+              <p className="mt-2">Note: {cart.specialInstructions}</p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-3">
+            <Button variant="secondary" className="w-full" icon={Download} loading={isDownloadingPdf} onClick={handleDownloadPdf}>
+              Download Catalogue PDF
+            </Button>
+            <Link to="/checkout">
+              <Button className="w-full">Proceed to Checkout</Button>
+            </Link>
+          </div>
+          <Link to="/products" className="inline-flex text-sm text-[var(--color-primary)] hover:underline">
+            Continue Shopping
           </Link>
-          <Link to="/products" className="inline-flex text-sm text-[var(--color-primary)] hover:underline">Continue Shopping</Link>
         </Panel>
       </div>
     </section>
@@ -504,38 +617,124 @@ export function WishlistPage() {
   const { wishlist, removeFromWishlist, createWishlistCollection } = useWishlist();
   const { addToCart } = useCart();
   const [collectionName, setCollectionName] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
+
+  const visibleItems = useMemo(() => {
+    if (activeTab === 'all') return wishlist.items;
+    return wishlist.items.filter((i) => i.collectionId === activeTab);
+  }, [wishlist.items, activeTab]);
+
+  const getCollectionName = (collectionId) =>
+    wishlist.collections.find((c) => c.id === collectionId)?.name || 'My Wishlist';
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="Wishlist" title="Named collections for buyer planning" description="Create themed groups like Wedding Season or Export Order, then move them to cart when ready." />
+      <SectionHeading
+        eyebrow="Wishlist"
+        title="Named collections for buyer planning"
+        description="Create themed groups like Wedding Season or Export Order, then move them to cart when ready."
+      />
+
+      {/* Collection tabs */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`px-4 py-2 text-[11px] font-medium uppercase tracking-[0.12em] border transition ${
+            activeTab === 'all'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+              : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-active)]'
+          }`}
+        >
+          All ({wishlist.items.length})
+        </button>
+        {wishlist.collections.map((col) => {
+          const count = wishlist.items.filter((i) => i.collectionId === col.id).length;
+          return (
+            <button
+              key={col.id}
+              onClick={() => setActiveTab(col.id)}
+              className={`px-4 py-2 text-[11px] font-medium uppercase tracking-[0.12em] border transition ${
+                activeTab === col.id
+                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                  : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-active)]'
+              }`}
+            >
+              {col.name} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Create collection */}
       <Panel className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
         <input
           value={collectionName}
           onChange={(event) => setCollectionName(event.target.value)}
           className="flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]"
-          placeholder="Create wishlist collection"
+          placeholder="New collection name (e.g. Wedding Season)"
         />
-        <Button onClick={() => collectionName && createWishlistCollection({ name: collectionName }).then(() => setCollectionName(''))}>
+        <Button
+          onClick={() =>
+            collectionName &&
+            createWishlistCollection({ name: collectionName }).then(() => setCollectionName(''))
+          }
+        >
           Create Collection
         </Button>
       </Panel>
-      {!wishlist.items.length ? (
-        <EmptyState title="No saved pieces yet" description="Start saving products into buyer-specific collections for later review." />
+
+      {/* Items grid */}
+      {!visibleItems.length ? (
+        <EmptyState
+          title={activeTab === 'all' ? 'No saved pieces yet' : 'No items in this collection'}
+          description={
+            activeTab === 'all'
+              ? 'Start saving products into buyer-specific collections for later review.'
+              : 'Browse products and save them to this collection from any product page.'
+          }
+        />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {wishlist.items.map((item) => (
+          {visibleItems.map((item) => (
             <Panel key={item.id}>
-              <img src={item.product.images[0]} alt={item.product.name} className="mb-4 h-56 w-full object-cover sm:h-72" />
-              <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">{item.product.styleCode}</p>
-              <h3 className="mt-3 text-2xl font-semibold text-[var(--color-text)]">{item.product.name}</h3>
-              <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                Collection: {wishlist.collections.find((collection) => collection.id === item.collectionId)?.name || 'My Wishlist'}
+              <Link to={`/products/${item.product.styleCode}`}>
+                <img
+                  src={item.product.images[0]}
+                  alt={item.product.name}
+                  className="mb-4 h-56 w-full object-cover transition duration-300 hover:opacity-90 sm:h-72"
+                />
+              </Link>
+              <span className="mb-3 inline-block border border-[var(--color-border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-[var(--color-primary)]">
+                {getCollectionName(item.collectionId)}
+              </span>
+              <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">
+                {item.product.styleCode}
               </p>
+              <h3 className="mt-1.5 text-xl font-semibold text-[var(--color-text)]">
+                {item.product.name}
+              </h3>
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <Button className="w-full sm:flex-1" onClick={() => addToCart({ productId: item.product.id, quantity: 1, customization: { goldColor: item.product.customizationOptions.goldColors[0], goldCarat: item.product.customizationOptions.goldCarats[0], diamondQuality: item.product.customizationOptions.diamondQualities[0] } })}>
+                <Button
+                  className="w-full sm:flex-1"
+                  onClick={() =>
+                    addToCart({
+                      productId: item.product.id,
+                      quantity: 1,
+                      customization: {
+                        goldColor: item.product.customizationOptions.goldColors[0],
+                        goldCarat: item.product.customizationOptions.goldCarats[0],
+                        diamondQuality: item.product.customizationOptions.diamondQualities[0],
+                      },
+                    })
+                  }
+                >
                   Move to Cart
                 </Button>
-                <Button variant="secondary" className="w-full sm:flex-1" onClick={() => removeFromWishlist(item.id)}>
+                <Button
+                  variant="secondary"
+                  className="w-full sm:flex-1"
+                  onClick={() => removeFromWishlist(item.id)}
+                >
                   Remove
                 </Button>
               </div>
@@ -551,31 +750,19 @@ export function CheckoutPage() {
   const { cart, refreshCart } = useCart();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const steps = ['Shipping', 'Notes', 'Payment', 'Review'];
+  const steps = ['Notes', 'Review'];
   const form = useForm({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      shippingAddress: '',
       notes: '',
-      paymentMethod: 'Cash on Delivery',
     },
   });
   const {
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = form;
   const reviewValues = form.getValues();
 
   const handleNextStep = async () => {
-    if (step === 0) {
-      const isValid = await form.trigger('shippingAddress');
-      if (!isValid) return;
-    }
-
-    if (step === 2) {
-      const isValid = await form.trigger('paymentMethod');
-      if (!isValid) return;
-    }
-
     setStep((value) => Math.min(steps.length - 1, value + 1));
   };
 
@@ -597,10 +784,16 @@ export function CheckoutPage() {
   return (
     <section className="page-shell section-gap">
       <SectionHeading eyebrow="Checkout" title="Multi-step approval-ready checkout" />
-      <div className="mb-8 grid gap-3 md:grid-cols-4">
+      <div className="mb-8 flex gap-4">
         {steps.map((label, index) => (
-          <div key={label} className={`border px-4 py-3 text-sm ${index <= step ? 'border-[var(--color-border-active)] text-[var(--color-primary)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)] text-[var(--color-text-muted)]'}`}>
-            {index + 1}. {label}
+          <div key={label} className="flex-1">
+            <div
+              className={`mb-2.5 h-0.5 w-full transition-colors ${index <= step ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
+            />
+            <div className={`text-xs transition-colors ${index <= step ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`}>
+              <span className="block font-semibold">{String(index + 1).padStart(2, '0')}</span>
+              <span className="uppercase tracking-[0.08em]">{label}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -608,40 +801,11 @@ export function CheckoutPage() {
         <Panel>
           <form className="space-y-5" onSubmit={onSubmit}>
             {step === 0 ? (
-              <div>
-                <textarea
-                  {...form.register('shippingAddress')}
-                  placeholder="Shipping address"
-                  className="min-h-[160px] w-full border border-[var(--color-border)] bg-transparent p-4 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]"
-                />
-                {errors.shippingAddress ? (
-                  <p className="mt-2 text-sm text-[var(--color-primary)]">Please add a valid shipping address (minimum 6 characters).</p>
-                ) : null}
-              </div>
-            ) : null}
-            {step === 1 ? (
               <textarea {...form.register('notes')} placeholder="Special instructions and delivery preferences" className="min-h-[160px] w-full border border-[var(--color-border)] bg-transparent p-4 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]" />
             ) : null}
-            {step === 2 ? (
-              <div className="grid gap-4">
-                <label className="border border-[var(--color-border)] p-4 hover:border-[var(--color-border-active)] transition cursor-pointer">
-                  <input type="radio" value="Cash on Delivery" {...form.register('paymentMethod')} className="mr-3" />
-                  Cash on Delivery
-                </label>
-                <label className="border border-[var(--color-border)] p-4 hover:border-[var(--color-border-active)] transition cursor-pointer">
-                  <input type="radio" value="Offline Payment" {...form.register('paymentMethod')} className="mr-3" />
-                  Offline Payment (bank details shared post-review)
-                </label>
-                {errors.paymentMethod ? (
-                  <p className="text-sm text-[var(--color-primary)]">Please choose a payment method.</p>
-                ) : null}
-              </div>
-            ) : null}
-            {step === 3 ? (
+            {step === 1 ? (
               <div className="space-y-4">
-                <p className="text-sm text-[var(--color-text-muted)]">Shipping: {reviewValues.shippingAddress || 'Add address in previous step'}</p>
                 <p className="text-sm text-[var(--color-text-muted)]">Notes: {reviewValues.notes || 'No notes added'}</p>
-                <p className="text-sm text-[var(--color-text-muted)]">Payment: {reviewValues.paymentMethod}</p>
               </div>
             ) : null}
 
@@ -763,7 +927,7 @@ export function ProfilePage() {
                     <td className="py-4">{order.orderId}</td>
                     <td className="py-4">{formatDate(order.date)}</td>
                     <td className="py-4">{order.items.length}</td>
-                    <td className="py-4">{order.status}</td>
+                    <td className="py-4"><StatusBadge status={order.status} /></td>
                     <td className="py-4 text-right">
                       <Button
                         variant="ghost"
