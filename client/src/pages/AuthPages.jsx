@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
@@ -5,8 +6,8 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { userService } from '../services/userService';
 import { brandLogoAlt, brandLogoUrl } from '../utils/brandLogo';
-import { Button, Input, Panel, SectionHeading } from '../components/ui/Primitives';
-import { forgotPasswordSchema, loginSchema, registerSchema } from '../utils/validators';
+import { Button, Input, PasswordInput, Panel, SectionHeading } from '../components/ui/Primitives';
+import { loginSchema, registerSchema } from '../utils/validators';
 
 function AuthShell({ title, description, children }) {
   return (
@@ -32,8 +33,15 @@ export function LoginPage() {
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const user = await login(values);
-    navigate(user.role === 'admin' ? '/admin/dashboard' : '/');
+    try {
+      const user = await login(values);
+      navigate(user.role === 'admin' ? '/admin/dashboard' : '/');
+    } catch (error) {
+      const message =
+        error.response?.data?.message || 'Incorrect email or password. Please try again.';
+      toast.error(message);
+      form.setError('password', { type: 'manual', message });
+    }
   });
 
   return (
@@ -41,7 +49,7 @@ export function LoginPage() {
       <form className="space-y-5" onSubmit={onSubmit}>
         <SectionHeading eyebrow="Login" title="Welcome back" />
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
-        <Input label="Password" type="password" error={form.formState.errors.password?.message} {...form.register('password')} />
+        <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <div className="flex items-center justify-between text-sm">
           <Link to="/forgot-password" className="text-[var(--color-primary)] hover:underline">Forgot Password?</Link>
           <Link to="/register" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Create account</Link>
@@ -92,8 +100,8 @@ export function RegisterPage() {
         <Input label="Country" error={form.formState.errors.country?.message} {...form.register('country')} />
         <Input label="Pin Code" error={form.formState.errors.pinCode?.message} {...form.register('pinCode')} />
         <Input label="GST Number" {...form.register('gstNumber')} />
-        <Input label="Password" type="password" error={form.formState.errors.password?.message} {...form.register('password')} />
-        <Input label="Confirm Password" type="password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
+        <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
+        <PasswordInput label="Confirm Password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
         <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
           <input type="checkbox" {...form.register('acceptedTerms')} />
           I accept the terms and conditions.
@@ -105,34 +113,54 @@ export function RegisterPage() {
 }
 
 export function ForgotPasswordPage() {
-  const form = useForm({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: '',
-      otp: '',
-      newPassword: '',
-    },
+  const navigate = useNavigate();
+  const [step, setStep] = useState('request');
+  const [sentEmail, setSentEmail] = useState('');
+
+  const emailForm = useForm({
+    defaultValues: { email: '' },
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    if (!values.otp) {
-      const response = await userService.forgotPassword({ email: values.email });
-      toast.success(`OTP sent. Demo OTP: ${response.otp}`);
-      return;
-    }
+  const resetForm = useForm({
+    defaultValues: { otp: '', newPassword: '' },
+  });
 
-    await userService.resetPassword(values);
-    toast.success('Password updated');
+  const onRequestOtp = emailForm.handleSubmit(async ({ email }) => {
+    await userService.forgotPassword({ email });
+    setSentEmail(email);
+    setStep('reset');
+    toast.success('Check your email for the OTP code.');
+  });
+
+  const onResetPassword = resetForm.handleSubmit(async ({ otp, newPassword }) => {
+    await userService.resetPassword({ email: sentEmail, otp, newPassword });
+    toast.success('Password updated. Please log in.');
+    navigate('/login');
   });
 
   return (
-    <AuthShell title="Reset your password." description="Request an OTP, verify it, and set a new password. The seeded demo OTP is 123456.">
-      <form className="space-y-5" onSubmit={onSubmit}>
-        <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
-        <Input label="OTP" error={form.formState.errors.otp?.message} {...form.register('otp')} />
-        <Input label="New Password" type="password" error={form.formState.errors.newPassword?.message} {...form.register('newPassword')} />
-        <Button className="w-full">Submit</Button>
-      </form>
+    <AuthShell title="Reset your password." description="Enter your email to receive a one-time code, then set a new password.">
+      {step === 'request' ? (
+        <form className="space-y-5" onSubmit={onRequestOtp}>
+          <SectionHeading eyebrow="Forgot password" title="Request a reset code" />
+          <Input label="Email" type="email" error={emailForm.formState.errors.email?.message} {...emailForm.register('email', { required: 'Email is required' })} />
+          <Button className="w-full" type="submit">Send OTP</Button>
+          <p className="text-center text-sm text-[var(--color-text-muted)]">
+            <Link to="/login" className="text-[var(--color-primary)] hover:underline">Back to login</Link>
+          </p>
+        </form>
+      ) : (
+        <form className="space-y-5" onSubmit={onResetPassword}>
+          <SectionHeading eyebrow="Forgot password" title="Enter your new password" />
+          <p className="text-sm text-[var(--color-text-muted)]">A code was sent to <strong>{sentEmail}</strong>.</p>
+          <Input label="OTP" error={resetForm.formState.errors.otp?.message} {...resetForm.register('otp', { required: 'OTP is required' })} />
+          <PasswordInput label="New Password" error={resetForm.formState.errors.newPassword?.message} {...resetForm.register('newPassword', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })} />
+          <Button className="w-full" type="submit">Reset Password</Button>
+          <p className="text-center text-sm text-[var(--color-text-muted)]">
+            <button type="button" className="text-[var(--color-primary)] hover:underline" onClick={() => setStep('request')}>Resend code</button>
+          </p>
+        </form>
+      )}
     </AuthShell>
   );
 }

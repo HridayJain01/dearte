@@ -36,6 +36,7 @@ const emptyProduct = {
   specifications: [],
   isNewArrival: false,
   isBestSeller: false,
+  showToGuests: false,
   sku: '',
 };
 
@@ -629,6 +630,7 @@ function ProductEditor({
       <div className="flex flex-wrap gap-4 text-sm text-[var(--color-text-muted)]">
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.isNewArrival} onChange={(event) => setForm((current) => ({ ...current, isNewArrival: event.target.checked }))} /> New Arrival</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.isBestSeller} onChange={(event) => setForm((current) => ({ ...current, isBestSeller: event.target.checked }))} /> Best Seller</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={form.showToGuests} onChange={(event) => setForm((current) => ({ ...current, showToGuests: event.target.checked }))} /> Show to guests (preview)</label>
       </div>
 
       {form.colorVariants?.length ? (
@@ -1154,21 +1156,206 @@ export function AdminPromotionsPage() {
   );
 }
 
+function accessSummary(user) {
+  if (user.role === 'sales') return 'Full catalogue (sales)';
+  if (!user.catalogAccess || user.catalogAccess.mode === 'all') return 'Full catalogue';
+  const cats = user.catalogAccess.categories?.length || 0;
+  const cols = user.catalogAccess.collections?.length || 0;
+  if (!cats && !cols) return 'Restricted — nothing granted';
+  const parts = [];
+  if (cats) parts.push(`${cats} categor${cats === 1 ? 'y' : 'ies'}`);
+  if (cols) parts.push(`${cols} collection${cols === 1 ? '' : 's'}`);
+  return `Restricted — ${parts.join(', ')}`;
+}
+
+function UserAccessEditor({ user, config, onClose }) {
+  const queryClient = useQueryClient();
+  const categories = config?.categories || [];
+
+  const [role, setRole] = useState(user.role === 'sales' ? 'sales' : 'buyer');
+  const [mode, setMode] = useState(user.catalogAccess?.mode || 'all');
+  const [selectedCats, setSelectedCats] = useState(() => new Set(user.catalogAccess?.categories || []));
+  const [selectedCols, setSelectedCols] = useState(() => new Set(user.catalogAccess?.collections || []));
+  const [saving, setSaving] = useState(false);
+
+  const collectionsByCategory = useMemo(() => {
+    const map = new Map();
+    (config?.collections || []).forEach((col) => {
+      const key = col.categoryId || 'other';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(col);
+    });
+    return map;
+  }, [config]);
+
+  const toggle = (setFn) => (id) =>
+    setFn((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleCat = toggle(setSelectedCats);
+  const toggleCol = toggle(setSelectedCols);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await adminService.updateUser(user.id, {
+        role,
+        catalogAccess: {
+          mode: role === 'sales' ? 'all' : mode,
+          categories: [...selectedCats],
+          collections: [...selectedCols],
+        },
+      });
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('Access updated');
+      onClose();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not update access');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const restricted = role === 'buyer' && mode === 'restricted';
+
+  return (
+    <Panel className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="lux-label">Catalogue access</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{user.name} · {user.email}</p>
+        </div>
+        <Button variant="secondary" onClick={onClose}>Close</Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Role">
+          <select className={textInput} value={role} onChange={(event) => setRole(event.target.value)}>
+            <option value="buyer">Buyer</option>
+            <option value="sales">Sales (full access)</option>
+          </select>
+        </Field>
+        {role === 'buyer' ? (
+          <Field label="Catalogue visibility">
+            <select className={textInput} value={mode} onChange={(event) => setMode(event.target.value)}>
+              <option value="all">Full catalogue</option>
+              <option value="restricted">Restricted to selected</option>
+            </select>
+          </Field>
+        ) : (
+          <div className="flex items-end text-sm text-[var(--color-text-muted)]">
+            Sales accounts can view the entire catalogue.
+          </div>
+        )}
+      </div>
+
+      {restricted ? (
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <p className="lux-label">Allowed categories</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Granting a category gives access to every product and collection inside it.</p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {categories.map((cat) => (
+                <label key={cat.id} className="flex items-center gap-2 border border-[var(--color-border)] p-2 text-sm">
+                  <input type="checkbox" checked={selectedCats.has(cat.id)} onChange={() => toggleCat(cat.id)} />
+                  <span>{cat.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="lux-label">Allowed collections</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Use these to grant individual collections without opening the whole category.</p>
+            <div className="space-y-4">
+              {categories.map((cat) => {
+                const cols = collectionsByCategory.get(cat.id) || [];
+                if (!cols.length) return null;
+                return (
+                  <div key={cat.id} className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{cat.name}</p>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {cols.map((col) => (
+                        <label key={col.id} className={`flex items-center gap-2 border p-2 text-sm ${selectedCats.has(cat.id) ? 'border-dashed border-[var(--color-border)] opacity-60' : 'border-[var(--color-border)]'}`}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCols.has(col.id) || selectedCats.has(cat.id)}
+                            disabled={selectedCats.has(cat.id)}
+                            onChange={() => toggleCol(col.id)}
+                          />
+                          <span>{col.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex justify-end">
+        <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save access'}</Button>
+      </div>
+    </Panel>
+  );
+}
+
 export function AdminUsersPage() {
   const queryClient = useQueryClient();
   const { data = [], isLoading } = useQuery({ queryKey: ['admin-users'], queryFn: adminService.users });
+  const { data: config } = useQuery({ queryKey: ['admin-config'], queryFn: adminService.config });
+  const [editingUserId, setEditingUserId] = useState(null);
   if (isLoading) return <LoadingBlock />;
+
+  const editingUser = data.find((user) => user.id === editingUserId) || null;
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Users" title="Buyer account management" description="Approve, review, and update buyer account details." />
+      <SectionHeading eyebrow="Users" title="Buyer account management" description="Approve accounts, set sales roles, and control which categories or collections each buyer can view." />
+
+      {editingUser ? (
+        <UserAccessEditor user={editingUser} config={config} onClose={() => setEditingUserId(null)} />
+      ) : null}
+
       <Panel>
         <DataTable
           columns={[
             { key: 'name', label: 'Buyer' },
             { key: 'email', label: 'Email' },
             { key: 'companyName', label: 'Company' },
-            { key: 'city', label: 'City' },
+            {
+              key: 'role',
+              label: 'Role',
+              render: (value, row) => (
+                <select
+                  className={textInput}
+                  value={value === 'sales' ? 'sales' : 'buyer'}
+                  onChange={async (event) => {
+                    await adminService.updateUser(row.id, { role: event.target.value });
+                    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                  }}
+                >
+                  <option value="buyer">Buyer</option>
+                  <option value="sales">Sales</option>
+                </select>
+              ),
+            },
+            {
+              key: 'catalogAccess',
+              label: 'Catalogue access',
+              render: (_value, row) => (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[var(--color-text-muted)]">{accessSummary(row)}</span>
+                  <Button variant="secondary" onClick={() => setEditingUserId(row.id)}>Manage</Button>
+                </div>
+              ),
+            },
             {
               key: 'status',
               label: 'Status',
@@ -1272,6 +1459,7 @@ export function AdminProductsPage() {
                     specifications: product.specifications || [],
                     isNewArrival: product.isNewArrival,
                     isBestSeller: product.isBestSeller,
+                    showToGuests: product.showToGuests,
                     sku: product.sku,
                   });
                 }}
@@ -1449,6 +1637,37 @@ export function AdminOrdersPage() {
                     {item.customization?.note ? (
                       <p className="mt-1 text-xs text-[var(--color-text)]">Custom request: {item.customization.note}</p>
                     ) : null}
+                    {(item.changeRequests || []).map((cr) => (
+                      <div
+                        key={cr.id}
+                        className={`mt-2 flex items-start justify-between gap-2 border-l-2 px-3 py-2 ${cr.status === 'Open' ? 'border-amber-400 bg-amber-50' : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]'}`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-700">Change request</p>
+                          <p className="text-xs text-[var(--color-text)]">{cr.message}</p>
+                        </div>
+                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                          <StatusBadge status={cr.status} />
+                          {cr.status === 'Open' ? (
+                            <Button
+                              variant="ghost"
+                              className="px-2 py-1 text-[10px]"
+                              onClick={async () => {
+                                try {
+                                  await adminService.resolveChangeRequest(selectedOrder.id, cr.id);
+                                  queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+                                  toast.success('Change request resolved.');
+                                } catch (error) {
+                                  toast.error(error?.response?.data?.message || error?.message || 'Could not resolve.');
+                                }
+                              }}
+                            >
+                              Mark resolved
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

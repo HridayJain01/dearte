@@ -473,6 +473,7 @@ function sanitizeProductPayload(body, currentProduct = null) {
     status: body.status ?? currentProduct?.status ?? 'Active',
     isNewArrival: parseBoolean(body.isNewArrival, currentProduct?.isNewArrival ?? false),
     isBestSeller: parseBoolean(body.isBestSeller, currentProduct?.isBestSeller ?? false),
+    showToGuests: parseBoolean(body.showToGuests, currentProduct?.showToGuests ?? false),
     media: derivedMedia,
     colorVariants,
     customizationOptions: mergeCustomizationOptions(
@@ -770,7 +771,7 @@ router.get('/dashboard', async (_req, res) => {
 });
 
 router.get('/users', async (_req, res) => {
-  const users = await User.find({ role: 'buyer' }).sort({ createdAt: -1 });
+  const users = await User.find({ role: { $in: ['buyer', 'sales'] } }).sort({ createdAt: -1 });
   return sendSuccess(res, users.map(serializeUser));
 });
 
@@ -795,6 +796,25 @@ router.put('/users/:id', async (req, res) => {
   for (const field of allowed) {
     if (field in req.body) {
       user[field] = req.body[field];
+    }
+  }
+
+  // Role: only buyer <-> sales can be toggled here (never promote to admin via this route).
+  if ('role' in req.body && ['buyer', 'sales'].includes(req.body.role)) {
+    user.role = req.body.role;
+  }
+
+  // Catalogue access: which categories/collections a buyer may view.
+  if (req.body.catalogAccess && typeof req.body.catalogAccess === 'object') {
+    const { mode, categories, collections } = req.body.catalogAccess;
+    if (mode === 'all' || mode === 'restricted') {
+      user.catalogAccess.mode = mode;
+    }
+    if (Array.isArray(categories)) {
+      user.catalogAccess.categories = categories.filter((id) => isObjectId(id)).map((id) => toObjectId(id, 'category'));
+    }
+    if (Array.isArray(collections)) {
+      user.catalogAccess.collections = collections.filter((id) => isObjectId(id)).map((id) => toObjectId(id, 'collection'));
     }
   }
 
@@ -1274,6 +1294,34 @@ router.get('/orders/:id', async (req, res) => {
 
   if (!order) return sendError(res, 'Order not found', 404);
   return sendSuccess(res, serializeOrder(order));
+});
+
+router.patch('/orders/:id/change-requests/:requestId', async (req, res) => {
+  const query = isObjectId(req.params.id)
+    ? { $or: [{ _id: req.params.id }, { orderId: req.params.id }] }
+    : { orderId: req.params.id };
+  const order = await Order.findOne(query);
+  if (!order) return sendError(res, 'Order not found', 404);
+
+  const status = String(req.body.status || 'Resolved');
+
+  let changeRequest = null;
+  for (const item of order.items) {
+    const found = item.changeRequests?.id(req.params.requestId);
+    if (found) {
+      changeRequest = found;
+      break;
+    }
+  }
+
+  if (!changeRequest) return sendError(res, 'Change request not found', 404);
+
+  changeRequest.status = status;
+  changeRequest.resolvedAt = status === 'Resolved' ? new Date() : null;
+
+  await order.save();
+  await order.populate(orderPopulate);
+  return sendSuccess(res, serializeOrder(order), 'Change request updated');
 });
 
 router.put('/orders/:id', async (req, res) => {

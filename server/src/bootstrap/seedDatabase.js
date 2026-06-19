@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { seedData } from '../data/seed.js';
+import { categoryImages, collectionImages, seedData, subCategoryImages } from '../data/seed.js';
 import {
   Banner,
   Catalogue,
@@ -19,34 +19,43 @@ import {
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
 import { slugify } from '../utils/slugify.js';
 
-async function ensureCategory(name, image) {
+async function ensureCategory(name) {
+  const imageUrl = categoryImages[name] || '';
   let category = await Category.findOne({ name });
   if (!category) {
     category = await Category.create({
       name,
       slug: slugify(name),
-      image: normalizeAsset({ secureUrl: image }),
+      image: normalizeAsset({ secureUrl: imageUrl }),
       active: true,
     });
+  } else if (!category.image?.publicId && imageUrl) {
+    category.image = normalizeAsset({ secureUrl: imageUrl });
+    await category.save();
   }
   return category;
 }
 
-async function ensureSubCategory(name, category, image) {
+async function ensureSubCategory(name, category) {
+  const imageUrl = subCategoryImages[name] || '';
   let subCategory = await SubCategory.findOne({ name, category: category._id });
   if (!subCategory) {
     subCategory = await SubCategory.create({
       name,
       slug: slugify(`${category.name}-${name}`),
       category: category._id,
-      image: normalizeAsset({ secureUrl: image }),
+      image: normalizeAsset({ secureUrl: imageUrl }),
       active: true,
     });
+  } else if (!subCategory.image?.publicId && imageUrl) {
+    subCategory.image = normalizeAsset({ secureUrl: imageUrl });
+    await subCategory.save();
   }
   return subCategory;
 }
 
-async function ensureCollection(name, category, subCategory, image) {
+async function ensureCollection(name, category, subCategory) {
+  const imageUrl = collectionImages[name] || '';
   let collection = await Collection.findOne({ name, subCategory: subCategory._id });
   if (!collection) {
     collection = await Collection.create({
@@ -54,9 +63,12 @@ async function ensureCollection(name, category, subCategory, image) {
       slug: slugify(`${category.name}-${subCategory.name}-${name}`),
       category: category._id,
       subCategory: subCategory._id,
-      image: normalizeAsset({ secureUrl: image }),
+      image: normalizeAsset({ secureUrl: imageUrl }),
       active: true,
     });
+  } else if (!collection.image?.publicId && imageUrl) {
+    collection.image = normalizeAsset({ secureUrl: imageUrl });
+    await collection.save();
   }
   return collection;
 }
@@ -80,9 +92,9 @@ export async function seedDatabase() {
 
   if (existingUsers === 0) {
     for (const product of seedData.products) {
-      const category = await ensureCategory(product.category, product.images?.[0]);
-      const subCategory = await ensureSubCategory(product.subCategory, category, product.images?.[0]);
-      const collection = await ensureCollection(product.collection, category, subCategory, product.images?.[0]);
+      const category = await ensureCategory(product.category);
+      const subCategory = await ensureSubCategory(product.subCategory, category);
+      const collection = await ensureCollection(product.collection, category, subCategory);
       const metalOption = await ensureMetalOption(product.metalColor);
 
       const created = await Product.create({
@@ -267,6 +279,29 @@ export async function seedDatabase() {
         createdAt: order.date,
         updatedAt: order.date,
       });
+    }
+  }
+
+  // Backfill images for categories/subcategories/collections that were seeded without specific images
+  for (const [name, url] of Object.entries(categoryImages)) {
+    const cat = await Category.findOne({ name });
+    if (cat && !cat.image?.publicId && url) {
+      cat.image = normalizeAsset({ secureUrl: url });
+      await cat.save();
+    }
+  }
+  for (const [name, url] of Object.entries(subCategoryImages)) {
+    const sub = await SubCategory.findOne({ name });
+    if (sub && !sub.image?.publicId && url) {
+      sub.image = normalizeAsset({ secureUrl: url });
+      await sub.save();
+    }
+  }
+  for (const [name, url] of Object.entries(collectionImages)) {
+    const col = await Collection.findOne({ name });
+    if (col && !col.image?.publicId && url) {
+      col.image = normalizeAsset({ secureUrl: url });
+      await col.save();
     }
   }
 

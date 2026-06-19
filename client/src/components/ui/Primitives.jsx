@@ -1,5 +1,5 @@
-import { forwardRef } from 'react';
-import { LoaderCircle, Sparkles } from 'lucide-react';
+import { forwardRef, useState } from 'react';
+import { Eye, EyeOff, LoaderCircle, Sparkles } from 'lucide-react';
 
 export function Button({
   children,
@@ -110,6 +110,39 @@ export const Input = forwardRef(function Input(
         className={`border border-[var(--color-border)] bg-transparent px-4 py-3 text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] ${className}`}
         {...props}
       />
+      {error ? <span className="text-xs text-[var(--color-primary)]">{error}</span> : null}
+    </label>
+  );
+});
+
+// Password field with a show/hide eye toggle. Forwards the ref to the <input>
+// so it works with react-hook-form's register().
+export const PasswordInput = forwardRef(function PasswordInput(
+  { label, error, className = '', ...props },
+  ref,
+) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <label className="flex flex-col gap-2 text-sm">
+      {label ? <span className="text-[var(--color-text-muted)]">{label}</span> : null}
+      <div className="relative">
+        <input
+          ref={ref}
+          type={visible ? 'text' : 'password'}
+          className={`w-full border border-[var(--color-border)] bg-transparent px-4 py-3 pr-12 text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] ${className}`}
+          {...props}
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setVisible((current) => !current)}
+          aria-label={visible ? 'Hide password' : 'Show password'}
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-[var(--color-text-muted)] transition hover:text-[var(--color-text)]"
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
       {error ? <span className="text-xs text-[var(--color-primary)]">{error}</span> : null}
     </label>
   );

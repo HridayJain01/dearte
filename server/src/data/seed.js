@@ -7,6 +7,40 @@ const placeholderSet = (keyword) => [
   `https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1200&q=80&${keyword}`,
 ];
 
+export const categoryImages = {
+  Rings: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=80',
+  Earrings: 'https://images.unsplash.com/photo-1573408301185-9519f94815f2?auto=format&fit=crop&w=1200&q=80',
+  Necklaces: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&q=80',
+  Bangles: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=1200&q=80',
+  Bracelets: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1200&q=80',
+};
+
+export const subCategoryImages = {
+  'Engagement Rings': 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=80',
+  'Stud Earrings': 'https://images.unsplash.com/photo-1583292650898-7d22cd27ca6f?auto=format&fit=crop&w=1200&q=80',
+  'Pendant Sets': 'https://images.unsplash.com/photo-1590736969955-71cc94901144?auto=format&fit=crop&w=1200&q=80',
+  'Diamond Bangles': 'https://images.unsplash.com/photo-1601121141418-d47e3e5d7bd4?auto=format&fit=crop&w=1200&q=80',
+  'Tennis Bracelets': 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=1200&q=80',
+  'Drop Earrings': 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1200&q=80',
+  'Cocktail Rings': 'https://images.unsplash.com/photo-1620656798579-1984d8c6e25f?auto=format&fit=crop&w=1200&q=80',
+  Pendants: 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=1200&q=80',
+  Chokers: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?auto=format&fit=crop&w=1200&q=80',
+  Kadas: 'https://images.unsplash.com/photo-1611085583191-a3b181a88401?auto=format&fit=crop&w=1200&q=80',
+};
+
+export const collectionImages = {
+  'Radiant Vows': 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1200&q=80',
+  Moonleaf: 'https://images.unsplash.com/photo-1583292650898-7d22cd27ca6f?auto=format&fit=crop&w=1200&q=80',
+  'Heirloom Bloom': 'https://images.unsplash.com/photo-1590736969955-71cc94901144?auto=format&fit=crop&w=1200&q=80',
+  'Sage Crest': 'https://images.unsplash.com/photo-1601121141418-d47e3e5d7bd4?auto=format&fit=crop&w=1200&q=80',
+  'Velvet Arc': 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1200&q=80',
+  'Petal Crest': 'https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=1200&q=80',
+  Opaline: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=80',
+  'Golden Vale': 'https://images.unsplash.com/photo-1611652022419-a9419f74343d?auto=format&fit=crop&w=1200&q=80',
+  'Champagne Reed': 'https://images.unsplash.com/photo-1620656798579-1984d8c6e25f?auto=format&fit=crop&w=1200&q=80',
+  'Lustre Peak': 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?auto=format&fit=crop&w=1200&q=80',
+};
+
 const makeProduct = ({
   id,
   styleCode,

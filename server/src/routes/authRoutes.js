@@ -13,6 +13,8 @@ import {
   verifyRefreshToken,
 } from '../utils/auth.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
+import { sendEmail, isEmailConfigured } from '../services/email/transport.js';
+import { passwordResetEmail } from '../services/email/templates.js';
 
 const router = express.Router();
 
@@ -165,14 +167,19 @@ router.post('/forgot-password', async (req, res) => {
     return sendSuccess(res, { otpSent: true }, 'If the account exists, reset instructions have been sent.');
   }
 
-  const otp = '123456';
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
   user.resetOtp = {
     code: otp,
     expiresAt: new Date(Date.now() + 1000 * 60 * 10),
   };
   await user.save();
 
-  return sendSuccess(res, { otpSent: true, otp }, 'OTP sent successfully');
+  if (isEmailConfigured()) {
+    const { subject, html, text } = passwordResetEmail({ otp });
+    await sendEmail({ to: user.email, subject, html, text });
+  }
+
+  return sendSuccess(res, { otpSent: true }, 'If the account exists, reset instructions have been sent.');
 });
 
 router.post('/reset-password', async (req, res) => {

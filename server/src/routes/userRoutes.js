@@ -8,7 +8,7 @@ import {
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } from '../utils/serializers.js';
 import { notifyWhatsappOrderPlaced } from '../services/orderWhatsappNotifications.js';
-import { notifyEmailOrderPlaced } from '../services/orderEmailNotifications.js';
+import { notifyEmailOrderPlaced, notifyEmailOrderChangeRequest } from '../services/orderEmailNotifications.js';
 
 const router = express.Router();
 
@@ -436,6 +436,62 @@ router.get('/orders/:id', async (req, res) => {
   }
 
   return sendSuccess(res, serializeOrder(order));
+});
+
+router.post('/orders/:id/change-requests', async (req, res) => {
+  const order = await Order.findOne({
+    $or: [{ _id: req.params.id }, { orderId: req.params.id }],
+    user: req.user._id,
+  });
+
+  if (!order) {
+    return sendError(res, 'Order not found', 404);
+  }
+
+  const incoming = Array.isArray(req.body.requests) ? req.body.requests : [];
+  const accepted = [];
+
+  for (const entry of incoming) {
+    const message = String(entry?.message || '').trim();
+    if (!message) continue;
+
+    const item = order.items.id(entry.itemId);
+    if (!item) continue;
+
+    item.changeRequests.push({ message, status: 'Open' });
+    accepted.push({ itemId: String(item._id), message });
+  }
+
+  if (!accepted.length) {
+    return sendError(res, 'No change requests provided');
+  }
+
+  await order.save();
+  await order.populate([
+    { path: 'user' },
+    { path: 'statusHistory.changedBy' },
+    {
+      path: 'items.product',
+      populate: productPopulate,
+    },
+  ]);
+
+  const requestsForEmail = accepted.map((entry) => {
+    const item = order.items.id(entry.itemId);
+    const product = item?.product;
+    const productLabel = product
+      ? `${product.styleCode ? product.styleCode + ' — ' : ''}${product.name || 'Product'}`
+      : 'Product';
+    return { productLabel, message: entry.message };
+  });
+
+  setImmediate(() => {
+    notifyEmailOrderChangeRequest(order, { requests: requestsForEmail }).catch((e) =>
+      console.error('[email] change-request notifications failed', e.message),
+    );
+  });
+
+  return sendSuccess(res, serializeOrder(order), 'Change request submitted');
 });
 
 router.get('/catalogues', async (req, res) => {

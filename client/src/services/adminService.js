@@ -29,6 +29,8 @@ export const adminService = {
   orders: () => unwrap(api.get('/admin/orders')),
   order: (id) => unwrap(api.get(`/admin/orders/${id}`)),
   updateOrder: (id, payload) => unwrap(api.put(`/admin/orders/${id}`, payload)),
+  resolveChangeRequest: (orderId, requestId, status = 'Resolved') =>
+    unwrap(api.patch(`/admin/orders/${orderId}/change-requests/${requestId}`, { status })),
   catalogues: () => unwrap(api.get('/admin/catalogues')),
   createCatalogue: (payload) => unwrap(api.post('/admin/catalogues', payload)),
   updateCatalogue: (id, payload) => unwrap(api.put(`/admin/catalogues/${id}`, payload)),

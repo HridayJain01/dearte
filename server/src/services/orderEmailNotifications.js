@@ -12,7 +12,7 @@
 
 import { SiteSettings } from '../models/index.js';
 import { isEmailConfigured, sendEmail } from './email/transport.js';
-import { orderPlacedEmail, orderStatusEmail, promoEmail } from './email/templates.js';
+import { orderChangeRequestEmail, orderPlacedEmail, orderStatusEmail, promoEmail } from './email/templates.js';
 import { serializeOrder } from '../utils/serializers.js';
 import { generateOrderPdfBuffer } from '../utils/orderPdfKit.js';
 
@@ -114,6 +114,29 @@ export async function notifyEmailOrderStatus(orderPopulated, { previousStatus, n
     return { skipped: false, ok: true, to: buyer };
   } catch (e) {
     console.error('[email] status update failed', e.message);
+    return { skipped: false, ok: false, error: e.message };
+  }
+}
+
+/**
+ * Buyer raised change request(s) on order line item(s) → notify ops recipients.
+ * @param {Object} orderPopulated  populated Order mongoose doc
+ * @param {Object} payload { requests: [{ productLabel, message }] }
+ */
+export async function notifyEmailOrderChangeRequest(orderPopulated, { requests = [] } = {}) {
+  if (!isEmailConfigured()) return { skipped: true, reason: 'not_configured' };
+
+  const site = (await fetchSite()) || {};
+  const opsRecipients = opsEmailsFromSources(site);
+  if (!opsRecipients.length) return { skipped: true, reason: 'no_ops_recipients' };
+
+  const order = serializeOrder(orderPopulated);
+  try {
+    const msg = orderChangeRequestEmail(order, { requests, site });
+    await sendEmail({ to: opsRecipients, ...msg });
+    return { skipped: false, ok: true, to: opsRecipients };
+  } catch (e) {
+    console.error('[email] change-request notify failed', e.message);
     return { skipped: false, ok: false, error: e.message };
   }
 }

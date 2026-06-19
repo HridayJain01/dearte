@@ -174,6 +174,44 @@ export function orderStatusEmail(order, { previousStatus, nextStatus, customNote
   };
 }
 
+/** ORDER CHANGE REQUEST — to ops, raised by the buyer against specific pieces. */
+export function orderChangeRequestEmail(order, { requests = [], site } = {}) {
+  const intro = `<strong>${esc(order.user?.name || '—')}</strong> (${esc(order.user?.email || '—')}${
+    order.user?.mobile ? ', ' + esc(order.user.mobile) : ''
+  }) raised a change request on order <strong>${esc(order.orderId)}</strong>.`;
+
+  const rows = (requests || [])
+    .map(
+      (r) => `<tr>
+        <td style="padding:10px 8px;border-bottom:1px solid ${BRAND.border};font-size:13px;font-family:Arial,sans-serif;vertical-align:top;width:40%;">
+          <div style="color:${BRAND.ink};font-weight:bold;">${esc(r.productLabel || 'Product')}</div>
+        </td>
+        <td style="padding:10px 8px;border-bottom:1px solid ${BRAND.border};font-size:13px;font-family:Arial,sans-serif;color:${BRAND.ink};">${esc(r.message || '')}</td>
+      </tr>`,
+    )
+    .join('');
+
+  const bodyHtml = `${metaBlock(order)}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6px 0 4px;">
+      <thead>
+        <tr>
+          <th align="left" style="padding:6px 8px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${BRAND.gold};font-family:Arial,sans-serif;border-bottom:2px solid ${BRAND.gold};">Piece</th>
+          <th align="left" style="padding:6px 8px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${BRAND.gold};font-family:Arial,sans-serif;border-bottom:2px solid ${BRAND.gold};">Request</th>
+        </tr>
+      </thead>
+      <tbody>${rows || `<tr><td style="padding:10px 8px;color:${BRAND.muted};">No details.</td><td></td></tr>`}</tbody>
+    </table>`;
+
+  const text = `Change request on order ${order.orderId} from ${order.user?.name || 'buyer'}.
+${(requests || []).map((r) => `- ${r.productLabel || 'Product'}: ${r.message || ''}`).join('\n')}`;
+
+  return {
+    subject: `New change request — Order ${order.orderId}`,
+    html: shell({ heading: `New change request — ${order.orderId}`, intro, bodyHtml, site }),
+    text,
+  };
+}
+
 /** PROMOTIONAL broadcast — admin-authored subject + body. */
 export function promoEmail({ subject, heading, bodyHtml, bodyText, ctaLabel, ctaUrl, site }) {
   const cta =
@@ -191,6 +229,31 @@ export function promoEmail({ subject, heading, bodyHtml, bodyText, ctaLabel, cta
       site,
     }),
     text: bodyText || stripHtml(bodyHtml || ''),
+  };
+}
+
+/** PASSWORD RESET OTP — to the user requesting a password reset. */
+export function passwordResetEmail({ otp, site }) {
+  const bodyHtml = `
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.6;font-family:Arial,sans-serif;color:${BRAND.ink};">
+      We received a request to reset your password. Use the code below to continue. It expires in <strong>10 minutes</strong>.
+    </p>
+    <div style="text-align:center;margin:24px 0;">
+      <span style="display:inline-block;padding:16px 40px;background:${BRAND.bg};border:2px solid ${BRAND.gold};border-radius:8px;font-size:32px;font-weight:bold;letter-spacing:10px;color:${BRAND.maroon};font-family:Arial,sans-serif;">${esc(otp)}</span>
+    </div>
+    <p style="margin:20px 0 0;font-size:12px;line-height:1.6;font-family:Arial,sans-serif;color:${BRAND.muted};">
+      If you did not request a password reset, you can safely ignore this email.
+    </p>`;
+
+  return {
+    subject: `${BRAND_NAME} — Your password reset code`,
+    html: shell({
+      heading: 'Password reset request',
+      intro: '',
+      bodyHtml,
+      site,
+    }),
+    text: `Your De Arté password reset code is: ${otp}\n\nThis code expires in 10 minutes. If you did not request this, ignore this email.`,
   };
 }
 

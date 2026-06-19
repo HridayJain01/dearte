@@ -45,6 +45,16 @@ export const specificationSchema = new mongoose.Schema(
   { _id: false },
 );
 
+export const orderItemChangeRequestSchema = new mongoose.Schema(
+  {
+    message: { type: String, required: true },
+    status: { type: String, default: 'Open' }, // Open | Resolved
+    createdAt: { type: Date, default: Date.now },
+    resolvedAt: { type: Date, default: null },
+  },
+  { _id: true }, // each request gets a stable _id so admin can resolve it
+);
+
 export const orderItemSchema = new mongoose.Schema(
   {
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
@@ -55,6 +65,7 @@ export const orderItemSchema = new mongoose.Schema(
       diamondQuality: { type: String, default: '' },
       note: { type: String, default: '' },
     },
+    changeRequests: { type: [orderItemChangeRequestSchema], default: [] },
   },
   { _id: true },
 );

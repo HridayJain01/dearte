@@ -107,6 +107,7 @@ export function serializeProduct(doc) {
     status: doc.status,
     isNewArrival: doc.isNewArrival,
     isBestSeller: doc.isBestSeller,
+    showToGuests: doc.showToGuests,
     media,
     images: media.map((item) => item.secureUrl),
     colorVariants,
@@ -157,6 +158,11 @@ export function serializeUser(doc) {
     status: doc.status,
     registeredAt: doc.registeredAt,
     kycDocuments: doc.kycDocuments || [],
+    catalogAccess: {
+      mode: doc.catalogAccess?.mode || 'all',
+      categories: (doc.catalogAccess?.categories || []).map((value) => String(value?._id || value)),
+      collections: (doc.catalogAccess?.collections || []).map((value) => String(value?._id || value)),
+    },
   };
 }
 
@@ -181,6 +187,13 @@ export function serializeOrder(doc) {
       quantity: item.quantity,
       customization: item.customization,
       product: serializeProduct(item.product),
+      changeRequests: (item.changeRequests || []).map((cr) => ({
+        id: String(cr._id),
+        message: cr.message,
+        status: cr.status,
+        createdAt: cr.createdAt,
+        resolvedAt: cr.resolvedAt,
+      })),
     })),
     stockDeducted: doc.stockDeducted,
     createdAt: doc.createdAt,

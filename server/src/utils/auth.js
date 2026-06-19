@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { catalogAccessDto } from './catalogAccess.js';
 
 const ACCESS_SECRET = process.env.JWT_SECRET || 'dearte-access-secret';
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dearte-refresh-secret';
@@ -72,5 +73,6 @@ export function userDto(user) {
     role: user.role,
     companyName: user.companyName,
     status: user.status,
+    catalogAccess: catalogAccessDto(user),
   };
 }

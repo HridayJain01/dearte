@@ -80,8 +80,10 @@ function App() {
           }
         >
           <Route index element={<HomePage />} />
+          {/* Product list + detail are open to guests (limited to the showToGuests
+              teaser); cart, wishlist, checkout and account pages stay gated. */}
           <Route path="products" element={<ProductListPage />} />
-          <Route path="collections" element={<CollectionsPage />} />
+          <Route path="collections" element={<ProtectedRoute><CollectionsPage /></ProtectedRoute>} />
           <Route path="collections/:category" element={<LegacyCollectionRedirect />} />
           <Route path="products/:styleCode" element={<ProductDetailPage />} />
           <Route path="cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />

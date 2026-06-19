@@ -28,6 +28,9 @@ const productSchema = new mongoose.Schema(
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
     isNewArrival: { type: Boolean, default: false },
     isBestSeller: { type: Boolean, default: false },
+    // When true, this product is part of the small teaser shown to logged-out
+    // guests. See utils/catalogAccess.js (guest access rules).
+    showToGuests: { type: Boolean, default: false, index: true },
     media: { type: [assetSchema], default: [] },
     colorVariants: { type: [productColorVariantSchema], default: [] },
     customizationOptions: { type: customizationOptionsSchema, default: () => ({}) },

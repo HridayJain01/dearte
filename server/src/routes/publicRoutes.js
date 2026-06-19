@@ -21,8 +21,28 @@ import {
   serializeTrustedBrand,
 } from '../utils/serializers.js';
 import { sanitizeSiteSettingsForPublic } from '../utils/siteSettingsPublic.js';
+import { optionalAuth, requireAuth } from '../middleware/auth.js';
+import {
+  productAccessFilter,
+  canAccessProduct,
+  filterCategoriesForUser,
+  filterCollectionsForUser,
+  allowedCollectionIds,
+} from '../utils/catalogAccess.js';
 
 const router = express.Router();
+
+// Populate req.user when a session cookie is present so catalogue endpoints can
+// scope results to the buyer's granted categories/collections. Browsing routes
+// additionally enforce login via requireAuth.
+router.use(optionalAuth);
+
+// Merge a base Mongo filter with a per-user access filter without clobbering an
+// existing $or (e.g. search). Uses $and when the access filter is non-empty.
+function withAccess(filter, accessFilter) {
+  if (!accessFilter || Object.keys(accessFilter).length === 0) return filter;
+  return { $and: [filter, accessFilter] };
+}
 
 const productPopulate = [
   { path: 'category' },
@@ -50,11 +70,14 @@ function applySort(query, sort) {
   }
 }
 
-router.get('/site/home', async (_req, res) => {
+router.get('/site/home', async (req, res) => {
+  // Homepage teasers stay public, but a logged-in restricted buyer should only
+  // see products from categories/collections they're allowed to view.
+  const access = productAccessFilter(req.user);
   const [banners, newArrivals, bestSellers, testimonials, events, trustedBrands, siteSettings, popupAds] = await Promise.all([
     Banner.find({ active: true }).sort({ sortOrder: 1 }),
-    Product.find({ isNewArrival: true, status: 'Active' }).populate(productPopulate).limit(10),
-    Product.find({ status: 'Active' }).sort({ orderCount: -1 }).populate(productPopulate).limit(10),
+    Product.find({ isNewArrival: true, status: 'Active', ...access }).populate(productPopulate).limit(10),
+    Product.find({ status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate).limit(10),
     Testimonial.find({ status: 'Approved' }).sort({ createdAt: -1 }),
     Event.find({ active: true }).sort({ date: 1 }).limit(6),
     TrustedBrand.find({ active: true }).sort({ sortOrder: 1, createdAt: 1 }),
@@ -104,6 +127,8 @@ router.get('/site/home', async (_req, res) => {
   });
 });
 
+// Browsing is open to guests, who are scoped to the showToGuests teaser via
+// productAccessFilter; logged-in buyers see their full granted catalogue.
 router.get('/products', async (req, res) => {
   const {
     category,
@@ -168,17 +193,32 @@ router.get('/products', async (req, res) => {
   const currentPage = Number(page);
   const pageSize = Number(limit);
 
-  const [items, total, categories, collections, metalColors] = await Promise.all([
-    applySort(Product.find(filter).populate(productPopulate), sort)
+  // Restrict everything to what this buyer is allowed to see.
+  const accessFilter = productAccessFilter(req.user);
+  const scopedFilter = withAccess(filter, accessFilter);
+
+  const [items, total, allCategories, allCollections, metalColors] = await Promise.all([
+    applySort(Product.find(scopedFilter).populate(productPopulate), sort)
       .skip((currentPage - 1) * pageSize)
       .limit(pageSize),
-    Product.countDocuments(filter),
+    Product.countDocuments(scopedFilter),
     Category.find({ active: true }).sort({ name: 1 }),
     Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 }),
     MetalOption.find({ active: true }).sort({ name: 1 }),
   ]);
 
-  const subCategories = await SubCategory.find({ active: true }).populate('category').sort({ name: 1 });
+  // Scope the filter facets to the buyer's access. Categories that only contain
+  // a granted collection are kept so the buyer can still navigate to them.
+  const collections = filterCollectionsForUser(req.user, allCollections);
+  const grantedCollectionIds = new Set(allowedCollectionIds(req.user));
+  const extraCategoryIds = allCollections
+    .filter((col) => grantedCollectionIds.has(String(col._id)))
+    .map((col) => String(col.category?._id || col.category || ''));
+  const categories = filterCategoriesForUser(req.user, allCategories, extraCategoryIds);
+  const visibleCategoryIds = new Set(categories.map((cat) => String(cat._id)));
+
+  const subCategories = (await SubCategory.find({ active: true }).populate('category').sort({ name: 1 }))
+    .filter((sub) => visibleCategoryIds.has(String(sub.category?._id)));
 
   return sendSuccess(res, {
     items: items.map(serializeProduct),
@@ -203,13 +243,15 @@ router.get('/products', async (req, res) => {
   });
 });
 
-router.get('/products/new-arrivals', async (_req, res) => {
-  const products = await Product.find({ isNewArrival: true, status: 'Active' }).populate(productPopulate);
+router.get('/products/new-arrivals', async (req, res) => {
+  const access = productAccessFilter(req.user);
+  const products = await Product.find({ isNewArrival: true, status: 'Active', ...access }).populate(productPopulate);
   return sendSuccess(res, products.map(serializeProduct));
 });
 
-router.get('/products/best-sellers', async (_req, res) => {
-  const products = await Product.find({ status: 'Active' }).sort({ orderCount: -1 }).populate(productPopulate);
+router.get('/products/best-sellers', async (req, res) => {
+  const access = productAccessFilter(req.user);
+  const products = await Product.find({ status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate);
   return sendSuccess(res, products.map(serializeProduct));
 });
 
@@ -219,24 +261,44 @@ router.get('/products/:styleCode', async (req, res) => {
     return sendError(res, 'Product not found', 404);
   }
 
-  const related = await Product.find({
-    _id: { $ne: product._id },
-    status: 'Active',
-    $or: [{ collection: product.collection?._id }, { category: product.category?._id }],
-  })
+  // Hide products outside the buyer's granted catalogue (same as not found).
+  if (!canAccessProduct(req.user, product)) {
+    return sendError(res, 'Product not found', 404);
+  }
+
+  const access = productAccessFilter(req.user);
+  const related = await Product.find(
+    withAccess(
+      {
+        _id: { $ne: product._id },
+        status: 'Active',
+        $or: [{ collection: product.collection?._id }, { category: product.category?._id }],
+      },
+      access,
+    ),
+  )
     .populate(productPopulate)
     .limit(6);
 
   return sendSuccess(res, { ...serializeProduct(product), relatedProducts: related.map(serializeProduct) });
 });
 
-router.get('/categories', async (_req, res) => {
-  const categories = await Category.find({ active: true }).sort({ name: 1 });
-  return sendSuccess(res, categories.map(serializeTaxonomy));
+router.get('/categories', requireAuth, async (req, res) => {
+  const [categories, collections] = await Promise.all([
+    Category.find({ active: true }).sort({ name: 1 }),
+    Collection.find({ active: true }).select('category').sort({ name: 1 }),
+  ]);
+  const grantedCollectionIds = new Set(allowedCollectionIds(req.user));
+  const extraCategoryIds = collections
+    .filter((col) => grantedCollectionIds.has(String(col._id)))
+    .map((col) => String(col.category?._id || col.category || ''));
+  const visible = filterCategoriesForUser(req.user, categories, extraCategoryIds);
+  return sendSuccess(res, visible.map(serializeTaxonomy));
 });
 
-router.get('/collections', async (_req, res) => {
-  const collections = await Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 });
+router.get('/collections', requireAuth, async (req, res) => {
+  const all = await Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 });
+  const collections = filterCollectionsForUser(req.user, all);
   return sendSuccess(
     res,
     collections.map((item) => ({

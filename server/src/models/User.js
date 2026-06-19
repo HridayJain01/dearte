@@ -14,8 +14,16 @@ const userSchema = new mongoose.Schema(
     companyName: { type: String, default: '' },
     gstNumber: { type: String, default: '' },
     passwordHash: { type: String, required: true },
-    role: { type: String, enum: ['admin', 'buyer'], default: 'buyer' },
+    role: { type: String, enum: ['admin', 'sales', 'buyer'], default: 'buyer' },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Inactive' },
+    catalogAccess: {
+      // 'all' = can see the entire catalogue. 'restricted' = limited to the
+      // categories / collections explicitly granted below. Admins and sales
+      // always have full access regardless of this value.
+      mode: { type: String, enum: ['all', 'restricted'], default: 'all' },
+      categories: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }], default: [] },
+      collections: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Collection' }], default: [] },
+    },
     registeredAt: { type: Date, default: Date.now },
     kycDocuments: { type: [String], default: [] },
     refreshTokens: { type: [String], default: [] },

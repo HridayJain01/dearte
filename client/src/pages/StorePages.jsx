@@ -1,8 +1,8 @@
-import { Download, Share2, Trash2 } from 'lucide-react';
+import { ChevronDown, Download, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import { useProducts, useProduct } from '../hooks/useProducts';
@@ -164,6 +164,7 @@ export function ProductListPage() {
   );
 
   const { data, isLoading } = useProducts(params);
+  const { isAuthenticated } = useAuth();
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Curating product library..." /></div>;
@@ -176,6 +177,16 @@ export function ProductListPage() {
         title={activeCategory || activeCollection || 'Shop by Product'}
         description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
       />
+      {!isAuthenticated ? (
+        <Panel className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            You're viewing a small preview of our catalogue. Sign in to your buyer account to browse the full collection.
+          </p>
+          <Link to="/login" className="shrink-0">
+            <Button>Sign in to see more</Button>
+          </Link>
+        </Panel>
+      ) : null}
       <div className="space-y-6">
         {!activeCategory && !activeCollection && (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -300,6 +311,28 @@ export function ProductDetailPage() {
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Preparing product atelier..." /></div>;
+  }
+
+  if (!data) {
+    return (
+      <section className="page-shell section-gap">
+        <EmptyState
+          title="Product not available"
+          description={
+            isAuthenticated
+              ? "This piece isn't in your assigned catalogue."
+              : "This piece isn't part of the preview. Sign in to your buyer account to view the full catalogue."
+          }
+          action={
+            isAuthenticated ? (
+              <Link to="/products"><Button>Browse products</Button></Link>
+            ) : (
+              <Link to="/login"><Button>Sign in</Button></Link>
+            )
+          }
+        />
+      </section>
+    );
   }
 
   const requireAuth = async (callback) => {
@@ -875,6 +908,109 @@ export function CataloguePage() {
   );
 }
 
+function OrderHistoryRow({ order, downloading, onDownload }) {
+  const queryClient = useQueryClient();
+  const [expanded, setExpanded] = useState(false);
+  const [drafts, setDrafts] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const setDraft = (itemId, value) =>
+    setDrafts((current) => ({ ...current, [itemId]: value }));
+
+  const handleSubmit = async () => {
+    const requests = order.items
+      .map((item) => ({ itemId: item.id, message: (drafts[item.id] || '').trim() }))
+      .filter((entry) => entry.message);
+
+    if (!requests.length) {
+      toast.error('Add a request to at least one item.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await orderService.submitChangeRequests(order.id, requests);
+      await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      setDrafts({});
+      toast.success('Change request submitted.');
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || 'Could not submit change request.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <tr className="border-t border-[var(--color-border)] text-[var(--color-text)]">
+        <td className="py-4">{order.orderId}</td>
+        <td className="py-4">{formatDate(order.date)}</td>
+        <td className="py-4">{order.items.length}</td>
+        <td className="py-4"><StatusBadge status={order.status} /></td>
+        <td className="py-4 text-right">
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              className="px-3 py-2 text-[11px]"
+              icon={ChevronDown}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? 'Hide items' : 'View items'}
+            </Button>
+            <Button
+              variant="ghost"
+              className="px-3 py-2 text-[11px]"
+              icon={Download}
+              loading={downloading}
+              onClick={() => onDownload(order)}
+            >
+              PDF
+            </Button>
+          </div>
+        </td>
+      </tr>
+      {expanded ? (
+        <tr className="border-t border-[var(--color-border)]">
+          <td colSpan={5} className="bg-[var(--color-surface-alt)] px-4 py-4">
+            <div className="space-y-3">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 sm:flex-row">
+                  <img
+                    src={item.product?.images?.[0] || item.product?.media?.[0]?.secureUrl}
+                    alt={item.product?.name || 'Product'}
+                    className="h-12 w-12 flex-shrink-0 border border-[var(--color-border)] object-cover"
+                  />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
+                    </div>
+                    {(item.changeRequests || []).map((cr) => (
+                      <div key={cr.id} className="flex items-start justify-between gap-2 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2">
+                        <p className="text-xs text-[var(--color-text)]">{cr.message}</p>
+                        <StatusBadge status={cr.status} />
+                      </div>
+                    ))}
+                    <textarea
+                      className="min-h-[60px] w-full border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                      placeholder="Custom request or issue for this piece (optional)"
+                      value={drafts[item.id] || ''}
+                      onChange={(event) => setDraft(item.id, event.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end">
+                <Button loading={submitting} onClick={handleSubmit}>Submit change request</Button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
 export function ProfilePage() {
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
   const { data: orders = [] } = useQuery({ queryKey: ['orders'], queryFn: orderService.list });
@@ -918,28 +1054,17 @@ export function ProfilePage() {
                   <th className="pb-4">Date</th>
                   <th className="pb-4">Items</th>
                   <th className="pb-4">Status</th>
-                  <th className="pb-4 text-right">Download</th>
+                  <th className="pb-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr key={order.id} className="border-t border-[var(--color-border)] text-[var(--color-text)]">
-                    <td className="py-4">{order.orderId}</td>
-                    <td className="py-4">{formatDate(order.date)}</td>
-                    <td className="py-4">{order.items.length}</td>
-                    <td className="py-4"><StatusBadge status={order.status} /></td>
-                    <td className="py-4 text-right">
-                      <Button
-                        variant="ghost"
-                        className="px-3 py-2 text-[11px]"
-                        icon={Download}
-                        loading={downloadingOrderId === order.id}
-                        onClick={() => handleDownloadOrder(order)}
-                      >
-                        PDF
-                      </Button>
-                    </td>
-                  </tr>
+                  <OrderHistoryRow
+                    key={order.id}
+                    order={order}
+                    downloading={downloadingOrderId === order.id}
+                    onDownload={handleDownloadOrder}
+                  />
                 ))}
               </tbody>
             </table>
