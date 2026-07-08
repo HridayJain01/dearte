@@ -197,7 +197,7 @@ router.get('/products', async (req, res) => {
   const accessFilter = productAccessFilter(req.user);
   const scopedFilter = withAccess(filter, accessFilter);
 
-  const [items, total, allCategories, allCollections, metalColors] = await Promise.all([
+  const [items, total, allCategories, allCollections, metalColors, allSubCategories] = await Promise.all([
     applySort(Product.find(scopedFilter).populate(productPopulate), sort)
       .skip((currentPage - 1) * pageSize)
       .limit(pageSize),
@@ -205,6 +205,7 @@ router.get('/products', async (req, res) => {
     Category.find({ active: true }).sort({ name: 1 }),
     Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 }),
     MetalOption.find({ active: true }).sort({ name: 1 }),
+    SubCategory.find({ active: true }).populate('category').sort({ name: 1 }),
   ]);
 
   // Scope the filter facets to the buyer's access. Categories that only contain
@@ -217,8 +218,9 @@ router.get('/products', async (req, res) => {
   const categories = filterCategoriesForUser(req.user, allCategories, extraCategoryIds);
   const visibleCategoryIds = new Set(categories.map((cat) => String(cat._id)));
 
-  const subCategories = (await SubCategory.find({ active: true }).populate('category').sort({ name: 1 }))
-    .filter((sub) => visibleCategoryIds.has(String(sub.category?._id)));
+  const subCategories = allSubCategories.filter((sub) =>
+    visibleCategoryIds.has(String(sub.category?._id)),
+  );
 
   return sendSuccess(res, {
     items: items.map(serializeProduct),

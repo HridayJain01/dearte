@@ -54,7 +54,7 @@ npm run dev
 ```
 
 Local defaults:
-- Frontend: `http://localhost:5173`
+- Frontend: `http://localhost:5180`
 - API: `http://localhost:5001`
 
 Demo accounts after first seed:
@@ -75,7 +75,7 @@ Demo accounts after first seed:
 
 **Cannot connect to MongoDB:** Check that your IP is whitelisted in MongoDB Atlas Network Access.
 
-**Port 5173 or 5001 already in use:** Edit `.env` and change `PORT` or `VITE_API_PROXY_TARGET`.
+**Port 5180 or 5001 already in use:** Edit `.env` and change `PORT` or `VITE_API_PROXY_TARGET`.
 - `/Users/hridayjain/Documents/Projects/dearte/docs/deployment.md`
 - `/Users/hridayjain/Documents/Projects/dearte/docs/auth.md`
 

@@ -264,6 +264,10 @@ async function findOrCreateTaxonomy({ items = [], rawName = '', relationFilters 
   return taxonomyId(lean);
 }
 
+// Effectively-unlimited default stock for bulk-imported Ready Stock products so
+// they are always purchasable. Admins can still adjust per product afterward.
+const BULK_IMPORT_DEFAULT_STOCK = 999;
+
 function buildBulkImportPayloads(rows = [], options = {}) {
   const normalizedRows = rows
     .map((row) => {
@@ -311,7 +315,10 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       occasion: String(pickFirstDefined(row, ['occasion'])).trim(),
       sku: String(pickFirstDefined(row, ['sku'])).trim() || styleCode,
       stockType: options.stockType || 'Ready Stock',
-      stockQuantity: Number(options.stockQuantity ?? 0),
+      // Bulk-imported products should be purchasable immediately. The UI no
+      // longer collects a per-import quantity, so default to an effectively
+      // unlimited count rather than 0 (which would mark every style out of stock).
+      stockQuantity: Number(options.stockQuantity ?? BULK_IMPORT_DEFAULT_STOCK),
       status: options.status || 'Active',
       isNewArrival: parseBoolean(options.isNewArrival, false),
       isBestSeller: parseBoolean(options.isBestSeller, false),
@@ -633,7 +640,10 @@ router.post('/whatsapp/broadcast', async (req, res) => {
       return sendError(res, 'userIds required when audience is selected', 400);
     }
 
-    usersQuery = User.find({ _id: { $in: objectIds }, role: 'buyer' });
+    // The admin user list (and selection UI) includes both buyers and sales
+    // accounts, so an explicit selection must honor either role — otherwise
+    // selected sales recipients are silently dropped.
+    usersQuery = User.find({ _id: { $in: objectIds }, role: { $in: ['buyer', 'sales'] } });
   }
 
   const users = await usersQuery.exec();
@@ -713,7 +723,10 @@ router.post('/email/broadcast', async (req, res) => {
     if (!objectIds.length) {
       return sendError(res, 'userIds required when audience is selected', 400);
     }
-    usersQuery = User.find({ _id: { $in: objectIds }, role: 'buyer' });
+    // The admin user list (and selection UI) includes both buyers and sales
+    // accounts, so an explicit selection must honor either role — otherwise
+    // selected sales recipients are silently dropped.
+    usersQuery = User.find({ _id: { $in: objectIds }, role: { $in: ['buyer', 'sales'] } });
   }
 
   const users = await usersQuery.exec();

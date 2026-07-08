@@ -16,12 +16,12 @@ import { Product } from './models/index.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 5001);
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5180';
 
 // Support multiple origins for dev and production
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
+  'http://localhost:5180',
+  'http://127.0.0.1:5180',
   'http://localhost:3000',
   'https://dearte-client.vercel.app',
   CLIENT_ORIGIN,
