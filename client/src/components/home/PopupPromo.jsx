@@ -35,12 +35,13 @@ export function PopupPromo({ ads }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4" role="dialog">
-      <div className="relative max-h-[90vh] max-w-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--scrim-veil)] p-4 backdrop-blur-sm" role="dialog">
+      <div className="animate-hero-entry relative max-h-[90vh] max-w-lg overflow-hidden border border-[var(--color-accent)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-lifted)]">
+        <span className="gold-hairline pointer-events-none absolute inset-x-0 top-0 z-10" aria-hidden />
         <button
           type="button"
           onClick={dismiss}
-          className="absolute right-3 top-3 z-10 bg-[var(--color-primary)] p-2 text-white hover:bg-[var(--color-primary-hover)]"
+          className="absolute right-3 top-3 z-10 bg-[var(--color-primary)] p-2 text-white transition-colors duration-300 hover:bg-[var(--color-primary-hover)]"
           aria-label="Close"
         >
           <X className="h-5 w-5" />

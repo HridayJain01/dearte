@@ -24,19 +24,24 @@ export function ProductCard({ product }) {
   };
 
   return (
-    <article className="group overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] p-0 transition duration-200 hover:border-[var(--color-border-active)]">
+    <article className="group relative h-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] p-0 transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)]">
+      <span
+        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px origin-left scale-x-0 bg-[var(--color-accent)] transition-transform duration-500 [transition-timing-function:var(--ease-lux)] group-hover:scale-x-100"
+        aria-hidden
+      />
       <Link to={`/products/${product.styleCode}`} className="block relative">
-        <div className="relative h-56 overflow-hidden bg-[#f6f6f6] sm:h-72">
+        <div className="relative h-56 overflow-hidden bg-[var(--color-surface)] sm:h-72">
           <img
             src={product.images[0]}
             alt={product.name}
-            className="h-full w-full object-contain p-5 transition duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-contain p-5 transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06]"
           />
-          <p className="absolute left-4 top-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b6d1e]">
+          <p className="absolute left-4 top-4 text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--color-primary)]">
             Sale
           </p>
           <button
-            className="absolute right-4 top-3 z-10 p-2 text-[#9b6d1e] transition hover:scale-110 hover:[&>svg]:fill-[#9b6d1e]"
+            className="absolute right-4 top-3 z-10 p-2 text-[var(--color-primary)] transition duration-300 hover:scale-110 hover:[&>svg]:fill-[var(--color-primary)]"
+            aria-label="Add to wishlist"
             onClick={(e) => {
               e.preventDefault();
               ensureAuth(() => addToWishlist({ productId: product.id }));
@@ -46,13 +51,13 @@ export function ProductCard({ product }) {
           </button>
         </div>
 
-        <div className="space-y-3 p-4 sm:p-5">
+        <div className="space-y-3 border-t border-[var(--color-border)] p-4 sm:p-5">
           <div className="grid grid-cols-[1fr_auto] items-start gap-3">
             <div>
-              <p className="line-clamp-2 font-['Jost'] text-[19px] leading-[1.2] tracking-[0.01em] text-[#151515] uppercase">
+              <p className="line-clamp-2 font-serif text-xl leading-[1.25] text-[var(--color-text)] sm:text-[1.35rem]">
                 {product.name}
               </p>
-              <p className="mt-1 font-['Jost'] text-xs tracking-[0.06em] text-[var(--color-text-muted)] uppercase">
+              <p className="mt-1.5 text-[11px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
                 {product.styleCode}
               </p>
             </div>
@@ -94,7 +99,7 @@ export function ProductCard({ product }) {
             ) : (
               <Button
                 variant="secondary"
-                className="w-full border-[#ddd] bg-transparent text-[#303030] hover:bg-[var(--color-surface-alt)]"
+                className="w-full border border-[var(--color-border)] bg-transparent text-[var(--color-text)] hover:border-[var(--color-border-active)] hover:bg-[var(--color-surface-alt)]"
                 icon={ShoppingBag}
                 disabled={isOutOfStock}
                 onClick={(e) => {
@@ -118,10 +123,11 @@ export function ProductCard({ product }) {
           </div>
 
           <div className="flex gap-3 pt-1">
+            {/* Decorative metal-tone chips — content colours, not UI tokens */}
             {['#ddd', '#ececec', '#d9d9d9', '#f0efe9', '#f2d5b6'].map((swatch) => (
               <span
                 key={`${product.id}-${swatch}`}
-                className="h-5 w-5 rounded-full border border-[#cfcfcf]"
+                className="h-4 w-4 border border-[var(--color-border)]"
                 style={{ backgroundColor: swatch }}
               />
             ))}

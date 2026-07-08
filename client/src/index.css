@@ -22,10 +22,27 @@
 
   /* ── System ── */
   --shadow-soft: 0 4px 24px rgba(107, 15, 46, 0.06);
+  --shadow-lifted: 0 18px 60px rgba(107, 15, 46, 0.16);
   --radius-sm: 0px;
   --radius-md: 0px;
   --radius-lg: 0px;
   --container: 1320px;
+
+  /* ── Motion ── */
+  --ease-lux: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-cinema: cubic-bezier(0.33, 0, 0.15, 1);
+  --dur-quick: 300ms;
+  --dur-reveal: 700ms;
+  --dur-slow: 1400ms;
+
+  /* ── Light & Depth (derived from brand tokens only) ── */
+  --gold-hairline: linear-gradient(90deg, transparent, rgba(212, 168, 42, 0.9) 50%, transparent);
+  --gold-sheen: linear-gradient(100deg, transparent 42%, rgba(212, 168, 42, 0.14) 48%, rgba(255, 244, 214, 0.28) 50%, rgba(212, 168, 42, 0.14) 52%, transparent 58%);
+  --scrim-hero: linear-gradient(78deg, rgba(43, 5, 17, 0.78) 0%, rgba(107, 15, 46, 0.5) 30%, rgba(107, 15, 46, 0.16) 58%, rgba(107, 15, 46, 0.02) 78%, transparent 100%);
+  --scrim-photo: linear-gradient(180deg, transparent 42%, rgba(26, 4, 12, 0.72) 100%);
+  --scrim-veil: rgba(26, 4, 12, 0.72);
+  --glow-crimson: radial-gradient(120% 90% at 50% 0%, rgba(139, 26, 58, 0.55), transparent 62%);
+  --glass-surface: rgba(250, 240, 243, 0.86);
 }
 
 @theme {
@@ -144,7 +161,178 @@ textarea {
   }
 }
 
-/* Animations */
+/* ── Motion system ─────────────────────────────────────────────
+   One shared language: rise-and-fade reveals, slow cinematic
+   drift (Ken Burns), a single gold "facet shimmer" sweep motif,
+   and hairline draw-ins. Animate transform/opacity only. */
+
+/* Scroll reveal — paired with the <Reveal> component, which adds
+   .is-visible via IntersectionObserver. Stagger via --reveal-delay. */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity var(--dur-reveal) var(--ease-lux),
+    transform var(--dur-reveal) var(--ease-lux);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Gold hairline rule (block element; size with w-* utilities) */
+.gold-hairline {
+  display: block;
+  height: 1px;
+  background: var(--gold-hairline);
+}
+
+/* Hairline that draws in from the left on hover (own hover or .group) */
+.hairline-draw {
+  position: relative;
+}
+
+.hairline-draw::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--gold-hairline);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 500ms var(--ease-lux);
+}
+
+.hairline-draw:hover::after,
+.group:hover .hairline-draw::after {
+  transform: scaleX(1);
+}
+
+/* Signature facet shimmer — slow gold light sweep (hero + CTA only) */
+.light-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.light-sweep::after {
+  content: '';
+  position: absolute;
+  inset: -20% 0;
+  background: var(--gold-sheen);
+  transform: translateX(-80%);
+  animation: lightSweep 9s var(--ease-cinema) 2s infinite;
+}
+
+@keyframes lightSweep {
+  0% {
+    transform: translateX(-80%);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  32% {
+    transform: translateX(80%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(80%);
+    opacity: 0;
+  }
+}
+
+/* Cinematic scrims */
+.scrim-hero {
+  background: var(--scrim-hero);
+}
+
+/* Pale banner imagery needs extra help on narrow screens where the
+   copy spans the full width of the frame. */
+@media (max-width: 639px) {
+  .scrim-hero {
+    background:
+      linear-gradient(180deg, rgba(43, 5, 17, 0.2), rgba(43, 5, 17, 0.5)),
+      var(--scrim-hero);
+  }
+}
+
+/* Soft crimson glow behind hero copy for legibility on light imagery */
+.hero-copy {
+  text-shadow: 0 2px 28px rgba(26, 4, 12, 0.55);
+}
+
+.scrim-photo {
+  background: var(--scrim-photo);
+}
+
+.cta-glow {
+  background: var(--glow-crimson);
+}
+
+/* Slow Ken Burns drift for full-bleed imagery */
+@keyframes kenBurns {
+  from {
+    transform: scale(1.02);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+
+.animate-ken-burns {
+  animation: kenBurns 9s var(--ease-cinema) forwards;
+}
+
+/* Hero slide crossfade */
+.hero-slide {
+  transition: opacity var(--dur-slow) var(--ease-cinema);
+}
+
+/* Per-line hero copy entrance; stagger via --line-delay */
+@keyframes heroLine {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-hero-line {
+  animation: heroLine 900ms var(--ease-lux) both;
+  animation-delay: var(--line-delay, 0ms);
+}
+
+/* Gold progress bar matching the 5s hero auto-advance */
+@keyframes slideProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-slide-progress {
+  transform-origin: left;
+  animation: slideProgress 5s linear forwards;
+}
+
+/* Horizontal rails: gentle snap without fighting momentum */
+.snap-rail {
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 4px;
+}
+
+/* Legacy entrance kept for compatibility */
 @keyframes heroEntry {
   from {
     opacity: 0;
@@ -163,7 +351,7 @@ textarea {
 @keyframes pageEnter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(14px);
   }
 
   to {
@@ -173,7 +361,7 @@ textarea {
 }
 
 .animate-page-enter {
-  animation: pageEnter 260ms ease;
+  animation: pageEnter 420ms var(--ease-lux);
   will-change: opacity, transform;
 }
 
@@ -186,7 +374,30 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-page-enter {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-page-enter,
+  .animate-hero-entry,
+  .animate-hero-line,
+  .animate-ken-burns,
+  .animate-slide-progress {
     animation: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .light-sweep::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .hero-slide {
+    transition: none;
   }
 }

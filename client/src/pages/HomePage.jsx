@@ -50,12 +50,15 @@ export function HomePage() {
       <section className="page-shell section-gap">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <p className="lux-label mb-3">Trusted by</p>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="gold-hairline w-8" aria-hidden />
+              <p className="lux-label">Trusted by</p>
+            </div>
             <h2 className="lux-heading text-3xl sm:text-4xl md:text-6xl">Brands that keep coming back.</h2>
-            <p className="mt-3 text-sm text-text-muted md:text-base">A live brand wall backed by the database so your social proof stays current as the admin list changes.</p>
+            <p className="mt-4 text-sm text-text-muted md:text-base">The houses and retail partners who return to DeArte, season after season.</p>
           </div>
         </div>
-        <div className="mt-6">
+        <div className="mt-8">
           <TrustedBrandGrid brands={data.trustedBrands} />
         </div>
       </section>
