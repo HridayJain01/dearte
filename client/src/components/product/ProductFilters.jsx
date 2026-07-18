@@ -1,4 +1,5 @@
 import { Button, Panel } from '../ui/Primitives';
+import { Select } from '../ui/Select';
 
 const toggleArrayValue = (values, value) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -119,15 +120,15 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
             Order Type
           </summary>
           <div className="absolute left-0 top-full z-30 mt-2 min-w-[220px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-lg">
-            <select
+            <Select
               value={activeFilters.stockType}
-              onChange={(event) => setFilter('stockType', event.target.value)}
-              className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
-            >
-              <option value="">All</option>
-              <option value="Ready Stock">Ready Stock</option>
-              <option value="Make to Order">Make to Order</option>
-            </select>
+              onChange={(value) => setFilter('stockType', value)}
+              options={[
+                { value: '', label: 'All' },
+                { value: 'Ready Stock', label: 'Ready Stock' },
+                { value: 'Make to Order', label: 'Make to Order' },
+              ]}
+            />
           </div>
         </details>
 

@@ -5,12 +5,16 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
 import { formatWeight } from '../../utils/formatters';
+import { resolveSizeChart } from '../../data/sizeMaster';
 
 export function ProductCard({ product }) {
   const { isAuthenticated } = useAuth();
   const { addToCart } = useCart();
   const { addToWishlist } = useWishlist();
   const navigate = useNavigate();
+  // Sized styles cannot be added blind from a grid card — the buyer picks a
+  // size on the product page instead.
+  const needsSize = Boolean(resolveSizeChart(product));
 
   const ensureAuth = async (action) => {
     if (!isAuthenticated) {
@@ -68,6 +72,7 @@ export function ProductCard({ product }) {
               icon={ShoppingBag}
               disabled={product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0}
               onClick={(e) => {
+                if (needsSize) return;
                 e.preventDefault();
                 ensureAuth(() =>
                   addToCart({
@@ -82,7 +87,11 @@ export function ProductCard({ product }) {
                 )
               }}
             >
-              {product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0 ? 'Out of stock' : 'Add to cart'}
+              {product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0
+                ? 'Out of stock'
+                : needsSize
+                  ? 'Select size'
+                  : 'Add to cart'}
             </Button>
           </div>
 

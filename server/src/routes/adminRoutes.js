@@ -20,6 +20,7 @@ import { cloudinary } from '../config/cloudinary.js';
 import { seedData } from '../data/seed.js';
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
+import { escapeRegex } from '../utils/validation.js';
 import {
   serializeCatalogue,
   serializeMetalOption,
@@ -37,6 +38,24 @@ import {
 } from '../services/orderWhatsappNotifications.js';
 
 const router = express.Router();
+
+// Every query in the import loop pays a round trip to Atlas, so the writes go out a
+// batch at a time instead of one by one.
+const IMPORT_WRITE_CONCURRENCY = 10;
+
+async function mapWithConcurrency(items, limit, handler) {
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      await handler(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+}
 
 const productPopulate = [
   { path: 'category' },
@@ -101,8 +120,28 @@ function parseNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function roundWeight(value) {
+  return Math.round(parseNumber(value, 0) * 1000) / 1000;
+}
+
 function dedupeStrings(values = []) {
   return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
+function normalizeWeightsInput(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const karat = (value) => ({
+    k18: roundWeight(value?.k18),
+    k14: roundWeight(value?.k14),
+    k9: roundWeight(value?.k9),
+  });
+
+  return {
+    gross: karat(source.gross),
+    net: karat(source.net),
+    diamond: roundWeight(source.diamond),
+    colourStone: roundWeight(source.colourStone),
+  };
 }
 
 function normalizeColorVariantsInput(input = []) {
@@ -179,160 +218,260 @@ function joinCloudinaryBaseUrl(baseUrl, fileName) {
   return `${safeBaseUrl}/${safeFileName}`;
 }
 
+// The upload sheet is one row per IMAGE: Style No x Colour x View. Rows for the same
+// Style No collapse into a single product whose colorVariants hold the images.
+const METAL_COLOR_LABELS = {
+  rg: 'Rose Gold',
+  wg: 'White Gold',
+  yg: 'Yellow Gold',
+  pg: 'Pink Gold',
+  rosegold: 'Rose Gold',
+  whitegold: 'White Gold',
+  yellowgold: 'Yellow Gold',
+};
+
+// Compulsory per the upload spec. Sub Category, Collection, Occasions and
+// Colour Stone Wt are intentionally absent - those may be blank.
+const REQUIRED_IMPORT_FIELDS = [
+  ['Style No', ['styleno', 'stylecode', 'style', 'collectionstyleno']],
+  ['Category', ['category']],
+  ['Colour', ['colour', 'color', 'metalcolor']],
+  ['View', ['view', 'imageview', 'angle']],
+  ['File Name', ['filename', 'file', 'image', 'imagename']],
+  ['Gross Wt(18kt)', ['grosswt18kt', 'grosswt18k']],
+  ['Gross Wt(14kt)', ['grosswt14kt', 'grosswt14k']],
+  ['Gross Wt(9kt)', ['grosswt9kt', 'grosswt9k']],
+  ['Net Wt(18kt)', ['netwt18kt', 'netwt18k']],
+  ['Net Wt(14kt)', ['netwt14kt', 'netwt14k']],
+  ['Net Wt(9kt)', ['netwt9kt', 'netwt9k']],
+];
+
+function normalizeMetalColorName(value) {
+  const raw = String(value || '').trim();
+  return METAL_COLOR_LABELS[normalizeHeader(raw)] || raw;
+}
+
+function readOccasions(row) {
+  return dedupeStrings([
+    pickFirstDefined(row, ['occasion1', 'occasion']),
+    pickFirstDefined(row, ['occasion2']),
+    pickFirstDefined(row, ['occasion3']),
+    pickFirstDefined(row, ['occasion4']),
+  ]);
+}
+
+function readWeights(row) {
+  // Sheet values arrive as raw floats (11.991000000000001); weights are quoted to 3 dp.
+  const at = (keys) => roundWeight(parseNumber(pickFirstDefined(row, keys), 0));
+  return {
+    gross: {
+      k18: at(['grosswt18kt', 'grosswt18k']),
+      k14: at(['grosswt14kt', 'grosswt14k']),
+      k9: at(['grosswt9kt', 'grosswt9k']),
+    },
+    net: {
+      k18: at(['netwt18kt', 'netwt18k']),
+      k14: at(['netwt14kt', 'netwt14k']),
+      k9: at(['netwt9kt', 'netwt9k']),
+    },
+    diamond: at(['diamondwtct', 'diamondwt', 'diamondweight']),
+    colourStone: at(['colourstonewtct', 'colourstonewt', 'colorstonewt', 'stoneweight']),
+  };
+}
+
+// A file name encodes Style.View.Colour_WM.ext. If the Colour column disagrees with
+// the file name the row is malformed (e.g. "ABR00361.Right.LEFT.WG_WM.jpg"), and we
+// skip it rather than create a bogus colour variant.
+function fileNameColorMismatch(fileName, color) {
+  const base = String(fileName || '').trim().replace(/\.[^.]+$/, '');
+  const segments = base.split('.');
+  if (segments.length !== 3) return `File Name "${fileName}" is not Style.View.Colour format`;
+  const fromFile = normalizeHeader(segments[2].split('_')[0]);
+  if (fromFile && fromFile !== normalizeHeader(color)) {
+    return `Colour "${color}" does not match File Name "${fileName}"`;
+  }
+  return '';
+}
+
 function buildBulkImportPayloads(rows = [], options = {}) {
-  const normalizedRows = rows
-    .map((row) => {
-      const normalized = {};
-      for (const [key, value] of Object.entries(row || {})) {
-        normalized[normalizeHeader(key)] = value;
-      }
-      return normalized;
-    })
-    .filter((row) => Object.keys(row).length);
-
   const productsByStyle = new Map();
+  const errors = [];
 
-  for (const row of normalizedRows) {
+  rows.forEach((rawRow, index) => {
+    const row = {};
+    for (const [key, value] of Object.entries(rawRow || {})) {
+      row[normalizeHeader(key)] = value;
+    }
+    if (!Object.keys(row).length) return;
+
+    // Sheet row number: +2 for the header row and 1-based indexing.
+    const rowNumber = parseNumber(pickFirstDefined(row, ['srno', 'sr', 'serialno']), index + 1);
     const styleCode = String(
       pickFirstDefined(row, ['styleno', 'stylecode', 'style', 'collectionstyleno']),
     ).trim();
-    if (!styleCode) continue;
 
-    const color = String(pickFirstDefined(row, ['colour', 'color', 'metalcolor'])).trim();
+    const missing = REQUIRED_IMPORT_FIELDS
+      .filter(([, keys]) => !String(pickFirstDefined(row, keys)).trim())
+      .map(([label]) => label);
+    if (missing.length) {
+      errors.push({ row: rowNumber, styleCode, reason: `Missing required: ${missing.join(', ')}` });
+      return;
+    }
+
+    const color = normalizeMetalColorName(pickFirstDefined(row, ['colour', 'color', 'metalcolor']));
     const view = String(pickFirstDefined(row, ['view', 'imageview', 'angle'])).trim();
     const fileName = String(pickFirstDefined(row, ['filename', 'file', 'image', 'imagename'])).trim();
+
+    const mismatch = fileNameColorMismatch(
+      fileName,
+      pickFirstDefined(row, ['colour', 'color', 'metalcolor']),
+    );
+    if (mismatch) {
+      errors.push({ row: rowNumber, styleCode, reason: mismatch });
+      return;
+    }
+
     const secureUrl = String(
       pickFirstDefined(row, ['cloudinaryurl', 'imagelink', 'imageurl', 'url', 'secureurl']),
     ).trim() || joinCloudinaryBaseUrl(options.cloudinaryBaseUrl, fileName);
+    if (!secureUrl) {
+      errors.push({
+        row: rowNumber,
+        styleCode,
+        reason: 'No image URL: provide a Cloudinary base URL or an image URL column',
+      });
+      return;
+    }
 
-    if (!color || !view || !secureUrl) continue;
-
+    const weights = readWeights(row);
     const current = productsByStyle.get(styleCode) || {
       styleCode,
       name: String(pickFirstDefined(row, ['productname', 'name'])).trim() || styleCode,
       description: '',
       metalType: String(pickFirstDefined(row, ['metaltype'])).trim(),
       metal: String(pickFirstDefined(row, ['metal'])).trim(),
-      diamondWeight: parseNumber(
-        pickFirstDefined(row, ['diamondwt', 'diamondweight']),
-        0,
-      ),
-      goldWeight: parseNumber(
-        pickFirstDefined(row, ['netwt18kt', 'netwt18k', 'netwt14kt', 'netwt14k', 'goldweight']),
-        0,
-      ),
+      weights,
+      occasions: readOccasions(row),
       diamondQuality: String(pickFirstDefined(row, ['diamondquality'])).trim() || 'VS-GH',
       settingType: String(pickFirstDefined(row, ['settingtype'])).trim(),
-      occasion: String(pickFirstDefined(row, ['occasion'])).trim(),
       sku: String(pickFirstDefined(row, ['sku'])).trim() || styleCode,
       stockType: options.stockType || 'Ready Stock',
       stockQuantity: Number(options.stockQuantity ?? 0),
       status: options.status || 'Active',
       isNewArrival: parseBoolean(options.isNewArrival, false),
       isBestSeller: parseBoolean(options.isBestSeller, false),
-      specificationPairs: [],
       colorVariantsMap: new Map(),
-      goldCarats: new Set(),
+      // Taxonomy is per row in this sheet; the first row for a style wins.
       rawCategory: String(pickFirstDefined(row, ['category'])).trim(),
+      rawSubCategory: String(pickFirstDefined(row, ['subcategory'])).trim(),
       rawCollection: String(pickFirstDefined(row, ['collection'])).trim(),
+      rows: [],
     };
 
-    current.diamondWeight ||= parseNumber(
-      pickFirstDefined(row, ['diamondwt', 'diamondweight']),
-      0,
-    );
-    current.goldWeight ||= parseNumber(
-      pickFirstDefined(row, ['netwt18kt', 'netwt18k', 'netwt14kt', 'netwt14k', 'goldweight']),
-      0,
-    );
+    current.rows.push(rowNumber);
+    if (!current.occasions.length) current.occasions = readOccasions(row);
 
-    ['14k', '14kt', '18k', '18kt', '22k', '22kt'].forEach((carat) => {
-      const normalizedCarat = carat.replace('kt', 'k').toUpperCase();
-      const normalizedKey = carat.replace('kt', 'k');
-      const value = pickFirstDefined(row, [
-        `netwt${carat}`,
-        `netwt${normalizedKey}`,
-        `grosswt${carat}`,
-        `grosswt${normalizedKey}`,
-      ]);
-      if (String(value || '').trim()) {
-        current.goldCarats.add(normalizedCarat);
-      }
-    });
-
-    const specificationCandidates = [
-      ['Gross Wt(18K)', pickFirstDefined(row, ['grosswt18kt', 'grosswt18k'])],
-      ['Gross Wt(14K)', pickFirstDefined(row, ['grosswt14kt', 'grosswt14k'])],
-      ['Net Wt(18K)', pickFirstDefined(row, ['netwt18kt', 'netwt18k'])],
-      ['Net Wt(14K)', pickFirstDefined(row, ['netwt14kt', 'netwt14k'])],
-      ['Diamond Wt', pickFirstDefined(row, ['diamondwt', 'diamondweight'])],
-      ['Stone Wt', pickFirstDefined(row, ['colourstonewt', 'colorstonewt', 'stoneweight'])],
-    ];
-
-    specificationCandidates.forEach(([attribute, value]) => {
-      const trimmed = String(value || '').trim();
-      if (trimmed && !current.specificationPairs.find((item) => item.attribute === attribute && item.value === trimmed)) {
-        current.specificationPairs.push({ attribute, value: trimmed });
-      }
-    });
-
-    const currentVariantViews = current.colorVariantsMap.get(color) || [];
-    currentVariantViews.push({
+    const views = current.colorVariantsMap.get(color) || new Map();
+    views.set(view, {
       view,
-      asset: createCloudinaryAsset({
-        secureUrl,
-        alt: `${styleCode} ${color} ${view}`,
-      }),
+      asset: createCloudinaryAsset({ secureUrl, alt: `${styleCode} ${color} ${view}` }),
     });
-    current.colorVariantsMap.set(color, currentVariantViews);
+    current.colorVariantsMap.set(color, views);
 
     productsByStyle.set(styleCode, current);
-  }
+  });
 
-  return [...productsByStyle.values()].map((item) => {
+  const payloads = [...productsByStyle.values()].map((item) => {
     const colorVariants = [...item.colorVariantsMap.entries()].map(([color, views]) => ({
       color,
-      views: views.sort((a, b) => a.view.localeCompare(b.view)),
+      views: [...views.values()].sort((a, b) => a.view.localeCompare(b.view)),
     }));
-    const media = buildPrimaryMedia(colorVariants);
-    const goldCarats = item.goldCarats.size ? [...item.goldCarats] : ['14K', '18K', '22K'];
+    const { weights } = item;
 
     return {
       styleCode: item.styleCode,
       name: item.name,
       description: item.description,
-      categoryId: options.categoryId,
-      subCategoryId: options.subCategoryId,
-      collectionId: options.collectionId,
-      metalColorId: options.metalColorId,
+      rawCategory: item.rawCategory,
+      rawSubCategory: item.rawSubCategory,
+      rawCollection: item.rawCollection,
       metalType: item.metalType,
       metal: item.metal,
-      diamondWeight: item.diamondWeight,
-      goldWeight: item.goldWeight,
+      weights,
+      // Legacy flat fields, derived from the 18kt figures.
+      diamondWeight: weights.diamond,
+      goldWeight: weights.net.k18,
       diamondQuality: item.diamondQuality,
       settingType: item.settingType,
-      occasion: item.occasion,
+      occasion: item.occasions[0] || '',
+      occasions: item.occasions,
       sku: item.sku,
       stockType: item.stockType,
       stockQuantity: item.stockQuantity,
       status: item.status,
       isNewArrival: item.isNewArrival,
       isBestSeller: item.isBestSeller,
-      media,
+      media: buildPrimaryMedia(colorVariants),
       colorVariants,
       customizationOptions: {
         goldColors: colorVariants.map((variant) => variant.color),
-        goldCarats,
+        goldCarats: ['9K', '14K', '18K'],
         diamondQualities: ['SI-IJ', item.diamondQuality || 'VS-GH', 'VVS-EF'],
       },
       specifications: [
-        ...item.specificationPairs.map((pair) => ({
-          attribute: pair.attribute,
-          value: pair.attribute.includes('Wt') ? String(pair.value) : pair.value,
-        })),
-      ],
+        ['Gross Wt (18kt)', weights.gross.k18],
+        ['Gross Wt (14kt)', weights.gross.k14],
+        ['Gross Wt (9kt)', weights.gross.k9],
+        ['Net Wt (18kt)', weights.net.k18],
+        ['Net Wt (14kt)', weights.net.k14],
+        ['Net Wt (9kt)', weights.net.k9],
+        ['Diamond Wt (ct)', weights.diamond],
+        ['Colour Stone Wt (ct)', weights.colourStone],
+      ]
+        .filter(([, value]) => value > 0)
+        .map(([attribute, value]) => ({ attribute, value: String(value) })),
     };
   });
+
+  return { payloads, errors };
+}
+
+// Auto-creates taxonomy referenced by the sheet, reusing existing docs by slug so a
+// re-upload does not duplicate them. Returns the ids plus what it had to create.
+function createTaxonomyResolver() {
+  const created = { categories: [], subCategories: [], collections: [], metalColors: [] };
+  const cache = new Map();
+
+  async function resolve(kind, Model, name, extra = {}) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return null;
+    const slug = slugify(trimmed);
+    const cacheKey = `${kind}:${slug}:${extra.category || ''}`;
+    if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+    let doc = await Model.findOne(kind === 'metalColors' ? { name: trimmed } : { slug });
+    if (!doc) {
+      doc = await Model.create(
+        kind === 'metalColors' ? { name: trimmed } : { name: trimmed, slug, ...extra },
+      );
+      created[kind].push(trimmed);
+    }
+    cache.set(cacheKey, doc._id);
+    return doc._id;
+  }
+
+  return {
+    created,
+    category: (name) => resolve('categories', Category, name),
+    subCategory: (name, categoryId) =>
+      resolve('subCategories', SubCategory, name, { category: categoryId }),
+    collection: (name, categoryId, subCategoryId) =>
+      resolve('collections', Collection, name, {
+        category: categoryId,
+        subCategory: subCategoryId || null,
+      }),
+    metalColor: (name) => resolve('metalColors', MetalOption, name),
+  };
 }
 
 function sanitizeProductPayload(body, currentProduct = null) {
@@ -361,9 +500,11 @@ function sanitizeProductPayload(body, currentProduct = null) {
     metal: body.metal ?? currentProduct?.metal ?? '',
     diamondWeight: Number(body.diamondWeight ?? currentProduct?.diamondWeight ?? 0),
     goldWeight: Number(body.goldWeight ?? currentProduct?.goldWeight ?? 0),
+    weights: normalizeWeightsInput(body.weights ?? currentProduct?.weights),
     diamondQuality: body.diamondQuality ?? currentProduct?.diamondQuality ?? '',
     settingType: body.settingType ?? currentProduct?.settingType ?? '',
     occasion: body.occasion ?? currentProduct?.occasion ?? '',
+    occasions: dedupeStrings(body.occasions ?? currentProduct?.occasions ?? []),
     sku: body.sku ?? currentProduct?.sku ?? '',
     stockType: body.stockType ?? currentProduct?.stockType ?? 'Ready Stock',
     stockQuantity: Number(body.stockQuantity ?? currentProduct?.stockQuantity ?? 0),
@@ -636,9 +777,9 @@ router.get('/products', async (req, res) => {
 
   if (search) {
     query.$or = [
-      { styleCode: { $regex: search, $options: 'i' } },
-      { name: { $regex: search, $options: 'i' } },
-      { sku: { $regex: search, $options: 'i' } },
+      { styleCode: { $regex: escapeRegex(search), $options: 'i' } },
+      { name: { $regex: escapeRegex(search), $options: 'i' } },
+      { sku: { $regex: escapeRegex(search), $options: 'i' } },
     ];
   }
 
@@ -662,8 +803,8 @@ router.get('/products/search', async (req, res) => {
   const query = search
     ? {
         $or: [
-          { styleCode: { $regex: search, $options: 'i' } },
-          { name: { $regex: search, $options: 'i' } },
+          { styleCode: { $regex: escapeRegex(search), $options: 'i' } },
+          { name: { $regex: escapeRegex(search), $options: 'i' } },
         ],
       }
     : {};
@@ -716,19 +857,10 @@ router.post('/products/bulk-import', async (req, res) => {
       return sendError(res, 'Spreadsheet rows are required for bulk import', 400);
     }
 
-    const requiredIds = ['categoryId', 'subCategoryId', 'collectionId', 'metalColorId'];
-    for (const field of requiredIds) {
-      if (!isObjectId(req.body?.[field])) {
-        return sendError(res, `${field} is required for bulk import`, 400);
-      }
-    }
-
-    const payloads = buildBulkImportPayloads(rows, {
+    // Taxonomy now comes from the sheet itself, one value per row, so the caller no
+    // longer supplies a single category/collection for the whole upload.
+    const { payloads, errors } = buildBulkImportPayloads(rows, {
       cloudinaryBaseUrl: req.body.cloudinaryBaseUrl,
-      categoryId: req.body.categoryId,
-      subCategoryId: req.body.subCategoryId,
-      collectionId: req.body.collectionId,
-      metalColorId: req.body.metalColorId,
       stockType: req.body.stockType,
       stockQuantity: req.body.stockQuantity,
       status: req.body.status,
@@ -739,37 +871,103 @@ router.post('/products/bulk-import', async (req, res) => {
     if (!payloads.length) {
       return sendError(
         res,
-        'No importable rows found. Make sure the sheet includes Style No, Colour, View, and either a Cloudinary URL or File Name.',
+        `No importable rows found${errors.length ? `: ${errors[0].reason}` : '. Check that the sheet has Style No, Category, Colour, View, File Name and all six weight columns.'}`,
         400,
       );
     }
 
+    const taxonomy = createTaxonomyResolver();
     const results = [];
+
+    // Taxonomy resolution stays sequential: the resolver's in-process cache is what
+    // stops two rows from creating the same category twice, and it only holds if the
+    // lookups don't overlap.
+    const resolvedPayloads = [];
     for (const payload of payloads) {
-      const existing = await Product.findOne({ styleCode: payload.styleCode });
-      if (existing) {
-        Object.assign(existing, sanitizeProductPayload(payload, existing));
-        await existing.save();
-        await existing.populate(productPopulate);
-        results.push({ action: 'updated', product: serializeProduct(existing) });
-      } else {
-        const created = await Product.create(sanitizeProductPayload(payload));
-        await created.populate(productPopulate);
-        results.push({ action: 'created', product: serializeProduct(created) });
+      try {
+        const categoryId = await taxonomy.category(payload.rawCategory);
+        const subCategoryId = await taxonomy.subCategory(payload.rawSubCategory, categoryId);
+        const collectionId = await taxonomy.collection(
+          payload.rawCollection,
+          categoryId,
+          subCategoryId,
+        );
+        // Register every colour the style ships in, so metal-colour filters see all
+        // of them; the first one becomes the product's default metalColor.
+        const metalColorIds = [];
+        for (const variant of payload.colorVariants) {
+          metalColorIds.push(await taxonomy.metalColor(variant.color));
+        }
+
+        resolvedPayloads.push({
+          ...payload,
+          categoryId,
+          subCategoryId,
+          collectionId,
+          metalColorId: metalColorIds[0],
+        });
+      } catch (error) {
+        // One bad style must not abort the remaining 40-odd in the sheet.
+        errors.push({ styleCode: payload.styleCode, reason: error.message });
       }
     }
+
+    // One lookup for the whole sheet, rather than a findOne per style.
+    const existing = await Product.find({
+      styleCode: { $in: resolvedPayloads.map((item) => item.styleCode) },
+    });
+    const existingByStyleCode = new Map(existing.map((doc) => [doc.styleCode, doc]));
+
+    // Each payload is already grouped by style code, so no two writes touch the same
+    // document and they can safely go out in parallel.
+    const written = new Array(resolvedPayloads.length);
+    await mapWithConcurrency(resolvedPayloads, IMPORT_WRITE_CONCURRENCY, async (resolved, index) => {
+      try {
+        const current = existingByStyleCode.get(resolved.styleCode);
+
+        if (current) {
+          Object.assign(current, sanitizeProductPayload(resolved, current));
+          await current.save();
+          written[index] = { action: 'updated', product: current };
+        } else {
+          written[index] = {
+            action: 'created',
+            product: await Product.create(sanitizeProductPayload(resolved)),
+          };
+        }
+      } catch (error) {
+        errors.push({ styleCode: resolved.styleCode, reason: error.message });
+      }
+    });
+
+    // Populating the batch in one pass costs four queries in total instead of four
+    // per style.
+    const imported = written.filter(Boolean);
+    await Product.populate(imported.map((item) => item.product), productPopulate);
+    results.push(
+      ...imported.map((item) => ({
+        action: item.action,
+        product: serializeProduct(item.product),
+      })),
+    );
 
     return sendSuccess(
       res,
       {
         summary: {
+          totalRows: rows.length,
           totalProducts: results.length,
           created: results.filter((item) => item.action === 'created').length,
           updated: results.filter((item) => item.action === 'updated').length,
+          skippedRows: errors.length,
+          createdTaxonomy: taxonomy.created,
         },
+        errors,
         results,
       },
-      'Bulk import completed',
+      errors.length
+        ? `Bulk import completed with ${errors.length} skipped row(s)`
+        : 'Bulk import completed',
     );
   } catch (error) {
     return sendError(res, error.message, error.status || 400);
@@ -1121,7 +1319,7 @@ router.get('/catalogues', async (req, res) => {
   const search = String(req.query.search || '').trim();
   const query = search
     ? {
-        name: { $regex: search, $options: 'i' },
+        name: { $regex: escapeRegex(search), $options: 'i' },
       }
     : {};
 

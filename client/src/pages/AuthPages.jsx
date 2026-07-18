@@ -116,8 +116,9 @@ export function ForgotPasswordPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     if (!values.otp) {
-      const response = await userService.forgotPassword({ email: values.email });
-      toast.success(`OTP sent. Demo OTP: ${response.otp}`);
+      // The API deliberately never returns the code; it is sent out of band.
+      await userService.forgotPassword({ email: values.email });
+      toast.success('If that account exists, a reset code has been sent.');
       return;
     }
 
@@ -126,7 +127,7 @@ export function ForgotPasswordPage() {
   });
 
   return (
-    <AuthShell title="Reset your password." description="Request an OTP, verify it, and set a new password. The seeded demo OTP is 123456.">
+    <AuthShell title="Reset your password." description="Request a one-time code, then enter it with your new password.">
       <form className="space-y-5" onSubmit={onSubmit}>
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
         <Input label="OTP" error={form.formState.errors.otp?.message} {...form.register('otp')} />

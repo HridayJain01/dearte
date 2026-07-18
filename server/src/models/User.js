@@ -27,9 +27,11 @@ const userSchema = new mongoose.Schema(
       collections: { type: [wishlistCollectionSchema], default: () => [{ name: 'My Wishlist' }] },
       items: { type: [wishlistItemSchema], default: [] },
     },
+    // `code` holds a SHA-256 digest of the reset code, never the code itself.
     resetOtp: {
       code: { type: String, default: '' },
       expiresAt: { type: Date, default: null },
+      attempts: { type: Number, default: 0 },
     },
   },
   { timestamps: true },

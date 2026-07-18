@@ -21,6 +21,14 @@ import {
   serializeTrustedBrand,
 } from '../utils/serializers.js';
 import { sanitizeSiteSettingsForPublic } from '../utils/siteSettingsPublic.js';
+import {
+  asString,
+  containsMatcher,
+  escapeRegex,
+  oneOf,
+  parsePagination,
+  toNumber,
+} from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -123,50 +131,74 @@ router.get('/products', async (req, res) => {
 
   const filter = { status: 'Active' };
 
-  if (category) {
+  // Every value below is coerced to a primitive string first. Express parses
+  // `?stockType[$ne]=x` into an object, so passing query values straight into
+  // a filter would let a caller inject Mongo operators. User text that reaches
+  // $regex is escaped so it matches literally instead of compiling into a
+  // pattern that can hang the event loop.
+  const toNameList = (value) =>
+    asString(value, { maxLength: 500 })
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 25);
+
+  if (asString(category)) {
+    const safeCategory = asString(category);
     const categories = await Category.find({
-      $or: [{ name: category }, { slug: category }, { name: { $regex: String(category), $options: 'i' } }],
+      $or: [
+        { name: safeCategory },
+        { slug: safeCategory },
+        { name: { $regex: escapeRegex(safeCategory), $options: 'i' } },
+      ],
     }).select('_id');
     if (categories.length) {
       filter.category = { $in: categories.map((item) => item._id) };
     }
   }
-  if (subCategory) {
-    const names = String(subCategory).split(',').map((item) => item.trim()).filter(Boolean);
-    const subCategories = await SubCategory.find({ name: { $in: names } }).select('_id');
+  if (asString(subCategory)) {
+    const subCategories = await SubCategory.find({ name: { $in: toNameList(subCategory) } }).select('_id');
     filter.subCategory = { $in: subCategories.map((item) => item._id) };
   }
-  if (collection) {
-    const names = String(collection).split(',').map((item) => item.trim()).filter(Boolean);
-    const collectionsFound = await Collection.find({ name: { $in: names } }).select('_id');
+  if (asString(collection)) {
+    const collectionsFound = await Collection.find({ name: { $in: toNameList(collection) } }).select('_id');
     filter.collection = { $in: collectionsFound.map((item) => item._id) };
   }
-  if (metalColor) {
-    const names = String(metalColor).split(',').map((item) => item.trim()).filter(Boolean);
-    const colors = await MetalOption.find({ name: { $in: names } }).select('_id');
+  if (asString(metalColor)) {
+    const colors = await MetalOption.find({ name: { $in: toNameList(metalColor) } }).select('_id');
     filter.metalColor = { $in: colors.map((item) => item._id) };
   }
-  if (stockType) filter.stockType = stockType;
-  if (diamondMin || diamondMax) {
+
+  const safeStockType = oneOf(stockType, ['Ready Stock', 'Made to Order']);
+  if (safeStockType) filter.stockType = safeStockType;
+
+  const diamondLow = toNumber(diamondMin);
+  const diamondHigh = toNumber(diamondMax);
+  if (diamondLow !== null || diamondHigh !== null) {
     filter.diamondWeight = {};
-    if (diamondMin) filter.diamondWeight.$gte = Number(diamondMin);
-    if (diamondMax) filter.diamondWeight.$lte = Number(diamondMax);
+    if (diamondLow !== null) filter.diamondWeight.$gte = diamondLow;
+    if (diamondHigh !== null) filter.diamondWeight.$lte = diamondHigh;
   }
-  if (goldMin || goldMax) {
+
+  const goldLow = toNumber(goldMin);
+  const goldHigh = toNumber(goldMax);
+  if (goldLow !== null || goldHigh !== null) {
     filter.goldWeight = {};
-    if (goldMin) filter.goldWeight.$gte = Number(goldMin);
-    if (goldMax) filter.goldWeight.$lte = Number(goldMax);
+    if (goldLow !== null) filter.goldWeight.$gte = goldLow;
+    if (goldHigh !== null) filter.goldWeight.$lte = goldHigh;
   }
-  if (search) {
+
+  const searchMatcher = containsMatcher(search, { maxLength: 120 });
+  if (searchMatcher) {
     filter.$or = [
-      { styleCode: { $regex: search, $options: 'i' } },
-      { name: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
+      { styleCode: searchMatcher },
+      { name: searchMatcher },
+      { description: searchMatcher },
     ];
   }
 
-  const currentPage = Number(page);
-  const pageSize = Number(limit);
+  // Bounded so a caller cannot request the whole catalogue in one query.
+  const { page: currentPage, limit: pageSize } = parsePagination({ page, limit });
 
   const [items, total, categories, collections, metalColors] = await Promise.all([
     applySort(Product.find(filter).populate(productPopulate), sort)
@@ -291,23 +323,26 @@ router.get('/site/contact', async (_req, res) => {
   return sendSuccess(res, sanitizeSiteSettingsForPublic(siteSettings) || seedData.siteSettings);
 });
 
+// `Object.hasOwn` guards the lookup: a bare index would resolve `__proto__` or
+// `constructor` and leak internal objects to an unauthenticated caller.
 router.get('/site/static/:slug', (req, res) => {
-  const page = seedData.staticPages[req.params.slug];
+  const slug = String(req.params.slug);
 
-  if (!page) {
+  if (!Object.hasOwn(seedData.staticPages, slug)) {
     return sendError(res, 'Page not found', 404);
   }
 
-  return sendSuccess(res, page);
+  return sendSuccess(res, seedData.staticPages[slug]);
 });
 
 router.get('/education/:slug', (req, res) => {
-  const page = seedData.education[req.params.slug];
-  if (!page) {
+  const slug = String(req.params.slug);
+
+  if (!Object.hasOwn(seedData.education, slug)) {
     return sendError(res, 'Education page not found', 404);
   }
 
-  return sendSuccess(res, page);
+  return sendSuccess(res, seedData.education[slug]);
 });
 
 export default router;

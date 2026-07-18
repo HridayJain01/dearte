@@ -3,6 +3,7 @@ import {
   assetSchema,
   customizationOptionsSchema,
   productColorVariantSchema,
+  productWeightsSchema,
   specificationSchema,
 } from './schemas.js';
 
@@ -12,16 +13,21 @@ const productSchema = new mongoose.Schema(
     name: { type: String, required: true },
     description: { type: String, default: '' },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true, index: true },
-    subCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory', required: true, index: true },
-    collection: { type: mongoose.Schema.Types.ObjectId, ref: 'Collection', required: true, index: true },
+    // Optional per the upload sheet: a style may have no sub category or collection.
+    subCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory', default: null, index: true },
+    collection: { type: mongoose.Schema.Types.ObjectId, ref: 'Collection', default: null, index: true },
     metalType: { type: String, default: '' },
-    metalColor: { type: mongoose.Schema.Types.ObjectId, ref: 'MetalOption', required: true, index: true },
+    // A style ships in several metal colours (see colorVariants); this is the default one.
+    metalColor: { type: mongoose.Schema.Types.ObjectId, ref: 'MetalOption', default: null, index: true },
     metal: { type: String, default: '' },
+    // Kept in sync with weights.diamond / weights.net.k18 for older reads.
     diamondWeight: { type: Number, default: 0 },
     goldWeight: { type: Number, default: 0 },
+    weights: { type: productWeightsSchema, default: () => ({}) },
     diamondQuality: { type: String, default: '' },
     settingType: { type: String, default: '' },
     occasion: { type: String, default: '' },
+    occasions: { type: [String], default: [], index: true },
     sku: { type: String, default: '' },
     stockType: { type: String, enum: ['Ready Stock', 'Make to Order'], default: 'Ready Stock' },
     stockQuantity: { type: Number, default: 0 },

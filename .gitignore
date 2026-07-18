@@ -3,5 +3,17 @@ client/node_modules
 server/node_modules
 client/dist
 server/dist
-.env
 .DS_Store
+
+# Secrets: ignore every env file at any depth, then re-allow the checked-in
+# template and the non-sensitive client build config.
+.env
+.env.*
+!.env.example
+!client/.env.production
+
+# Credentials and keys
+*.pem
+*.key
+*.p12
+*.pfx

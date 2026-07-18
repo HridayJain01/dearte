@@ -28,6 +28,28 @@ export const productColorVariantSchema = new mongoose.Schema(
   { _id: false },
 );
 
+// Per-karat weights as supplied by the bulk-upload sheet. Gross includes stones,
+// net is metal only. Every style carries all three karats; the customer picks one
+// on the PDP, so these must stay queryable rather than living in `specifications`.
+export const karatWeightSchema = new mongoose.Schema(
+  {
+    k18: { type: Number, default: 0 },
+    k14: { type: Number, default: 0 },
+    k9: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
+export const productWeightsSchema = new mongoose.Schema(
+  {
+    gross: { type: karatWeightSchema, default: () => ({}) },
+    net: { type: karatWeightSchema, default: () => ({}) },
+    diamond: { type: Number, default: 0 },
+    colourStone: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
 export const customizationOptionsSchema = new mongoose.Schema(
   {
     goldColors: { type: [String], default: ['Yellow Gold', 'Rose Gold', 'White Gold'] },
@@ -53,6 +75,8 @@ export const orderItemSchema = new mongoose.Schema(
       goldColor: { type: String, default: '' },
       goldCarat: { type: String, default: '' },
       diamondQuality: { type: String, default: '' },
+      // Canonical India sizing from the size master; '' for unsized styles.
+      size: { type: String, default: '' },
     },
   },
   { _id: true },
@@ -76,6 +100,9 @@ export const cartItemSchema = new mongoose.Schema(
       goldColor: { type: String, default: '' },
       goldCarat: { type: String, default: '' },
       diamondQuality: { type: String, default: '' },
+      // Canonical India sizing from the size master; '' for unsized styles.
+      // Part of the cart line identity: one style in two sizes is two lines.
+      size: { type: String, default: '' },
     },
   },
   { _id: true },

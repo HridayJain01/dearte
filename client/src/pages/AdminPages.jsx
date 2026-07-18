@@ -133,8 +133,17 @@ function normalizeAsset(value) {
   };
 }
 
-async function uploadFile(file, folder) {
-  const signing = await adminService.signUpload({ folder });
+// Product images are small (~500kb), so each upload costs more in round-trip overhead
+// than in transfer. That makes the batch latency-bound, and a wider pool converts
+// almost directly into throughput.
+const UPLOAD_CONCURRENCY = 10;
+// Cloudinary accepts a signed timestamp for an hour. Re-sign well inside that so a
+// long folder import cannot fail halfway through on an expired signature.
+const SIGNATURE_TTL_MS = 30 * 60 * 1000;
+
+// The file is sent exactly as picked, with no transformation or quality parameters,
+// so Cloudinary stores the untouched original.
+async function postToCloudinary(file, signing) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('api_key', signing.apiKey);
@@ -148,7 +157,7 @@ async function uploadFile(file, folder) {
   });
 
   if (!response.ok) {
-    throw new Error('Upload failed');
+    throw new Error(`Upload failed for ${file.name} (${response.status})`);
   }
 
   const data = await response.json();
@@ -160,6 +169,57 @@ async function uploadFile(file, folder) {
     alt: file.name,
     resourceType: data.resource_type || 'image',
   };
+}
+
+// One signature covers every file in a batch, so a folder upload spends a single
+// round trip on our API instead of one per image.
+function createUploadSigner(folder) {
+  let pending = null;
+  let signedAt = 0;
+
+  return function sign() {
+    if (!pending || Date.now() - signedAt > SIGNATURE_TTL_MS) {
+      signedAt = Date.now();
+      pending = adminService.signUpload({ folder }).catch((error) => {
+        pending = null;
+        throw error;
+      });
+    }
+    return pending;
+  };
+}
+
+async function uploadFile(file, folder) {
+  const signing = await adminService.signUpload({ folder });
+  return postToCloudinary(file, signing);
+}
+
+// Uploads run through a small worker pool. Cloudinary is the bottleneck, not us, and
+// a serial loop made a folder import take as long as the sum of every single file.
+async function uploadFiles(files, folder, onProgress) {
+  if (!files.length) return [];
+
+  const sign = createUploadSigner(folder);
+  const uploaded = new Array(files.length);
+  let cursor = 0;
+  let completed = 0;
+
+  async function worker() {
+    while (cursor < files.length) {
+      const index = cursor;
+      cursor += 1;
+      const signing = await sign();
+      uploaded[index] = await postToCloudinary(files[index], signing);
+      completed += 1;
+      onProgress?.(completed, files.length);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(UPLOAD_CONCURRENCY, files.length) }, worker),
+  );
+
+  return uploaded;
 }
 
 function Thumbnail({ asset, alt = '', size = 'h-12 w-12' }) {
@@ -269,6 +329,97 @@ function AssetField({ label, value, onChange, folder }) {
   );
 }
 
+// A bulk-imported style carries one image set per metal colour (e.g. Rose/White/Yellow
+// Gold x Left/Right/Through/Top). The product form's MediaField only shows the primary
+// colour's images, so this lets admins switch colour and see every imported view.
+function ColorVariantGallery({ colorVariants, onChange }) {
+  const variants = Array.isArray(colorVariants) ? colorVariants : [];
+  const [activeColor, setActiveColor] = useState('');
+
+  const active = variants.find((variant) => variant.color === activeColor) || variants[0];
+
+  if (!variants.length) return null;
+
+  const removeView = (viewName) => {
+    if (!active) return;
+    onChange?.(
+      variants
+        .map((variant) =>
+          variant.color === active.color
+            ? { ...variant, views: (variant.views || []).filter((item) => item.view !== viewName) }
+            : variant,
+        )
+        .filter((variant) => (variant.views || []).length),
+    );
+  };
+
+  return (
+    <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="font-medium text-[var(--color-text)]">Imported color mapping</p>
+        <p className="text-sm text-[var(--color-text-muted)]">
+          {variants.length} colors •{' '}
+          {variants.reduce((total, variant) => total + (variant.views?.length || 0), 0)} images
+        </p>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {variants.map((variant) => {
+          const isActive = active?.color === variant.color;
+          return (
+            <button
+              key={variant.color}
+              type="button"
+              onClick={() => setActiveColor(variant.color)}
+              className={`rounded border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition ${
+                isActive
+                  ? 'border-[var(--color-text)] bg-[var(--color-text)] text-[var(--color-surface)]'
+                  : 'border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-text)]'
+              }`}
+            >
+              {variant.color} ({variant.views?.length || 0})
+            </button>
+          );
+        })}
+      </div>
+
+      {active?.views?.length ? (
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {active.views.map((item) => (
+            // Keyed by colour too: a bare view key lets React reuse the <img> node
+            // across colours, which leaves the previous colour's image on screen.
+            <figure
+              key={`${active.color}-${item.view}`}
+              className="overflow-hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)]"
+            >
+              <img
+                src={item.asset?.secureUrl}
+                alt={item.asset?.alt || `${active.color} ${item.view}`}
+                loading="lazy"
+                className="aspect-square w-full object-cover"
+              />
+              <figcaption className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs text-[var(--color-text-muted)]">
+                <span className="truncate">{item.view}</span>
+                {onChange ? (
+                  <button
+                    type="button"
+                    onClick={() => removeView(item.view)}
+                    className="shrink-0 text-red-600 hover:underline"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-[var(--color-text-muted)]">No images for this color.</p>
+      )}
+    </div>
+  );
+}
+
 function MediaField({ value, onChange, folder }) {
   const media = Array.isArray(value) ? value.map(normalizeAsset) : [];
   const [uploading, setUploading] = useState(false);
@@ -279,10 +430,7 @@ function MediaField({ value, onChange, folder }) {
 
     try {
       setUploading(true);
-      const uploaded = [];
-      for (const file of files) {
-        uploaded.push(await uploadFile(file, folder));
-      }
+      const uploaded = await uploadFiles(files, folder);
       onChange([...media, ...uploaded]);
       toast.success('Media uploaded');
     } catch (error) {
@@ -540,14 +688,10 @@ function ProductEditor({
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.isBestSeller} onChange={(event) => setForm((current) => ({ ...current, isBestSeller: event.target.checked }))} /> Best Seller</label>
       </div>
 
-      {form.colorVariants?.length ? (
-        <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
-          <p className="font-medium text-[var(--color-text)]">Imported color mapping</p>
-          <p className="mt-1">
-            {form.colorVariants.map((variant) => `${variant.color} (${variant.views?.length || 0} views)`).join(' • ')}
-          </p>
-        </div>
-      ) : null}
+      <ColorVariantGallery
+        colorVariants={form.colorVariants}
+        onChange={(colorVariants) => setForm((current) => ({ ...current, colorVariants }))}
+      />
 
       <MediaField value={form.media} onChange={(media) => setForm((current) => ({ ...current, media }))} folder={`dearte/products/${form.styleCode || 'draft'}`} />
 
@@ -559,7 +703,7 @@ function ProductEditor({
   );
 }
 
-function BulkProductImportPanel({ config, onImported }) {
+function BulkProductImportPanel({ onImported }) {
   const [importFileName, setImportFileName] = useState('');
   const [sheetName, setSheetName] = useState('');
   const [parsedRows, setParsedRows] = useState([]);
@@ -574,43 +718,16 @@ function BulkProductImportPanel({ config, onImported }) {
     missing: [],
   });
   const [importing, setImporting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [importErrors, setImportErrors] = useState([]);
+  // Taxonomy comes from the sheet itself, so only upload-wide defaults live here.
   const [importOptions, setImportOptions] = useState({
-    categoryId: config?.categories?.[0]?.id || '',
-    subCategoryId: config?.subCategories?.[0]?.id || '',
-    collectionId: config?.collections?.[0]?.id || '',
-    metalColorId: config?.metalOptions?.[0]?.id || '',
     stockType: 'Ready Stock',
     stockQuantity: 10,
     status: 'Active',
     isNewArrival: false,
     isBestSeller: false,
   });
-
-  useEffect(() => {
-    setImportOptions((current) => ({
-      ...current,
-      categoryId: current.categoryId || config?.categories?.[0]?.id || '',
-      subCategoryId: current.subCategoryId || config?.subCategories?.[0]?.id || '',
-      collectionId: current.collectionId || config?.collections?.[0]?.id || '',
-      metalColorId: current.metalColorId || config?.metalOptions?.[0]?.id || '',
-    }));
-  }, [config]);
-
-  const availableSubCategories = useMemo(
-    () => (config?.subCategories || []).filter(
-      (item) => !importOptions.categoryId || item.categoryId === importOptions.categoryId,
-    ),
-    [config, importOptions.categoryId],
-  );
-
-  const availableCollections = useMemo(
-    () => (config?.collections || []).filter(
-      (item) =>
-        (!importOptions.categoryId || item.categoryId === importOptions.categoryId) &&
-        (!importOptions.subCategoryId || item.subCategoryId === importOptions.subCategoryId),
-    ),
-    [config, importOptions.categoryId, importOptions.subCategoryId],
-  );
 
   const handleSheetUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -657,15 +774,20 @@ function BulkProductImportPanel({ config, onImported }) {
       throw new Error(`Missing ${missing.length} image file(s). First missing file: ${missing[0]}`);
     }
 
-    const uploadedAssets = new Map();
-    for (const fileName of fileNames) {
-      const matchedFile = folderFileMap.get(normalizeImportFileKey(fileName));
-      if (!matchedFile) continue;
+    const matchedNames = fileNames.filter((name) =>
+      folderFileMap.has(normalizeImportFileKey(name)),
+    );
+    const matchedFiles = matchedNames.map((name) =>
+      folderFileMap.get(normalizeImportFileKey(name)),
+    );
 
-      const folderName = `dearte/products/bulk-import`;
-      const asset = await uploadFile(matchedFile, folderName);
-      uploadedAssets.set(normalizeImportFileKey(fileName), asset);
-    }
+    const assets = await uploadFiles(matchedFiles, 'dearte/products/bulk-import', (done, total) =>
+      setUploadProgress({ done, total }),
+    );
+
+    const uploadedAssets = new Map(
+      matchedNames.map((name, index) => [normalizeImportFileKey(name), assets[index]]),
+    );
 
     return rows.map((row) => {
       const fileName = getRowFileName(row);
@@ -685,30 +807,40 @@ function BulkProductImportPanel({ config, onImported }) {
       return;
     }
 
-    if (!importOptions.categoryId || !importOptions.subCategoryId || !importOptions.collectionId || !importOptions.metalColorId) {
-      toast.error('Choose category, sub-category, collection, and fallback metal color first.');
-      return;
-    }
-
     try {
       setImporting(true);
+      setImportErrors([]);
+      setUploadProgress(null);
       let rowsForImport = parsedRows;
 
       if (folderFiles.length) {
         rowsForImport = await uploadFolderAssetsForRows(parsedRows);
       }
 
+      // Category, sub-category, collection and metal colour are read per row from the
+      // sheet and created on demand, so only the upload defaults are sent here.
       const result = await adminService.bulkImportProducts({
         rows: rowsForImport,
         cloudinaryBaseUrl: cloudinaryBaseUrl.trim(),
-        ...importOptions,
+        stockQuantity: importOptions.stockQuantity,
+        isNewArrival: importOptions.isNewArrival,
+        isBestSeller: importOptions.isBestSeller,
       });
-      toast.success(`Imported ${result.summary.totalProducts} styles`);
+
+      setImportErrors(result.errors || []);
+      if (result.summary?.skippedRows) {
+        toast.error(
+          `Imported ${result.summary.totalProducts} styles, skipped ${result.summary.skippedRows} row(s)`,
+        );
+      } else {
+        toast.success(`Imported ${result.summary.totalProducts} styles`);
+      }
       onImported?.(result);
     } catch (error) {
       toast.error(error.response?.data?.message || error.message || 'Bulk import failed');
     } finally {
       setImporting(false);
+      setUploadProgress(null);
     }
   };
 
@@ -751,51 +883,6 @@ function BulkProductImportPanel({ config, onImported }) {
             onChange={(event) => setCloudinaryBaseUrl(event.target.value)}
             placeholder="https://res.cloudinary.com/<cloud>/image/upload/v123/dearte/products"
           />
-        </Field>
-        <Field label="Fallback metal color">
-          <select
-            className={textInput}
-            value={importOptions.metalColorId}
-            onChange={(event) => setImportOptions((current) => ({ ...current, metalColorId: event.target.value }))}
-          >
-            <option value="">Select metal color</option>
-            {(config?.metalOptions || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Category">
-          <select
-            className={textInput}
-            value={importOptions.categoryId}
-            onChange={(event) => setImportOptions((current) => ({
-              ...current,
-              categoryId: event.target.value,
-              subCategoryId: '',
-              collectionId: '',
-            }))}
-          >
-            <option value="">Select category</option>
-            {(config?.categories || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Sub-category">
-          <select
-            className={textInput}
-            value={importOptions.subCategoryId}
-            onChange={(event) => setImportOptions((current) => ({ ...current, subCategoryId: event.target.value, collectionId: '' }))}
-          >
-            <option value="">Select sub-category</option>
-            {availableSubCategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Collection">
-          <select
-            className={textInput}
-            value={importOptions.collectionId}
-            onChange={(event) => setImportOptions((current) => ({ ...current, collectionId: event.target.value }))}
-          >
-            <option value="">Select collection</option>
-            {availableCollections.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
         </Field>
         <Field label="Default stock quantity">
           <input
@@ -843,6 +930,21 @@ function BulkProductImportPanel({ config, onImported }) {
         </div>
       ) : null}
 
+      {importErrors.length ? (
+        <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <p className="font-medium">
+            {importErrors.length} row(s) were skipped. Fix these in the sheet and re-upload:
+          </p>
+          <ul className="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-5">
+            {importErrors.map((item, index) => (
+              <li key={`${item.row}-${item.styleCode}-${index}`}>
+                {item.row ? `Row ${item.row}` : 'Style'} {item.styleCode ? `(${item.styleCode})` : ''}: {item.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {summaryRows.length ? (
         <div className="max-h-[320px] overflow-y-auto rounded border border-[var(--color-border)]">
           <DataTable
@@ -858,13 +960,17 @@ function BulkProductImportPanel({ config, onImported }) {
         </div>
       ) : (
         <div className="rounded border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
-          Upload the Excel first. Required columns are `Style No`, `Colour`, `View`, and either a Cloudinary URL column or `File Name`. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you.
+          Upload the Excel first. Required columns are `Style No`, `Category`, `Colour`, `View`, `File Name`, and the six Gross/Net weight columns (18kt, 14kt, 9kt). `Sub Category`, `Collection`, `Occasion 1-4` and `Colour Stone Wt` may be left blank. Category, sub-category and collection are read from each row and created automatically if they do not exist yet. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you.
         </div>
       )}
 
       <div className="flex gap-3">
         <Button onClick={handleImport} disabled={importing || !summaryRows.length}>
-          {importing ? 'Importing...' : 'Import / Update Products'}
+          {!importing
+            ? 'Import / Update Products'
+            : uploadProgress
+              ? `Uploading images ${uploadProgress.done}/${uploadProgress.total}...`
+              : 'Importing...'}
         </Button>
       </div>
     </Panel>
@@ -1216,7 +1322,6 @@ export function AdminProductsPage() {
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Products, media, and stock now live in MongoDB and are editable from admin." />
       <BulkProductImportPanel
-        config={config}
         onImported={() => {
           queryClient.invalidateQueries({ queryKey: ['admin-products'] });
         }}
@@ -1421,7 +1526,11 @@ export function AdminOrdersPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
                     <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">{item.customization?.goldColor} • {item.customization?.goldCarat} • {item.customization?.diamondQuality}</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      {[item.customization?.goldColor, item.customization?.goldCarat, item.customization?.diamondQuality, item.customization?.size ? `Size ${item.customization.size}` : '']
+                        .filter(Boolean)
+                        .join(' • ')}
+                    </p>
                   </div>
                 </div>
               ))}

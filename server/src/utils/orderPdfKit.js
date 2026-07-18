@@ -62,7 +62,9 @@ export function generateOrderPdfBuffer(order) {
         const qty = item.quantity || 0;
         const line = productLine(item.product);
         const c = item.customization || {};
-        const extras = [c.goldColor, c.goldCarat, c.diamondQuality].filter(Boolean).join(' · ');
+        const extras = [c.goldColor, c.goldCarat, c.diamondQuality, c.size ? `Size ${c.size}` : '']
+          .filter(Boolean)
+          .join(' · ');
         doc.text(`${qty}x ${line}`);
         if (extras) doc.fillColor('#6f685f').text(`    ${extras}`).fillColor('#1f1d1a');
       }
