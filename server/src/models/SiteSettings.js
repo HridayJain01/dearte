@@ -17,6 +17,26 @@ const siteSettingsSchema = new mongoose.Schema(
     whatsappOperationsNumbers: { type: String, default: '' },
     /** Email ops: comma-separated admin emails who receive a copy of each new order. */
     orderNotificationEmails: { type: String, default: '' },
+    /** General access settings for guest users on the home page */
+    guestAccess: {
+      showPopupPromo: { type: Boolean, default: true },
+      showHeroSlider: { type: Boolean, default: true },
+      showBrandExpression: { type: Boolean, default: true },
+      showProcessImage: { type: Boolean, default: true },
+      showCollections: { type: Boolean, default: true },
+      showBestSellers: { type: Boolean, default: true },
+      showNewArrivals: { type: Boolean, default: true },
+      showTestimonials: { type: Boolean, default: true },
+      showEvents: { type: Boolean, default: true },
+      showTrustedBrands: { type: Boolean, default: true },
+      showCTABanner: { type: Boolean, default: true },
+      // Pages
+      pageProducts: { type: Boolean, default: true },
+      pageCollections: { type: Boolean, default: false },
+      pageEvents: { type: Boolean, default: true },
+      pageTestimonials: { type: Boolean, default: true },
+      pageTrustedBrands: { type: Boolean, default: true },
+    },
   },
   { timestamps: true },
 );

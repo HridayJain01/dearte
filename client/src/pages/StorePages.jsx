@@ -12,7 +12,7 @@ import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
-import { Button, EmptyState, LoadingBlock, Panel, SectionHeading, StatusBadge } from '../components/ui/Primitives';
+import { Button, EmptyState, LoadingBlock, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
 import { ProductCard } from '../components/product/ProductCard';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
@@ -377,10 +377,19 @@ export function ProductDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {data.specifications.map((spec, specIndex) => (
                 <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">{spec.attribute}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">{spec.attribute}</p>
+                    {spec.attribute?.toLowerCase().includes('weight') && (
+                      <WeightDisclaimerTrigger />
+                    )}
+                  </div>
                   <p className="mt-2 text-sm text-[var(--color-text)]">{spec.value}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-4 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-4 text-xs text-[var(--color-text-muted)]">
+              <span>* All weights mentioned are approximate.</span>
+              <WeightDisclaimerTrigger />
             </div>
           </Panel>
 
@@ -615,16 +624,26 @@ export function CartPage() {
               <span className="text-3xl font-light text-[var(--color-primary)]">{cart.items.length}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-text-muted)]">Total Diamond Weight</span>
+              <span className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]">
+                Total Diamond Weight
+                <WeightDisclaimerTrigger />
+              </span>
               <span className="text-xl font-light text-[var(--color-primary)]">{totalDiamondWeight.toFixed(2)} ct</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-text-muted)]">Total Gold Weight</span>
+              <span className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]">
+                Total Gold Weight
+                <WeightDisclaimerTrigger />
+              </span>
               <span className="text-xl font-light text-[var(--color-primary)]">{totalGoldWeight.toFixed(2)} g</span>
             </div>
           </div>
           <div className="space-y-1.5 border-t border-[var(--color-border)] pt-4 text-sm text-[var(--color-text-muted)]">
             <p>Pricing confirmed by your sales representative after review.</p>
+            <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] mt-1.5">
+              <span>* All weights are approximate and for reference only.</span>
+              <WeightDisclaimerTrigger />
+            </p>
             {cart.specialInstructions ? (
               <p className="mt-2">Note: {cart.specialInstructions}</p>
             ) : null}

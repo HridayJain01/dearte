@@ -1,6 +1,6 @@
 import { Heart, ShoppingBag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '../ui/Primitives';
+import { Button, WeightDisclaimerTrigger } from '../ui/Primitives';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
@@ -63,8 +63,11 @@ export function ProductCard({ product }) {
             </div>
           </div>
 
-          <p className="text-xs text-[var(--color-text-muted)]">
-            Diamond: {formatWeight(product.diamondWeight, 'ct')} | Gold: {formatWeight(product.goldWeight, 'g')}
+          <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+            <span>
+              Diamond: {formatWeight(product.diamondWeight, 'ct')} | Gold: {formatWeight(product.goldWeight, 'g')}
+            </span>
+            <WeightDisclaimerTrigger />
           </p>
 
           <div className="pt-1">

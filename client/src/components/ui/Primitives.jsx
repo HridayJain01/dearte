@@ -167,3 +167,6 @@ export function LoadingBlock({ label = 'Loading...' }) {
     </Panel>
   );
 }
+
+export { WeightDisclaimerTrigger } from './WeightDisclaimerTrigger';
+

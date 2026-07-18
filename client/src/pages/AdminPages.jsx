@@ -98,6 +98,24 @@ const emptySiteSettings = {
   hours: '',
   mapsEmbed: '',
   newsletterBlurb: '',
+  guestAccess: {
+    showPopupPromo: true,
+    showHeroSlider: true,
+    showBrandExpression: true,
+    showProcessImage: true,
+    showCollections: true,
+    showBestSellers: true,
+    showNewArrivals: true,
+    showTestimonials: true,
+    showEvents: true,
+    showTrustedBrands: true,
+    showCTABanner: true,
+    pageProducts: true,
+    pageCollections: false,
+    pageEvents: true,
+    pageTestimonials: true,
+    pageTrustedBrands: true,
+  },
 };
 
 const emptyCategory = { name: '', slug: '', image: emptyAsset, active: true };
@@ -2132,6 +2150,86 @@ export function AdminConfigPage() {
           setSiteSettingsDraft(null);
           refresh();
         }}>Save Site Settings</Button>
+      </Panel>
+
+      <Panel className="space-y-4">
+        <div>
+          <p className="lux-label">General Access (Home Page)</p>
+          <p className="text-sm text-gray-500 mb-4 mt-1">Select which sections should be visible to guests (users who are not signed in).</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { key: 'showPopupPromo', label: 'Popup Promo' },
+            { key: 'showHeroSlider', label: 'Hero Slider' },
+            { key: 'showBrandExpression', label: 'Brand Expression' },
+            { key: 'showProcessImage', label: 'Process Image' },
+            { key: 'showCollections', label: 'Collections Showcase' },
+            { key: 'showBestSellers', label: 'Best Sellers' },
+            { key: 'showNewArrivals', label: 'New Arrivals' },
+            { key: 'showTestimonials', label: 'Testimonials' },
+            { key: 'showEvents', label: 'Events' },
+            { key: 'showTrustedBrands', label: 'Trusted Brands' },
+            { key: 'showCTABanner', label: 'CTA Banner' },
+          ].map((field) => (
+            <label key={field.key} className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-5 w-5"
+                checked={siteSettings?.guestAccess?.[field.key] ?? true}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setSiteSettingsDraft((current) => ({
+                    ...(current || siteSettings),
+                    guestAccess: {
+                      ...(current?.guestAccess || siteSettings.guestAccess || emptySiteSettings.guestAccess),
+                      [field.key]: val,
+                    },
+                  }));
+                }}
+              />
+              <span className="text-sm font-medium">{field.label}</span>
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <p className="lux-label">General Access (Full Pages)</p>
+          <p className="text-sm text-gray-500 mb-4 mt-1">Select which entire pages should be accessible to guests. If unchecked, guests will be redirected to the login page.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { key: 'pageProducts', label: 'Products (Jewellery) Page' },
+            { key: 'pageCollections', label: 'Collections Page' },
+            { key: 'pageEvents', label: 'Events Page' },
+            { key: 'pageTestimonials', label: 'Testimonials Page' },
+            { key: 'pageTrustedBrands', label: 'Trusted Brands Page' },
+          ].map((field) => (
+            <label key={field.key} className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-5 w-5"
+                checked={siteSettings?.guestAccess?.[field.key] ?? true}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setSiteSettingsDraft((current) => ({
+                    ...(current || siteSettings),
+                    guestAccess: {
+                      ...(current?.guestAccess || siteSettings.guestAccess || emptySiteSettings.guestAccess),
+                      [field.key]: val,
+                    },
+                  }));
+                }}
+              />
+              <span className="text-sm font-medium">{field.label}</span>
+            </label>
+          ))}
+        </div>
+        <Button onClick={async () => {
+          await adminService.updateConfig({ siteSettings });
+          toast.success('Site settings updated');
+          setSiteSettingsDraft(null);
+          refresh();
+        }}>Save General Access Settings</Button>
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-2">
