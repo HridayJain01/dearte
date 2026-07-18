@@ -5,12 +5,16 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
 import { formatWeight } from '../../utils/formatters';
+import { resolveSizeChart } from '../../data/sizeMaster';
 
 export function ProductCard({ product }) {
   const { isAuthenticated } = useAuth();
   const { cart, addToCart, updateCart, removeFromCart } = useCart();
   const { addToWishlist } = useWishlist();
   const navigate = useNavigate();
+  // Sized styles cannot be added blind from a grid card — the buyer picks a
+  // size on the product page instead.
+  const needsSize = Boolean(resolveSizeChart(product));
 
   const cartItem = cart?.items?.find((i) => i.product?.id === product.id);
   const isOutOfStock = product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0;
@@ -71,7 +75,7 @@ export function ProductCard({ product }) {
           </p>
 
           <div className="pt-1">
-            {cartItem ? (
+            {cartItem && !needsSize ? (
               <div className="flex w-full items-center border border-[var(--color-border)]">
                 <button
                   className="flex h-11 flex-1 items-center justify-center text-xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
@@ -106,6 +110,9 @@ export function ProductCard({ product }) {
                 icon={ShoppingBag}
                 disabled={isOutOfStock}
                 onClick={(e) => {
+                  // A sized style can't be added from the grid: the size has to be
+                  // chosen on the product page first.
+                  if (needsSize) return;
                   e.preventDefault();
                   ensureAuth(() =>
                     addToCart({
@@ -120,7 +127,7 @@ export function ProductCard({ product }) {
                   );
                 }}
               >
-                {isOutOfStock ? 'Out of stock' : 'Add to cart'}
+                {isOutOfStock ? 'Out of stock' : needsSize ? 'Select size' : 'Add to cart'}
               </Button>
             )}
           </div>

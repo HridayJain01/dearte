@@ -198,6 +198,7 @@ function drawItemCard(doc, item, imageBuffer, xMm, yMm, wMm, hMm) {
     item.customization?.goldColor,
     item.customization?.goldCarat,
     item.customization?.diamondQuality,
+    item.customization?.size ? `Size ${item.customization.size}` : '',
   ]
     .filter(Boolean)
     .join(' • ');

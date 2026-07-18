@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, Leaf, ShieldCheck, Sparkles, Gem, Ruler, BookOpenCheck } from 'lucide-react';
 import { productService } from '../services/productService';
 import { EDUCATION_ROUTES } from '../utils/constants';
 import { Button, EmptyState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
+import { Select } from '../components/ui/Select';
 import { TrustedBrandGrid } from '../components/home/HomeSections';
 import brandExpressionImage from '../assets/Cormorant Garamond.png';
 import processImage from '../assets/process.png';
@@ -34,6 +36,7 @@ const ABOUT_STATS = [
 ];
 
 export function ContactPage() {
+  const [enquiryType, setEnquiryType] = useState('Buyer Enquiry');
   const { data, isLoading } = useQuery({ queryKey: ['contact'], queryFn: productService.contact });
 
   if (isLoading) {
@@ -49,11 +52,11 @@ export function ContactPage() {
             <input className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none" placeholder="Name" />
             <input className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none" placeholder="Email" />
             <input className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none" placeholder="Mobile" />
-            <select className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none">
-              <option>Buyer Enquiry</option>
-              <option>Catalogue Support</option>
-              <option>Logistics</option>
-            </select>
+            <Select
+              value={enquiryType}
+              onChange={setEnquiryType}
+              options={['Buyer Enquiry', 'Catalogue Support', 'Logistics']}
+            />
             <textarea className="min-h-[160px] border border-[var(--color-border)] bg-surface p-4 text-[var(--color-text)] focus:border-[var(--color-border-active)] outline-none" placeholder="Message" />
             <Button>Submit Enquiry</Button>
           </div>

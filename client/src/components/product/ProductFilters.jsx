@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Panel } from '../ui/Primitives';
+import { Select } from '../ui/Select';
 
 const toggleArrayValue = (values, value) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 
-function FilterDropdown({ label, name, openFilter, onToggle, onClose, children }) {
+// Closing is handled by the panel-level click-outside handler, so this takes no
+// onClose of its own.
+function FilterDropdown({ label, name, openFilter, onToggle, children }) {
   const isOpen = openFilter === name;
 
   return (
@@ -164,18 +167,18 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
 
         <FilterDropdown label="Order Type" name="orderType" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="min-w-[220px] p-4">
-            <select
+            <Select
               value={activeFilters.stockType}
-              onChange={(event) => {
-                setFilter('stockType', event.target.value);
+              onChange={(value) => {
+                setFilter('stockType', value);
                 close();
               }}
-              className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
-            >
-              <option value="">All</option>
-              <option value="Ready Stock">Ready Stock</option>
-              <option value="Make to Order">Make to Order</option>
-            </select>
+              options={[
+                { value: '', label: 'All' },
+                { value: 'Ready Stock', label: 'Ready Stock' },
+                { value: 'Make to Order', label: 'Make to Order' },
+              ]}
+            />
           </div>
         </FilterDropdown>
 

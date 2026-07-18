@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import express from 'express';
 import {
   Catalogue,
@@ -9,6 +10,8 @@ import { sendError, sendSuccess } from '../utils/responses.js';
 import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } from '../utils/serializers.js';
 import { notifyWhatsappOrderPlaced } from '../services/orderWhatsappNotifications.js';
 import { notifyEmailOrderPlaced, notifyEmailOrderChangeRequest } from '../services/orderEmailNotifications.js';
+import { defaultSizeFor, isValidSize, resolveSizeChart } from '../data/sizeMaster.js';
+import { asString, isObjectId } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -70,8 +73,38 @@ function serializeWishlist(user) {
 }
 
 async function getProductByClientId(productId) {
-  const product = await Product.findById(productId).populate(productPopulate);
+  // Guard the cast: a body value like `{"$ne": null}` would otherwise reach
+  // Mongoose and throw, and a malformed id should read as "not found".
+  const id = productId && typeof productId === 'object' && productId._id ? productId._id : productId;
+  if (!isObjectId(String(id))) {
+    return null;
+  }
+
+  const product = await Product.findById(String(id)).populate(productPopulate);
   return product;
+}
+
+/**
+ * The size master is keyed off category names, so resolve against the
+ * populated product rather than the raw ObjectId refs.
+ */
+function sizeContextFor(product) {
+  return { category: product.category?.name || '', subCategory: product.subCategory?.name || '' };
+}
+
+/**
+ * Two cart lines are the same line only when every customisation axis matches,
+ * size included — that is what lets one style sit in the cart at two sizes.
+ */
+function isSameCartLine(item, productId, customization) {
+  return (
+    String(item.product?._id || item.product) === String(productId) &&
+    item.customization?.goldColor === customization.goldColor &&
+    item.customization?.goldCarat === customization.goldCarat &&
+    item.customization?.diamondQuality === customization.diamondQuality &&
+    (item.customization?.size || '') === (customization.size || '') &&
+    (item.customization?.note || '') === (customization.note || '')
+  );
 }
 
 function totalUnitsForProductInCart(user, productId, excludeItemId = null) {
@@ -127,23 +160,31 @@ async function deductOrderStock(order) {
 router.get('/profile', async (req, res) => sendSuccess(res, serializeUser(req.user)));
 
 router.put('/profile', async (req, res) => {
-  const allowed = [
-    'name',
-    'mobile',
-    'address',
-    'city',
-    'state',
-    'country',
-    'pinCode',
-    'companyName',
-    'gstNumber',
-    'kycDocuments',
-  ];
+  // Field-by-field with explicit lengths. `role` and `status` are intentionally
+  // absent: an allow-list is what keeps a buyer from promoting themselves.
+  const allowed = {
+    name: 120,
+    mobile: 32,
+    address: 500,
+    city: 120,
+    state: 120,
+    country: 120,
+    pinCode: 20,
+    companyName: 200,
+    gstNumber: 32,
+  };
 
-  for (const key of allowed) {
+  for (const [key, maxLength] of Object.entries(allowed)) {
     if (key in req.body) {
-      req.user[key] = req.body[key];
+      req.user[key] = asString(req.body[key], { maxLength });
     }
+  }
+
+  if (Array.isArray(req.body.kycDocuments)) {
+    req.user.kycDocuments = req.body.kycDocuments
+      .slice(0, 20)
+      .map((entry) => asString(entry, { maxLength: 200 }))
+      .filter(Boolean);
   }
 
   await req.user.save();
@@ -156,27 +197,53 @@ router.get('/cart', async (req, res) => {
 });
 
 router.post('/cart/add', async (req, res) => {
-  const { productId, quantity = 1, customization = {} } = req.body;
+  const { productId, quantity = 1, customization = {}, lines } = req.body;
   const product = await getProductByClientId(productId);
 
   if (!product) {
     return sendError(res, 'Product not found', 404);
   }
 
-  const addQty = Number(quantity || 1);
-  if (addQty < 1) {
-    return sendError(res, 'Quantity must be at least 1', 400);
+  const sizeContext = sizeContextFor(product);
+  const chart = resolveSizeChart(sizeContext);
+
+  // A sized style can be added at several sizes in one go. Everything else
+  // funnels through the same path as a single anonymous line.
+  const requestedLines = Array.isArray(lines) && lines.length
+    ? lines
+    : [{ size: customization.size, quantity }];
+
+  const normalizedLines = [];
+  for (const line of requestedLines) {
+    const lineQty = Number(line.quantity || 1);
+    if (!Number.isFinite(lineQty) || lineQty < 1) {
+      return sendError(res, 'Quantity must be at least 1', 400);
+    }
+
+    const size = chart ? String(line.size || '') : '';
+    if (chart && !size) {
+      return sendError(res, `Please choose a ${chart.noun.toLowerCase()} before adding to cart.`, 400);
+    }
+
+    if (chart && !isValidSize(sizeContext, size)) {
+      return sendError(res, `"${size}" is not a valid ${chart.noun.toLowerCase()} for this style.`, 400);
+    }
+
+    normalizedLines.push({ size, quantity: lineQty });
   }
 
-  const existing = (req.user.cart?.items || []).find(
-    (item) =>
-      String(item.product) === String(productId) &&
-      item.customization?.goldColor === customization.goldColor &&
-      item.customization?.goldCarat === customization.goldCarat &&
-      item.customization?.diamondQuality === customization.diamondQuality &&
-      (item.customization?.note || '') === (customization.note || ''),
-  );
+  // Same size requested twice in one payload — fold it into a single line.
+  const mergedLines = [];
+  for (const line of normalizedLines) {
+    const match = mergedLines.find((entry) => entry.size === line.size);
+    if (match) {
+      match.quantity += line.quantity;
+    } else {
+      mergedLines.push({ ...line });
+    }
+  }
 
+  const addQty = mergedLines.reduce((sum, line) => sum + line.quantity, 0);
   const nextTotal = totalUnitsForProductInCart(req.user, productId) + addQty;
   if (product.stockType === 'Ready Stock' && nextTotal > product.stockQuantity) {
     return sendError(res, `Only ${product.stockQuantity} unit(s) available for this style.`, 409);
@@ -186,27 +253,40 @@ router.post('/cart/add', async (req, res) => {
     req.user.cart = { items: [], specialInstructions: '' };
   }
 
-  if (existing) {
-    existing.quantity += addQty;
-  } else {
-    req.user.cart.items.push({
-      product: product._id,
-      quantity: addQty,
-      customization: {
-        goldColor: customization.goldColor || product.customizationOptions?.goldColors?.[0] || '',
-        goldCarat: customization.goldCarat || product.customizationOptions?.goldCarats?.[0] || '',
-        diamondQuality:
-          customization.diamondQuality || product.customizationOptions?.diamondQualities?.[0] || '',
-        note: customization.note || '',
-      },
-    });
+  const baseCustomization = {
+    goldColor: customization.goldColor || product.customizationOptions?.goldColors?.[0] || '',
+    goldCarat: customization.goldCarat || product.customizationOptions?.goldCarats?.[0] || '',
+    diamondQuality:
+      customization.diamondQuality || product.customizationOptions?.diamondQualities?.[0] || '',
+    note: asString(customization.note, { maxLength: 2000 }),
+  };
+
+  for (const line of mergedLines) {
+    const lineCustomization = { ...baseCustomization, size: line.size };
+    const existing = (req.user.cart.items || []).find((item) =>
+      isSameCartLine(item, productId, lineCustomization),
+    );
+
+    if (existing) {
+      existing.quantity += line.quantity;
+    } else {
+      req.user.cart.items.push({
+        product: product._id,
+        quantity: line.quantity,
+        customization: lineCustomization,
+      });
+    }
   }
 
   product.cartAdds += addQty;
   await Promise.all([req.user.save(), product.save()]);
   await populateUserCommerceState(req.user);
 
-  return sendSuccess(res, serializeCart(req.user), 'Item added to cart');
+  const message = mergedLines.length > 1
+    ? `${mergedLines.length} sizes added to cart`
+    : 'Item added to cart';
+
+  return sendSuccess(res, serializeCart(req.user), message);
 });
 
 router.put('/cart/:itemId', async (req, res) => {
@@ -237,14 +317,45 @@ router.put('/cart/:itemId', async (req, res) => {
   }
 
   if (req.body.customization) {
-    item.customization = {
-      ...item.customization,
-      ...req.body.customization,
+    // Build the merged value explicitly: spreading the Mongoose nested path
+    // would drag internal properties onto the document.
+    const current = item.customization || {};
+    const incoming = req.body.customization;
+    const next = {
+      goldColor: incoming.goldColor ?? current.goldColor ?? '',
+      goldCarat: incoming.goldCarat ?? current.goldCarat ?? '',
+      diamondQuality: incoming.diamondQuality ?? current.diamondQuality ?? '',
+      size: current.size ?? '',
     };
+
+    if (incoming.size !== undefined) {
+      const sizeContext = sizeContextFor(product);
+      const chart = resolveSizeChart(sizeContext);
+      next.size = chart ? String(incoming.size || '') : '';
+
+      if (chart && !isValidSize(sizeContext, next.size)) {
+        return sendError(res, `"${next.size}" is not a valid ${chart.noun.toLowerCase()} for this style.`, 400);
+      }
+    }
+
+    // Re-sizing onto a line that already exists should merge, not duplicate.
+    const duplicate = (req.user.cart.items || []).find(
+      (other) => String(other._id) !== String(item._id) && isSameCartLine(other, item.product, next),
+    );
+
+    if (duplicate) {
+      duplicate.quantity += item.quantity;
+      item.deleteOne();
+      await req.user.save();
+      await populateUserCommerceState(req.user);
+      return sendSuccess(res, serializeCart(req.user), 'Cart updated');
+    }
+
+    item.customization = next;
   }
 
   if (req.body.specialInstructions !== undefined) {
-    req.user.cart.specialInstructions = req.body.specialInstructions;
+    req.user.cart.specialInstructions = asString(req.body.specialInstructions, { maxLength: 2000 });
   }
 
   await req.user.save();
@@ -332,6 +443,17 @@ router.delete('/wishlist/:itemId', async (req, res) => {
   return sendSuccess(res, serializeWishlist(req.user), 'Removed from wishlist');
 });
 
+/**
+ * `orderId` carries a unique index, but the old generator drew from only 9,000
+ * values — a collision (and a hard 500 on checkout) became more likely than not
+ * after about 110 orders. A time prefix plus 5 random bytes removes both the
+ * collision risk and the ability to guess neighbouring order ids.
+ */
+function generateOrderId() {
+  const stamp = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+  return `DAR-ORD-${stamp}-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+}
+
 router.post('/orders', async (req, res) => {
   await populateUserCommerceState(req.user);
 
@@ -352,7 +474,7 @@ router.post('/orders', async (req, res) => {
   }
 
   const order = new Order({
-    orderId: `DAR-ORD-${Math.floor(Math.random() * 9000 + 1000)}`,
+    orderId: generateOrderId(),
     user: req.user._id,
     status: 'Pending',
     statusHistory: [
@@ -363,7 +485,11 @@ router.post('/orders', async (req, res) => {
         changedBy: req.user._id,
       },
     ],
-    notes: req.body.notes || req.user.cart?.specialInstructions || '',
+    paymentMethod: ['Cash on Delivery', 'Offline Payment'].includes(req.body.paymentMethod)
+      ? req.body.paymentMethod
+      : 'Cash on Delivery',
+    shippingAddress: asString(req.body.shippingAddress, { maxLength: 500 }),
+    notes: asString(req.body.notes, { maxLength: 2000 }) || req.user.cart?.specialInstructions || '',
     items: cartItems.map((item) => ({
       product: item.product?._id || item.product,
       quantity: item.quantity,
@@ -419,8 +545,16 @@ router.get('/orders', async (req, res) => {
 });
 
 router.get('/orders/:id', async (req, res) => {
+  // A non-ObjectId path segment used to reach the `_id` branch and surface as a
+  // 500 with Mongoose cast internals; only match on `_id` when it can be one.
+  const identifier = String(req.params.id);
+  const matchers = [{ orderId: identifier }];
+  if (isObjectId(identifier)) {
+    matchers.unshift({ _id: identifier });
+  }
+
   const order = await Order.findOne({
-    $or: [{ _id: req.params.id }, { orderId: req.params.id }],
+    $or: matchers,
     user: req.user._id,
   }).populate([
     { path: 'user' },

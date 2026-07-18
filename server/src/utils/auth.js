@@ -2,8 +2,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { catalogAccessDto } from './catalogAccess.js';
 
-const ACCESS_SECRET = process.env.JWT_SECRET || 'dearte-access-secret';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dearte-refresh-secret';
+import { ACCESS_SECRET, REFRESH_SECRET, isProduction } from '../config/env.js';
 
 export const COOKIE_NAMES = {
   access: 'dearte_access',
@@ -11,7 +10,7 @@ export const COOKIE_NAMES = {
 };
 
 function isProd() {
-  return process.env.NODE_ENV === 'production';
+  return isProduction;
 }
 
 export function accessCookieOptions() {
@@ -63,6 +62,38 @@ export function verifyAccessToken(token) {
 
 export function verifyRefreshToken(token) {
   return jwt.verify(token, REFRESH_SECRET);
+}
+
+/**
+ * Refresh tokens are long-lived, so they are stored as digests rather than raw
+ * strings: read access to the users collection no longer hands out live
+ * 14-day sessions.
+ */
+export function hashRefreshToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+export function refreshTokenMatches(storedValues, token) {
+  const digest = hashRefreshToken(token);
+  return (storedValues || []).includes(digest);
+}
+
+/** Cryptographically random 6-digit reset code, stored only as a digest. */
+export function generateOtp() {
+  return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+}
+
+export function hashOtp(code) {
+  return crypto.createHash('sha256').update(String(code)).digest('hex');
+}
+
+/** Constant-time compare so a stored code cannot be recovered by timing. */
+export function otpMatches(storedHash, candidate) {
+  if (!storedHash || !candidate) return false;
+  const expected = Buffer.from(storedHash, 'utf8');
+  const actual = Buffer.from(hashOtp(candidate), 'utf8');
+  if (expected.length !== actual.length) return false;
+  return crypto.timingSafeEqual(expected, actual);
 }
 
 export function userDto(user) {

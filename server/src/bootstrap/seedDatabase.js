@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { categoryImages, collectionImages, seedData, subCategoryImages } from '../data/seed.js';
 import {
@@ -18,6 +19,52 @@ import {
 } from '../models/index.js';
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
 import { slugify } from '../utils/slugify.js';
+import { isProduction } from '../config/env.js';
+import { validatePassword } from '../utils/validation.js';
+
+/**
+ * Seed accounts used to ship with passwords hardcoded in this repository
+ * ("Admin@123", "Buyer@123"). Seeding runs whenever the users collection is
+ * empty, so a first production boot published a working admin login to anyone
+ * who could read the source.
+ *
+ * In production the admin password must now come from SEED_ADMIN_PASSWORD, and
+ * the demo buyer accounts get an unguessable random password so they cannot be
+ * logged into at all.
+ */
+function resolveSeedPasswordHash(user) {
+  const isAdmin = user.role === 'admin';
+
+  if (isAdmin) {
+    const configured = process.env.SEED_ADMIN_PASSWORD;
+
+    if (configured) {
+      const problem = validatePassword(configured);
+      if (problem) {
+        throw new Error(`SEED_ADMIN_PASSWORD is not acceptable: ${problem}`);
+      }
+      return bcrypt.hashSync(configured, 12);
+    }
+
+    if (isProduction) {
+      throw new Error(
+        'Refusing to seed the initial admin account with the default password. ' +
+          'Set SEED_ADMIN_PASSWORD (and SEED_ADMIN_EMAIL if you want a different address) before first boot.',
+      );
+    }
+
+    console.warn('[seed] Using the default development admin password. Never do this in production.');
+    return user.passwordHash || bcrypt.hashSync('Admin@123', 10);
+  }
+
+  if (isProduction) {
+    // Demo buyers still exist for referential integrity of the sample orders,
+    // but must not be loginable with a published credential.
+    return bcrypt.hashSync(crypto.randomUUID() + crypto.randomUUID(), 12);
+  }
+
+  return user.passwordHash || bcrypt.hashSync('Buyer@123', 10);
+}
 
 async function ensureCategory(name) {
   const imageUrl = categoryImages[name] || '';
@@ -141,7 +188,10 @@ export async function seedDatabase() {
 
       const created = await User.create({
         name: user.name,
-        email: user.email,
+        email:
+          user.role === 'admin' && process.env.SEED_ADMIN_EMAIL
+            ? String(process.env.SEED_ADMIN_EMAIL).toLowerCase().trim()
+            : user.email,
         mobile: user.mobile,
         address: user.address,
         city: user.city,
@@ -150,7 +200,7 @@ export async function seedDatabase() {
         pinCode: user.pinCode,
         companyName: user.companyName,
         gstNumber: user.gstNumber,
-        passwordHash: user.passwordHash || bcrypt.hashSync('Buyer@123', 10),
+        passwordHash: resolveSeedPasswordHash(user),
         role: user.role,
         status: user.status,
         registeredAt: user.registeredAt,

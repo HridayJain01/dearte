@@ -13,8 +13,12 @@ import { useWishlist } from '../hooks/useWishlist';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
 import { Button, EmptyState, LoadingBlock, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
+import { Select } from '../components/ui/Select';
 import { ProductCard } from '../components/product/ProductCard';
 import { ProductFilters } from '../components/product/ProductFilters';
+import { SizeChartModal } from '../components/product/SizeChartModal';
+import { SizeSelector } from '../components/product/SizeSelector';
+import { defaultSizeFor, resolveSizeChart } from '../data/sizeMaster';
 import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { formatDate } from '../utils/formatters';
 import { useForm } from 'react-hook-form';
@@ -223,22 +227,23 @@ export function ProductListPage() {
                 ))}
             </div>
           </div>
-          <select
-            className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+          <Select
+            className="w-full sm:w-64"
             value={sort}
-            onChange={(event) => {
-              setSort(event.target.value);
-              setSearchParams(event.target.value ? { sort: event.target.value } : {});
+            onChange={(value) => {
+              setSort(value);
+              setSearchParams(value ? { sort: value } : {});
             }}
-          >
-            <option value="">Featured</option>
-            <option value="diamond-asc">Diamond Wt. Low to High</option>
-            <option value="diamond-desc">Diamond Wt. High to Low</option>
-            <option value="gold-asc">Gold Wt. Low to High</option>
-            <option value="gold-desc">Gold Wt. High to Low</option>
-            <option value="best-sellers">Best Sellers</option>
-            <option value="new-arrivals">New Arrivals</option>
-          </select>
+            options={[
+              { value: '', label: 'Featured' },
+              { value: 'diamond-asc', label: 'Diamond Wt. Low to High' },
+              { value: 'diamond-desc', label: 'Diamond Wt. High to Low' },
+              { value: 'gold-asc', label: 'Gold Wt. Low to High' },
+              { value: 'gold-desc', label: 'Gold Wt. High to Low' },
+              { value: 'best-sellers', label: 'Best Sellers' },
+              { value: 'new-arrivals', label: 'New Arrivals' },
+            ]}
+          />
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -272,12 +277,32 @@ export function ProductDetailPage() {
     diamondQuality: '',
     note: '',
   });
+  const [sizeState, setSizeState] = useState({ productId: null, lines: [] });
+  const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
   const { data, isLoading } = useProduct(styleCode);
   const { cart, addToCart, updateCart, removeFromCart } = useCart();
   const { wishlist, addToWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [wishlistCollectionId, setWishlistCollectionId] = useState('');
+
+  const sizeChart = useMemo(() => resolveSizeChart(data || {}), [data]);
+
+  // Derived rather than synced through an effect: until the buyer touches the
+  // picker, a product falls back to a single mid-range row from its chart.
+  const sizeLines =
+    sizeState.productId === data?.id
+      ? sizeState.lines
+      : sizeChart
+        ? [{ size: defaultSizeFor(data), quantity: 1 }]
+        : [];
+
+  const setSizeLines = (update) =>
+    setSizeState((current) => ({
+      productId: data?.id,
+      lines: typeof update === 'function' ? update(current.productId === data?.id ? current.lines : sizeLines) : update,
+    }));
+
   const availableGoldColors = data?.customizationOptions?.goldColors || [];
   const availableGoldCarats = data?.customizationOptions?.goldCarats || [];
   const availableDiamondQualities = data?.customizationOptions?.diamondQualities || [];
@@ -396,27 +421,27 @@ export function ProductDetailPage() {
           <Panel>
             <p className="lux-label mb-4">Customization</p>
             <div className="grid gap-4 md:grid-cols-3">
-              <label className="text-sm">
-                <span className="mb-2 block text-[var(--color-text-muted)]">Gold Color</span>
-                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]" value={effectiveSelection.goldColor} onChange={(event) => {
-                  setSelection((current) => ({ ...current, goldColor: event.target.value }));
+              <Select
+                label="Gold Color"
+                options={availableGoldColors}
+                value={effectiveSelection.goldColor}
+                onChange={(option) => {
+                  setSelection((current) => ({ ...current, goldColor: option }));
                   setActiveImage(0);
-                }}>
-                  {availableGoldColors.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label className="text-sm">
-                <span className="mb-2 block text-[var(--color-text-muted)]">Gold Carat</span>
-                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]" value={effectiveSelection.goldCarat} onChange={(event) => setSelection((current) => ({ ...current, goldCarat: event.target.value }))}>
-                  {availableGoldCarats.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label className="text-sm">
-                <span className="mb-2 block text-[var(--color-text-muted)]">Diamond Quality</span>
-                <select className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]" value={effectiveSelection.diamondQuality} onChange={(event) => setSelection((current) => ({ ...current, diamondQuality: event.target.value }))}>
-                  {availableDiamondQualities.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
+                }}
+              />
+              <Select
+                label="Gold Carat"
+                options={availableGoldCarats}
+                value={effectiveSelection.goldCarat}
+                onChange={(option) => setSelection((current) => ({ ...current, goldCarat: option }))}
+              />
+              <Select
+                label="Diamond Quality"
+                options={availableDiamondQualities}
+                value={effectiveSelection.diamondQuality}
+                onChange={(option) => setSelection((current) => ({ ...current, diamondQuality: option }))}
+              />
             </div>
             <label className="mt-4 block text-sm">
               <span className="mb-2 block text-[var(--color-text-muted)]">Custom request for this piece (optional)</span>
@@ -433,6 +458,18 @@ export function ProductDetailPage() {
             </div>
           </Panel>
 
+          {sizeChart ? (
+            <Panel>
+              <SizeSelector
+                chart={sizeChart}
+                lines={sizeLines}
+                onChange={setSizeLines}
+                onOpenChart={() => setIsSizeChartOpen(true)}
+                maxQuantity={data.stockType === 'Ready Stock' ? data.stockQuantity ?? 0 : undefined}
+              />
+            </Panel>
+          ) : null}
+
           {data.stockType === 'Ready Stock' ? (
             <p className="text-sm text-[var(--color-text-muted)]">
               {data.stockQuantity > 0 ? (
@@ -445,7 +482,7 @@ export function ProductDetailPage() {
             <p className="text-sm text-[var(--color-text-muted)]">Made to order — not held as finished stock.</p>
           )}
           <div className="flex flex-col gap-3">
-            {cartItem ? (
+            {cartItem && !sizeChart ? (
               <div className="flex w-full items-center border border-[var(--color-border)]">
                 <button
                   className="flex h-12 flex-1 items-center justify-center text-2xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
@@ -472,10 +509,21 @@ export function ProductDetailPage() {
             ) : (
               <Button
                 className="w-full"
-                disabled={data.stockType === 'Ready Stock' && (data.stockQuantity ?? 0) <= 0}
-                onClick={() => requireAuth(() => addToCart({ productId: data.id, quantity: 1, customization: effectiveSelection }))}
+                disabled={
+                  (data.stockType === 'Ready Stock' && (data.stockQuantity ?? 0) <= 0) ||
+                  (sizeChart && !sizeLines.every((line) => line.size))
+                }
+                onClick={() =>
+                  requireAuth(() =>
+                    addToCart({
+                      productId: data.id,
+                      customization: effectiveSelection,
+                      ...(sizeChart ? { lines: sizeLines } : { quantity: 1 }),
+                    }),
+                  )
+                }
               >
-                Add to Cart
+                {sizeChart && sizeLines.length > 1 ? `Add ${sizeLines.length} Sizes to Cart` : 'Add to Cart'}
               </Button>
             )}
             <div className="flex items-stretch gap-2">
@@ -525,6 +573,22 @@ export function ProductDetailPage() {
           ))}
         </div>
       </section>
+
+      <SizeChartModal
+        chart={sizeChart}
+        open={isSizeChartOpen}
+        onClose={() => setIsSizeChartOpen(false)}
+        selectedSize={sizeLines[0]?.size}
+        onSelectSize={(size) => {
+          // Applies to the first row; further rows stay under the buyer's control.
+          setSizeLines((current) =>
+            current.length
+              ? current.map((line, index) => (index === 0 ? { ...line, size } : line))
+              : [{ size, quantity: 1 }],
+          );
+          setIsSizeChartOpen(false);
+        }}
+      />
     </section>
   );
 }
@@ -566,7 +630,10 @@ export function CartPage() {
       <SectionHeading eyebrow="Cart" title="Order review without visible pricing." description="Pricing will be confirmed by your sales representative." />
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          {cart.items.map((item) => (
+          {cart.items.map((item) => {
+            const itemChart = resolveSizeChart(item.product);
+
+            return (
             <Panel key={item.id} className="flex flex-col gap-4 sm:flex-row sm:items-start">
               <img
                 src={item.product.images[0]}
@@ -580,6 +647,20 @@ export function CartPage() {
                   <p className="mt-2 text-sm text-[var(--color-text-muted)]">
                     {item.customization.goldColor} · {item.customization.goldCarat} · {item.customization.diamondQuality}
                   </p>
+                  {itemChart && item.customization.size ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1 text-xs text-[var(--color-primary)]">
+                        {itemChart.noun}: {item.customization.size}
+                      </span>
+                      <Select
+                        className="w-44"
+                        buttonClassName="min-h-9 py-1.5 text-xs"
+                        options={itemChart.rows.map((row) => ({ value: row.size, label: row.size, hint: row.hint }))}
+                        value={item.customization.size}
+                        onChange={(size) => updateCart(item.id, { customization: { size } })}
+                      />
+                    </div>
+                  ) : null}
                   {item.customization.note ? (
                     <p className="mt-1 text-sm text-[var(--color-text-muted)]">
                       <span className="text-[var(--color-text)]">Custom request:</span> {item.customization.note}
@@ -613,7 +694,8 @@ export function CartPage() {
                 </div>
               </div>
             </Panel>
-          ))}
+            );
+          })}
         </div>
 
         <Panel className="h-fit space-y-5">
@@ -747,7 +829,12 @@ export function WishlistPage() {
         />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {visibleItems.map((item) => (
+          {visibleItems.map((item) => {
+            // Sized styles need a deliberate size choice, so send the buyer to
+            // the product page rather than guessing one on their behalf.
+            const needsSize = Boolean(resolveSizeChart(item.product));
+
+            return (
             <Panel key={item.id}>
               <Link to={`/products/${item.product.styleCode}`}>
                 <img
@@ -766,22 +853,28 @@ export function WishlistPage() {
                 {item.product.name}
               </h3>
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  className="w-full sm:flex-1"
-                  onClick={() =>
-                    addToCart({
-                      productId: item.product.id,
-                      quantity: 1,
-                      customization: {
-                        goldColor: item.product.customizationOptions.goldColors[0],
-                        goldCarat: item.product.customizationOptions.goldCarats[0],
-                        diamondQuality: item.product.customizationOptions.diamondQualities[0],
-                      },
-                    })
-                  }
-                >
-                  Move to Cart
-                </Button>
+                {needsSize ? (
+                  <Link to={`/products/${item.product.styleCode}`} className="w-full sm:flex-1">
+                    <Button className="w-full">Choose Size</Button>
+                  </Link>
+                ) : (
+                  <Button
+                    className="w-full sm:flex-1"
+                    onClick={() =>
+                      addToCart({
+                        productId: item.product.id,
+                        quantity: 1,
+                        customization: {
+                          goldColor: item.product.customizationOptions.goldColors[0],
+                          goldCarat: item.product.customizationOptions.goldCarats[0],
+                          diamondQuality: item.product.customizationOptions.diamondQualities[0],
+                        },
+                      })
+                    }
+                  >
+                    Move to Cart
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   className="w-full sm:flex-1"
@@ -791,7 +884,8 @@ export function WishlistPage() {
                 </Button>
               </div>
             </Panel>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
@@ -883,7 +977,10 @@ export function CheckoutPage() {
                 <img src={item.product.images[0]} alt={item.product.name} className="h-16 w-16 object-cover" />
                 <div>
                   <p className="text-[var(--color-text)]">{item.product.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">Qty {item.quantity} • {item.customization.goldCarat}</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Qty {item.quantity} • {item.customization.goldCarat}
+                    {item.customization.size ? ` • Size ${item.customization.size}` : ''}
+                  </p>
                 </div>
               </div>
             ))}

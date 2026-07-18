@@ -129,7 +129,8 @@ export function ForgotPasswordPage() {
     await userService.forgotPassword({ email });
     setSentEmail(email);
     setStep('reset');
-    toast.success('Check your email for the OTP code.');
+    // The API never confirms whether the address exists, so neither does this.
+    toast.success('If that account exists, a reset code has been sent.');
   });
 
   const onResetPassword = resetForm.handleSubmit(async ({ otp, newPassword }) => {
