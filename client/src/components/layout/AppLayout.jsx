@@ -1,12 +1,69 @@
 import { Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
+import { useOccasions } from '../../hooks/useProducts';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
 import { Button } from '../ui/Primitives';
+
+// Single source of truth for nav typography so the desktop links, the Occasions
+// button, its dropdown items and the mobile menu all render identically.
+const NAV_TEXT = 'text-[13px] font-medium uppercase tracking-[0.1em]';
+
+const navLinkClass = ({ isActive }) =>
+  `${NAV_TEXT} transition ${isActive ? 'text-[var(--color-primary)] underline decoration-[var(--color-accent)] underline-offset-4' : 'text-[var(--color-text)] hover:text-[var(--color-primary)]'}`;
+
+// Desktop "Occasions" nav item. Options are fetched rather than hardcoded so
+// newly imported occasion tags show up without a code change.
+function OccasionsNavMenu({ label, occasions }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapRef.current && !wrapRef.current.contains(event.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  if (!occasions.length) return null;
+
+  return (
+    // NAV_TEXT sits on the wrapper, not the button: the global `button { font:
+    // inherit }` in index.css is unlayered and so overrides Tailwind's layered
+    // font utilities. Inheriting from the parent is what makes it match the links.
+    <div ref={wrapRef} className={`${NAV_TEXT} relative`}>
+      {/* `uppercase` is repeated here: Tailwind preflight resets
+          `button { text-transform: none }`, which beats the inherited value. */}
+      <button
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className="uppercase text-[var(--color-text)] transition hover:text-[var(--color-primary)]"
+      >
+        {label}
+      </button>
+      {open ? (
+        <div className="absolute left-0 top-full z-40 min-w-[200px] border border-[var(--color-border)] bg-[var(--color-surface)] py-2 shadow-lg">
+          {occasions.map((occasion) => (
+            <Link
+              key={occasion.name}
+              to={`/products?occasion=${encodeURIComponent(occasion.name)}`}
+              onClick={() => setOpen(false)}
+              className={`${NAV_TEXT} block px-4 py-2 text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-primary)]`}
+            >
+              {occasion.name}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function AppLayout() {
   const [scrolled, setScrolled] = useState(false);
@@ -14,6 +71,8 @@ export function AppLayout() {
   const { user, isAuthenticated, logout } = useAuth();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
+  const { data: occasions } = useOccasions();
+  const occasionList = occasions || [];
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -39,17 +98,15 @@ export function AppLayout() {
           </Link>
 
           <nav className="hidden items-center gap-6 lg:flex">
-            {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  `text-[13px] font-medium uppercase tracking-[0.1em] transition ${isActive ? 'text-[var(--color-primary)] underline decoration-[var(--color-accent)] underline-offset-4' : 'text-[var(--color-text)] hover:text-[var(--color-primary)]'}`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.occasionMenu ? (
+                <OccasionsNavMenu key={link.label} label={link.label} occasions={occasionList} />
+              ) : (
+                <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                  {link.label}
+                </NavLink>
+              ),
+            )}
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-3">
@@ -90,11 +147,31 @@ export function AppLayout() {
 
         {menuOpen ? (
           <div className="safe-bottom-pad page-shell flex flex-col gap-4 border-t border-[var(--color-border)] bg-[var(--color-primary-bg)] py-4 lg:hidden">
-            {NAV_LINKS.map((link) => (
-              <NavLink key={link.to} to={link.to} onClick={() => setMenuOpen(false)} className="min-h-11 py-2 text-sm">
-                {link.label}
-              </NavLink>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.occasionMenu ? (
+                occasionList.length ? (
+                  <div key={link.label} className="py-2">
+                    <p className={`${NAV_TEXT} text-[var(--color-text-muted)]`}>{link.label}</p>
+                    <div className="mt-1 flex flex-col border-l border-[var(--color-border)] pl-3">
+                      {occasionList.map((occasion) => (
+                        <Link
+                          key={occasion.name}
+                          to={`/products?occasion=${encodeURIComponent(occasion.name)}`}
+                          onClick={() => setMenuOpen(false)}
+                          className={`${NAV_TEXT} min-h-11 py-2`}
+                        >
+                          {occasion.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null
+              ) : (
+                <NavLink key={link.to} to={link.to} onClick={() => setMenuOpen(false)} className={`${NAV_TEXT} min-h-11 py-2`}>
+                  {link.label}
+                </NavLink>
+              ),
+            )}
 
             <div className="mt-2 border-t border-[var(--color-border)] pt-3">
               {isAuthenticated ? (

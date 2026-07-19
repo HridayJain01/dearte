@@ -52,6 +52,19 @@ function withAccess(filter, accessFilter) {
   return { $and: [filter, accessFilter] };
 }
 
+// `occasions` is free text off the Excel import, so distinct() hands back nulls,
+// blanks and stray casing. Normalise before either facet leaves the server.
+function cleanOccasions(values) {
+  const seen = new Map();
+  for (const value of values || []) {
+    const name = typeof value === 'string' ? value.trim() : '';
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (!seen.has(key)) seen.set(key, name);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+
 const productPopulate = [
   { path: 'category' },
   { path: 'subCategory' },
@@ -142,6 +155,7 @@ router.get('/products', async (req, res) => {
     category,
     subCategory,
     collection,
+    occasion,
     metalColor,
     diamondMin,
     diamondMax,
@@ -189,6 +203,14 @@ router.get('/products', async (req, res) => {
     const collectionsFound = await Collection.find({ name: { $in: toNameList(collection) } }).select('_id');
     filter.collection = { $in: collectionsFound.map((item) => item._id) };
   }
+  // Occasions live on the product as a free-text array (populated by the Excel
+  // importer), not as a taxonomy collection, so this matches names directly.
+  if (asString(occasion)) {
+    const occasionNames = toNameList(occasion);
+    if (occasionNames.length) {
+      filter.occasions = { $in: occasionNames };
+    }
+  }
   if (asString(metalColor)) {
     const colors = await MetalOption.find({ name: { $in: toNameList(metalColor) } }).select('_id');
     filter.metalColor = { $in: colors.map((item) => item._id) };
@@ -229,7 +251,9 @@ router.get('/products', async (req, res) => {
   const accessFilter = productAccessFilter(req.user);
   const scopedFilter = withAccess(filter, accessFilter);
 
-  const [items, total, allCategories, allCollections, metalColors, allSubCategories] = await Promise.all([
+  // Facet list is scoped to access but NOT to the current filter, so the
+  // Occasion dropdown keeps showing every option the buyer may pick.
+  const [items, total, allCategories, allCollections, metalColors, allSubCategories, occasionValues] = await Promise.all([
     applySort(Product.find(scopedFilter).populate(productPopulate), sort)
       .skip((currentPage - 1) * pageSize)
       .limit(pageSize),
@@ -238,6 +262,7 @@ router.get('/products', async (req, res) => {
     Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 }),
     MetalOption.find({ active: true }).sort({ name: 1 }),
     SubCategory.find({ active: true }).populate('category').sort({ name: 1 }),
+    Product.distinct('occasions', withAccess({ status: 'Active' }, accessFilter)),
   ]);
 
   // Scope the filter facets to the buyer's access. Categories that only contain
@@ -270,6 +295,7 @@ router.get('/products', async (req, res) => {
         id: String(item._id),
         name: item.name,
       })),
+      occasions: cleanOccasions(occasionValues),
       metalColors: metalColors.map((item) => item.name),
       diamondRange: [0.1, 2.0],
       goldRange: [2, 20],
@@ -343,6 +369,14 @@ router.get('/collections', requireAuth, async (req, res) => {
       image: item.image?.secureUrl || '',
     })),
   );
+});
+
+// Powers the "Occasions" nav dropdown. Open to guests (scoped to the teaser
+// catalogue by productAccessFilter) so the menu is never empty before sign-in.
+router.get('/occasions', async (req, res) => {
+  const access = productAccessFilter(req.user);
+  const values = await Product.distinct('occasions', withAccess({ status: 'Active' }, access));
+  return sendSuccess(res, cleanOccasions(values).map((name) => ({ name })));
 });
 
 router.get('/events', async (_req, res) => {

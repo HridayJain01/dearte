@@ -137,7 +137,8 @@ export function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = category ? decodeURIComponent(category) : searchParams.get('category') || '';
   const activeCollection = searchParams.get('collection') || '';
-  const pageScope = `${activeCategory}::${activeCollection}`;
+  const activeOccasion = searchParams.get('occasion') || '';
+  const pageScope = `${activeCategory}::${activeCollection}::${activeOccasion}`;
   const [paging, setPaging] = useState({ scope: pageScope, page: 1 });
   const { filters, sort, setSort, setFilter, resetFilters } = useFilters();
   const page = paging.scope === pageScope ? paging.page : 1;
@@ -155,6 +156,7 @@ export function ProductListPage() {
       limit: 6,
       category: activeCategory,
       collection: activeCollection || filters.collection.join(','),
+      occasion: activeOccasion || filters.occasion.join(','),
       sort,
       subCategory: filters.subCategory.join(','),
       metalColor: filters.metalColor.join(','),
@@ -164,7 +166,7 @@ export function ProductListPage() {
       goldMax: filters.goldMax,
       stockType: filters.stockType,
     }),
-    [activeCategory, activeCollection, filters, page, sort],
+    [activeCategory, activeCollection, activeOccasion, filters, page, sort],
   );
 
   const { data, isLoading } = useProducts(params);
@@ -178,7 +180,7 @@ export function ProductListPage() {
     <section className="page-shell section-gap">
       <SectionHeading
         eyebrow="Products"
-        title={activeCategory || activeCollection || 'Shop by Product'}
+        title={activeCategory || activeCollection || activeOccasion || 'Shop by Product'}
         description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
       />
       {!isAuthenticated ? (
@@ -192,7 +194,7 @@ export function ProductListPage() {
         </Panel>
       ) : null}
       <div className="space-y-6">
-        {!activeCategory && !activeCollection && (
+        {!activeCategory && !activeCollection && !activeOccasion && (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {PRODUCT_CATEGORY_TILES.map((tile) => (
               <ShopCategoryCard
@@ -218,7 +220,7 @@ export function ProductListPage() {
           <div>
             <p className="text-sm text-[var(--color-text-muted)]">{data.total} items found</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {[activeCategory, activeCollection, ...filters.subCategory, ...filters.collection, ...filters.metalColor, filters.stockType]
+              {[activeCategory, activeCollection, activeOccasion, ...filters.subCategory, ...filters.collection, ...filters.occasion, ...filters.metalColor, filters.stockType]
                 .filter(Boolean)
                 .map((chip) => (
                   <span key={chip} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1 text-xs tracking-[0.08em] text-[var(--color-text-muted)] uppercase">

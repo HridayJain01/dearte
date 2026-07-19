@@ -93,6 +93,30 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
           </div>
         </FilterDropdown>
 
+        <FilterDropdown label="Occasion" name="occasion" openFilter={openFilter} onToggle={toggle} onClose={close}>
+          <div className="max-h-64 min-w-[220px] overflow-auto p-4">
+            <div className="space-y-2 text-sm">
+              {filters.occasions?.length ? (
+                filters.occasions.map((occasion) => (
+                  <label key={occasion} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
+                    <input
+                      type="checkbox"
+                      checked={activeFilters.occasion.includes(occasion)}
+                      onChange={() => {
+                        setFilter('occasion', toggleArrayValue(activeFilters.occasion, occasion));
+                        close();
+                      }}
+                    />
+                    {occasion}
+                  </label>
+                ))
+              ) : (
+                <p className="text-[var(--color-text-muted)]">No occasions tagged yet.</p>
+              )}
+            </div>
+          </div>
+        </FilterDropdown>
+
         <FilterDropdown label="Metal Color" name="metalColor" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="min-w-[220px] p-4">
             <div className="flex flex-wrap gap-2">

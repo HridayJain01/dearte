@@ -25,3 +25,10 @@ export const useCollections = () =>
     queryKey: ['collections'],
     queryFn: productService.collections,
   });
+
+export const useOccasions = () =>
+  useQuery({
+    queryKey: ['occasions'],
+    queryFn: productService.occasions,
+    staleTime: 5 * 60 * 1000,
+  });

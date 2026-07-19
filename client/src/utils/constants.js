@@ -20,10 +20,10 @@ export const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Products', to: '/products' },
   { label: 'Collections', to: '/collections' },
-  { label: 'New Arrivals', to: '/products?sort=new-arrivals' },
+  // Rendered as a dropdown in AppLayout; options come from /api/occasions.
+  { label: 'Occasions', to: '/products', occasionMenu: true },
   { label: 'Best Sellers', to: '/products?sort=best-sellers' },
   { label: 'About Us', to: '/about' },
-  { label: 'Events', to: '/events' },
 ];
 
 export const EDUCATION_ROUTES = [

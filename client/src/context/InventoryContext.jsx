@@ -8,6 +8,7 @@ const initialState = {
   filters: {
     subCategory: [],
     collection: [],
+    occasion: [],
     metalColor: [],
     diamondMin: '',
     diamondMax: '',

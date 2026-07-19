@@ -9,6 +9,7 @@ export const productService = {
   trustedBy: () => unwrap(api.get('/trusted-by')),
   testimonials: () => unwrap(api.get('/testimonials')),
   collections: () => unwrap(api.get('/collections')),
+  occasions: () => unwrap(api.get('/occasions')),
   careers: () => unwrap(api.get('/careers')),
   staticPage: (slug) => unwrap(api.get(`/site/static/${slug}`)),
   faq: () => unwrap(api.get('/faq')),
