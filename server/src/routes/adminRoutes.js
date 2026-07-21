@@ -37,6 +37,7 @@ import {
   notifyWhatsappOrderStatus,
 } from '../services/orderWhatsappNotifications.js';
 import { getEmailConfigStatus } from '../services/email/transport.js';
+import { invalidateGuestCatalogueCache } from '../utils/guestCatalogue.js';
 import {
   broadcastEmailToUsers,
   notifyEmailOrderStatus,
@@ -537,6 +538,74 @@ function sanitizeProductPayload(body, currentProduct = null) {
   };
 }
 
+const GUEST_ACCESS_KEYS = [
+  'showPopupPromo',
+  'showHeroSlider',
+  'showBrandExpression',
+  'showProcessImage',
+  'showCollections',
+  'showBestSellers',
+  'showNewArrivals',
+  'showTestimonials',
+  'showEvents',
+  'showTrustedBrands',
+  'showCTABanner',
+  'pageProducts',
+  'pageCollections',
+  'pageEvents',
+  'pageTestimonials',
+  'pageTrustedBrands',
+];
+
+function plainSubdoc(value) {
+  if (!value) return {};
+  return typeof value.toObject === 'function' ? value.toObject() : { ...value };
+}
+
+// Merge incoming guest-access toggles over the stored values so a partial save
+// never wipes untouched keys. Only known boolean keys survive.
+function sanitizeGuestAccess(body, current) {
+  const base = plainSubdoc(current?.guestAccess);
+  const incoming = body?.guestAccess || {};
+  const result = {};
+  for (const key of GUEST_ACCESS_KEYS) {
+    if (incoming[key] !== undefined) result[key] = Boolean(incoming[key]);
+    else if (base[key] !== undefined) result[key] = base[key];
+  }
+  return result;
+}
+
+function toObjectIdArray(list) {
+  return Array.isArray(list)
+    ? list.filter((id) => isObjectId(id)).map((id) => new mongoose.Types.ObjectId(String(id)))
+    : [];
+}
+
+// The set of products a guest may browse, addressed by any taxonomy identifier.
+// Each field is only overwritten when the client explicitly sends it.
+function sanitizeGuestCatalogue(body, current) {
+  const cur = plainSubdoc(current?.guestCatalogue);
+  const incoming = body?.guestCatalogue;
+  const pick = (key, fallback) => (incoming && incoming[key] !== undefined ? incoming[key] : fallback);
+  return {
+    includeFlagged:
+      incoming && incoming.includeFlagged !== undefined
+        ? Boolean(incoming.includeFlagged)
+        : cur.includeFlagged ?? true,
+    categories: incoming && incoming.categories !== undefined ? toObjectIdArray(incoming.categories) : cur.categories || [],
+    subCategories:
+      incoming && incoming.subCategories !== undefined ? toObjectIdArray(incoming.subCategories) : cur.subCategories || [],
+    collections:
+      incoming && incoming.collections !== undefined ? toObjectIdArray(incoming.collections) : cur.collections || [],
+    occasions: Array.isArray(pick('occasions', cur.occasions))
+      ? pick('occasions', cur.occasions)
+          .map((value) => String(value).trim())
+          .filter(Boolean)
+          .slice(0, 100)
+      : [],
+  };
+}
+
 function sanitizeSiteSettings(body, current = null) {
   return {
     companyName: body.companyName ?? current?.companyName ?? '',
@@ -552,6 +621,8 @@ function sanitizeSiteSettings(body, current = null) {
     newsletterBlurb: body.newsletterBlurb ?? current?.newsletterBlurb ?? '',
     whatsappOperationsNumbers: body.whatsappOperationsNumbers ?? current?.whatsappOperationsNumbers ?? '',
     orderNotificationEmails: body.orderNotificationEmails ?? current?.orderNotificationEmails ?? '',
+    guestAccess: sanitizeGuestAccess(body, current),
+    guestCatalogue: sanitizeGuestCatalogue(body, current),
   };
 }
 
@@ -1709,14 +1780,26 @@ router.delete('/events/:id', async (req, res) => {
 });
 
 router.get('/config', async (_req, res) => {
-  const [siteSettings, categories, subCategories, collections, metalOptions, trustedBrands] = await Promise.all([
-    SiteSettings.findOne().sort({ createdAt: -1 }),
-    Category.find().sort({ name: 1 }),
-    SubCategory.find().sort({ name: 1 }).populate('category'),
-    Collection.find().sort({ name: 1 }).populate(['category', 'subCategory']),
-    MetalOption.find().sort({ name: 1 }),
-    TrustedBrand.find().sort({ sortOrder: 1, createdAt: 1 }),
-  ]);
+  const [siteSettings, categories, subCategories, collections, metalOptions, trustedBrands, occasionValues] =
+    await Promise.all([
+      SiteSettings.findOne().sort({ createdAt: -1 }),
+      Category.find().sort({ name: 1 }),
+      SubCategory.find().sort({ name: 1 }).populate('category'),
+      Collection.find().sort({ name: 1 }).populate(['category', 'subCategory']),
+      MetalOption.find().sort({ name: 1 }),
+      TrustedBrand.find().sort({ sortOrder: 1, createdAt: 1 }),
+      Product.distinct('occasions'),
+    ]);
+
+  // Free-text occasions off the Excel import: drop blanks, de-dupe case-insensitively.
+  const occasions = [
+    ...new Map(
+      (occasionValues || [])
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean)
+        .map((name) => [name.toLowerCase(), name]),
+    ).values(),
+  ].sort((a, b) => a.localeCompare(b));
 
   return sendSuccess(res, {
     siteSettings: siteSettings ? sanitizeSiteSettings(siteSettings, siteSettings) : sanitizeSiteSettings({}),
@@ -1735,6 +1818,7 @@ router.get('/config', async (_req, res) => {
     })),
     metalOptions: metalOptions.map(serializeMetalOption),
     trustedBrands: trustedBrands.map(serializeTrustedBrand),
+    occasions,
   });
 });
 
@@ -1746,6 +1830,10 @@ router.put('/config', async (req, res) => {
     Object.assign(siteSettings, sanitizeSiteSettings(req.body.siteSettings, siteSettings));
     await siteSettings.save();
   }
+
+  // Guest catalogue / access rules changed — drop the cached copy the public
+  // routes read so visitors see the update without waiting for the TTL.
+  invalidateGuestCatalogueCache();
 
   return sendSuccess(
     res,

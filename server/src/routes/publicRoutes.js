@@ -29,6 +29,7 @@ import {
   filterCollectionsForUser,
   allowedCollectionIds,
 } from '../utils/catalogAccess.js';
+import { getGuestCatalogue } from '../utils/guestCatalogue.js';
 import {
   asString,
   containsMatcher,
@@ -44,6 +45,17 @@ const router = express.Router();
 // scope results to the buyer's granted categories/collections. Browsing routes
 // additionally enforce login via requireAuth.
 router.use(optionalAuth);
+
+// For logged-out visitors, load the admin-configured guest catalogue rules once
+// per request (cached) so every catalogue endpoint scopes results the same way.
+router.use(async (req, _res, next) => {
+  try {
+    req.guestCatalogue = req.user ? null : await getGuestCatalogue();
+  } catch (error) {
+    req.guestCatalogue = null;
+  }
+  return next();
+});
 
 // Merge a base Mongo filter with a per-user access filter without clobbering an
 // existing $or (e.g. search). Uses $and when the access filter is non-empty.
@@ -94,7 +106,7 @@ function applySort(query, sort) {
 router.get('/site/home', async (req, res) => {
   // Homepage teasers stay public, but a logged-in restricted buyer should only
   // see products from categories/collections they're allowed to view.
-  const access = productAccessFilter(req.user);
+  const access = productAccessFilter(req.user, req.guestCatalogue);
   const [banners, newArrivals, bestSellers, testimonials, events, trustedBrands, siteSettings, popupAds] = await Promise.all([
     Banner.find({ active: true }).sort({ sortOrder: 1 }),
     Product.find({ isNewArrival: true, status: 'Active', ...access }).populate(productPopulate).limit(10),
@@ -183,16 +195,18 @@ router.get('/products', async (req, res) => {
       .slice(0, 25);
 
   if (asString(category)) {
-    const safeCategory = asString(category);
-    const categories = await Category.find({
-      $or: [
-        { name: safeCategory },
-        { slug: safeCategory },
-        { name: { $regex: escapeRegex(safeCategory), $options: 'i' } },
-      ],
-    }).select('_id');
-    if (categories.length) {
-      filter.category = { $in: categories.map((item) => item._id) };
+    const categoryNames = toNameList(category);
+    if (categoryNames.length) {
+      const categories = await Category.find({
+        $or: categoryNames.flatMap((name) => [
+          { name },
+          { slug: name },
+          { name: { $regex: escapeRegex(name), $options: 'i' } },
+        ]),
+      }).select('_id');
+      if (categories.length) {
+        filter.category = { $in: categories.map((item) => item._id) };
+      }
     }
   }
   if (asString(subCategory)) {
@@ -248,7 +262,7 @@ router.get('/products', async (req, res) => {
   const { page: currentPage, limit: pageSize } = parsePagination({ page, limit });
 
   // Restrict everything to what this buyer is allowed to see.
-  const accessFilter = productAccessFilter(req.user);
+  const accessFilter = productAccessFilter(req.user, req.guestCatalogue);
   const scopedFilter = withAccess(filter, accessFilter);
 
   // Facet list is scoped to access but NOT to the current filter, so the
@@ -267,16 +281,22 @@ router.get('/products', async (req, res) => {
 
   // Scope the filter facets to the buyer's access. Categories that only contain
   // a granted collection are kept so the buyer can still navigate to them.
-  const collections = filterCollectionsForUser(req.user, allCollections);
-  const grantedCollectionIds = new Set(allowedCollectionIds(req.user));
+  const collections = filterCollectionsForUser(req.user, allCollections, req.guestCatalogue);
+  const grantedCollectionIds = new Set(
+    req.user ? allowedCollectionIds(req.user) : (req.guestCatalogue?.collections || []).map(String),
+  );
   const extraCategoryIds = allCollections
     .filter((col) => grantedCollectionIds.has(String(col._id)))
     .map((col) => String(col.category?._id || col.category || ''));
-  const categories = filterCategoriesForUser(req.user, allCategories, extraCategoryIds);
+  const categories = filterCategoriesForUser(req.user, allCategories, extraCategoryIds, req.guestCatalogue);
   const visibleCategoryIds = new Set(categories.map((cat) => String(cat._id)));
 
-  const subCategories = allSubCategories.filter((sub) =>
-    visibleCategoryIds.has(String(sub.category?._id)),
+  // A guest may be granted a sub-category directly (without its parent category),
+  // so surface those in the facet too.
+  const guestSubCategoryIds = new Set((req.guestCatalogue?.subCategories || []).map(String));
+  const subCategories = allSubCategories.filter(
+    (sub) =>
+      visibleCategoryIds.has(String(sub.category?._id)) || guestSubCategoryIds.has(String(sub._id)),
   );
 
   return sendSuccess(res, {
@@ -304,13 +324,13 @@ router.get('/products', async (req, res) => {
 });
 
 router.get('/products/new-arrivals', async (req, res) => {
-  const access = productAccessFilter(req.user);
+  const access = productAccessFilter(req.user, req.guestCatalogue);
   const products = await Product.find({ isNewArrival: true, status: 'Active', ...access }).populate(productPopulate);
   return sendSuccess(res, products.map(serializeProduct));
 });
 
 router.get('/products/best-sellers', async (req, res) => {
-  const access = productAccessFilter(req.user);
+  const access = productAccessFilter(req.user, req.guestCatalogue);
   const products = await Product.find({ status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate);
   return sendSuccess(res, products.map(serializeProduct));
 });
@@ -322,11 +342,11 @@ router.get('/products/:styleCode', async (req, res) => {
   }
 
   // Hide products outside the buyer's granted catalogue (same as not found).
-  if (!canAccessProduct(req.user, product)) {
+  if (!canAccessProduct(req.user, product, req.guestCatalogue)) {
     return sendError(res, 'Product not found', 404);
   }
 
-  const access = productAccessFilter(req.user);
+  const access = productAccessFilter(req.user, req.guestCatalogue);
   const related = await Product.find(
     withAccess(
       {
@@ -374,7 +394,7 @@ router.get('/collections', requireAuth, async (req, res) => {
 // Powers the "Occasions" nav dropdown. Open to guests (scoped to the teaser
 // catalogue by productAccessFilter) so the menu is never empty before sign-in.
 router.get('/occasions', async (req, res) => {
-  const access = productAccessFilter(req.user);
+  const access = productAccessFilter(req.user, req.guestCatalogue);
   const values = await Product.distinct('occasions', withAccess({ status: 'Active' }, access));
   return sendSuccess(res, cleanOccasions(values).map((name) => ({ name })));
 });

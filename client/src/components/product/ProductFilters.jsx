@@ -53,6 +53,30 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
     <div ref={panelRef}>
     <Panel className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
+        <FilterDropdown label="Category" name="category" openFilter={openFilter} onToggle={toggle} onClose={close}>
+          <div className="max-h-64 min-w-[220px] overflow-auto p-4">
+            <div className="space-y-2 text-sm">
+              {filters.categories?.length ? (
+                filters.categories.map((category) => (
+                  <label key={category.name} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
+                    <input
+                      type="checkbox"
+                      checked={activeFilters.category.includes(category.name)}
+                      onChange={() => {
+                        setFilter('category', toggleArrayValue(activeFilters.category, category.name));
+                        close();
+                      }}
+                    />
+                    {category.name}
+                  </label>
+                ))
+              ) : (
+                <p className="text-[var(--color-text-muted)]">No categories available.</p>
+              )}
+            </div>
+          </div>
+        </FilterDropdown>
+
         <FilterDropdown label="Sub Category" name="subCategory" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="max-h-64 min-w-[220px] overflow-auto p-4">
             <div className="space-y-2 text-sm">

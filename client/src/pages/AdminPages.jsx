@@ -116,6 +116,13 @@ const emptySiteSettings = {
     pageTestimonials: true,
     pageTrustedBrands: true,
   },
+  guestCatalogue: {
+    includeFlagged: true,
+    categories: [],
+    subCategories: [],
+    collections: [],
+    occasions: [],
+  },
 };
 
 const emptyCategory = { name: '', slug: '', image: emptyAsset, active: true };
@@ -1143,30 +1150,32 @@ function BulkProductImportPanel({ onImported }) {
 
 function TaxonomyManager({ title, items, onSave, onDelete, children, onEdit, onNew, saveLabel }) {
   return (
-    <Panel className="space-y-4">
-      <div className="flex items-center justify-between">
+    <Panel className="flex h-[540px] flex-col space-y-4">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
         <p className="lux-label">{title}</p>
-        <Button variant="secondary" onClick={onNew}>New</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={onNew}>New</Button>
+          <Button onClick={onSave}>{saveLabel}</Button>
+          {onDelete ? <Button variant="danger" onClick={onDelete}>Delete</Button> : null}
+        </div>
       </div>
-      <div className="space-y-2">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] px-3 py-2 text-left hover:border-[var(--color-border-active)]"
-            onClick={() => onEdit(item)}
-          >
-              <Thumbnail asset={item.logo || item.image || item.swatch} alt={item.name} />
-            <div>
-              <p className="text-sm font-medium text-[var(--color-text)]">{item.name}</p>
-                <p className="text-xs text-[var(--color-text-muted)]">{item.slug || item.group || item.sector || ''}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-      {children}
-      <div className="flex gap-3">
-        <Button onClick={onSave}>{saveLabel}</Button>
-        {onDelete ? <Button variant="danger" onClick={onDelete}>Delete</Button> : null}
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+        <div className="space-y-2">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] px-3 py-2 text-left hover:border-[var(--color-border-active)]"
+              onClick={() => onEdit(item)}
+            >
+                <Thumbnail asset={item.logo || item.image || item.swatch} alt={item.name} />
+              <div>
+                <p className="text-sm font-medium text-[var(--color-text)]">{item.name}</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">{item.slug || item.group || item.sector || ''}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+        {children}
       </div>
     </Panel>
   );
@@ -2369,6 +2378,124 @@ export function AdminWhatsAppPage() {
   );
 }
 
+// Lets an admin decide which products a signed-out guest may browse, addressed
+// by any taxonomy identifier (category / sub-category / collection / occasion)
+// on top of the per-product "Show to guests" teaser flag. Rules are additive.
+function GuestCatalogueGroup({ label, options, selected, onToggle }) {
+  if (!options.length) {
+    return (
+      <div>
+        <p className="lux-label">{label}</p>
+        <p className="mt-1 text-sm text-gray-500">None available yet.</p>
+      </div>
+    );
+  }
+  const selectedSet = new Set((selected || []).map(String));
+  return (
+    <div>
+      <p className="lux-label">{label}</p>
+      <div className="mt-2 flex max-h-56 flex-col gap-2 overflow-auto pr-1">
+        {options.map((option) => (
+          <label key={option.value} className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={selectedSet.has(String(option.value))}
+              onChange={() => onToggle(option.value)}
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collections, occasions, onChange, onSave }) {
+  const gc = {
+    includeFlagged: guestCatalogue?.includeFlagged ?? true,
+    categories: guestCatalogue?.categories || [],
+    subCategories: guestCatalogue?.subCategories || [],
+    collections: guestCatalogue?.collections || [],
+    occasions: guestCatalogue?.occasions || [],
+  };
+
+  const toggle = (field, value) => {
+    const current = (gc[field] || []).map(String);
+    const key = String(value);
+    const next = current.includes(key) ? current.filter((item) => item !== key) : [...current, key];
+    onChange({ ...gc, [field]: next });
+  };
+
+  const totalSelected =
+    gc.categories.length + gc.subCategories.length + gc.collections.length + gc.occasions.length;
+
+  return (
+    <Panel className="order-4 space-y-5">
+      <div>
+        <p className="lux-label">Guest Catalogue (which products guests can browse)</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Pick which products signed-out visitors may see by any identifier below. A product is shown to
+          guests if it matches <span className="font-medium">any</span> selected category, sub-category,
+          collection, or occasion. Leave everything empty to fall back to the per-product "Show to guests"
+          flag only.
+        </p>
+      </div>
+
+      <label className="flex items-center gap-3 text-sm font-medium">
+        <input
+          type="checkbox"
+          className="h-5 w-5"
+          checked={gc.includeFlagged}
+          onChange={(e) => onChange({ ...gc, includeFlagged: e.target.checked })}
+        />
+        Also include products individually flagged "Show to guests"
+      </label>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <GuestCatalogueGroup
+          label="Categories"
+          options={categories.map((item) => ({ value: item.id, label: item.name }))}
+          selected={gc.categories}
+          onToggle={(value) => toggle('categories', value)}
+        />
+        <GuestCatalogueGroup
+          label="Sub Categories"
+          options={subCategories.map((item) => ({
+            value: item.id,
+            label: item.categoryName ? `${item.name} · ${item.categoryName}` : item.name,
+          }))}
+          selected={gc.subCategories}
+          onToggle={(value) => toggle('subCategories', value)}
+        />
+        <GuestCatalogueGroup
+          label="Collections"
+          options={collections.map((item) => ({
+            value: item.id,
+            label: item.categoryName ? `${item.name} · ${item.categoryName}` : item.name,
+          }))}
+          selected={gc.collections}
+          onToggle={(value) => toggle('collections', value)}
+        />
+        <GuestCatalogueGroup
+          label="Occasions"
+          options={occasions.map((name) => ({ value: name, label: name }))}
+          selected={gc.occasions}
+          onToggle={(value) => toggle('occasions', value)}
+        />
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Button onClick={onSave}>Save Guest Catalogue</Button>
+        <span className="text-sm text-gray-500">
+          {totalSelected} rule{totalSelected === 1 ? '' : 's'} selected
+          {gc.includeFlagged ? ' + flagged products' : ''}
+        </span>
+      </div>
+    </Panel>
+  );
+}
+
 export function AdminConfigPage() {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['admin-config'], queryFn: adminService.config });
@@ -2389,10 +2516,10 @@ export function AdminConfigPage() {
   };
 
   return (
-    <div className="space-y-5 sm:space-y-8">
+    <div className="flex flex-col gap-5 sm:gap-8">
       <SectionHeading eyebrow="Configuration" title="Site settings and taxonomy managers" description="These records now power admin dropdowns and frontend content structure." />
 
-      <Panel className="space-y-4">
+      <Panel className="order-3 space-y-4">
         <p className="lux-label">Site settings</p>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Company Name"><input className={textInput} value={siteSettings.companyName} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), companyName: event.target.value }))} /></Field>
@@ -2417,7 +2544,7 @@ export function AdminConfigPage() {
         }}>Save Site Settings</Button>
       </Panel>
 
-      <Panel className="space-y-4">
+      <Panel className="order-4 space-y-4">
         <div>
           <p className="lux-label">General Access (Home Page)</p>
           <p className="text-sm text-gray-500 mb-4 mt-1">Select which sections should be visible to guests (users who are not signed in).</p>
@@ -2497,7 +2624,27 @@ export function AdminConfigPage() {
         }}>Save General Access Settings</Button>
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <GuestCataloguePanel
+        guestCatalogue={siteSettings?.guestCatalogue || emptySiteSettings.guestCatalogue}
+        categories={data.categories || []}
+        subCategories={data.subCategories || []}
+        collections={data.collections || []}
+        occasions={data.occasions || []}
+        onChange={(next) =>
+          setSiteSettingsDraft((current) => ({
+            ...(current || siteSettings),
+            guestCatalogue: next,
+          }))
+        }
+        onSave={async () => {
+          await adminService.updateConfig({ siteSettings });
+          toast.success('Guest catalogue updated');
+          setSiteSettingsDraft(null);
+          refresh();
+        }}
+      />
+
+      <div className="order-1 grid gap-6 xl:grid-cols-2">
         <TaxonomyManager
           title="Categories"
           items={data.categories || []}

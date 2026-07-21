@@ -171,7 +171,7 @@ export function CollectionsShowcase() {
           <div className="grid min-h-42 grid-cols-2 gap-4 sm:gap-4.5 lg:min-h-0 lg:flex-1">
             <ShopCategoryCard
               label="Bracelets"
-              categorySlug="Bracelets"
+              categorySlug="Bracelet"
               imageSrc="/images/shop-category/bracelets.jpg"
               className="aspect-square min-h-42 w-full lg:aspect-auto lg:min-h-0 lg:h-full"
               delay={180}

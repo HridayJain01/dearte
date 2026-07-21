@@ -37,6 +37,18 @@ const siteSettingsSchema = new mongoose.Schema(
       pageTestimonials: { type: Boolean, default: true },
       pageTrustedBrands: { type: Boolean, default: true },
     },
+    /**
+     * Which products a logged-out guest may browse. Rules are additive (OR):
+     * a product is visible if it matches ANY selected identifier. `includeFlagged`
+     * keeps the legacy per-product `showToGuests` teaser in play alongside the rules.
+     */
+    guestCatalogue: {
+      includeFlagged: { type: Boolean, default: true },
+      categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
+      subCategories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory' }],
+      collections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Collection' }],
+      occasions: { type: [String], default: [] },
+    },
   },
   { timestamps: true },
 );

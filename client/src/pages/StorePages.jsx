@@ -63,7 +63,7 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, to }) {
 const PRODUCT_CATEGORY_TILES = [
   { label: 'Rings', categorySlug: 'Rings', imageSrc: '/images/shop-category/rings.jpg' },
   { label: 'Earrings', categorySlug: 'Earrings', imageSrc: '/images/shop-category/earrings.jpg' },
-  { label: 'Bracelets', categorySlug: 'Bracelets', imageSrc: '/images/shop-category/bracelets.jpg' },
+  { label: 'Bracelets', categorySlug: 'Bracelet', imageSrc: '/images/shop-category/bracelets.jpg' },
   { label: 'Pendants', categorySlug: 'Necklaces', imageSrc: '/images/shop-category/pendants.jpg' },
 ];
 
@@ -154,7 +154,7 @@ export function ProductListPage() {
     () => ({
       page,
       limit: 24,
-      category: activeCategory,
+      category: activeCategory || filters.category.join(','),
       collection: activeCollection || filters.collection.join(','),
       occasion: activeOccasion || filters.occasion.join(','),
       sort,
@@ -220,7 +220,7 @@ export function ProductListPage() {
           <div>
             <p className="text-sm text-[var(--color-text-muted)]">{data.total} items found</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {[activeCategory, activeCollection, activeOccasion, ...filters.subCategory, ...filters.collection, ...filters.occasion, ...filters.metalColor, filters.stockType]
+              {[activeCategory, activeCollection, activeOccasion, ...filters.category, ...filters.subCategory, ...filters.collection, ...filters.occasion, ...filters.metalColor, filters.stockType]
                 .filter(Boolean)
                 .map((chip) => (
                   <span key={chip} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1 text-xs tracking-[0.08em] text-[var(--color-text-muted)] uppercase">

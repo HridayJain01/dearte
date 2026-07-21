@@ -1154,7 +1154,7 @@
   "users": [
     {
       "id": "user-admin",
-      "name": "Aarav Shah",
+      "name": "Dearte Admin",
       "email": "admin@dearte.com",
       "mobile": "9999999999",
       "address": "BKC, Mumbai",
@@ -1507,7 +1507,7 @@
     },
     {
       "id": "category-bracelets",
-      "name": "Bracelets",
+      "name": "Bracelet",
       "image": "https://images.unsplash.com/photo-1617038220319-276d3cfab638?auto=format&fit=crop&w=1200&q=80"
     }
   ],

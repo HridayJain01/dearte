@@ -6,6 +6,7 @@ const initialState = {
   sort: '',
   view: 'grid',
   filters: {
+    category: [],
     subCategory: [],
     collection: [],
     occasion: [],

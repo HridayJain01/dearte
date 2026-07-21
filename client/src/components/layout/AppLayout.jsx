@@ -30,7 +30,18 @@ function OccasionsNavMenu({ label, occasions }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!occasions.length) return null;
+  const hasOccasions = occasions.length > 0;
+
+  // The "Occasions" nav item must always be present regardless of auth state.
+  // When no occasion options are available, fall back to a plain link to the
+  // products page rather than hiding the item entirely.
+  if (!hasOccasions) {
+    return (
+      <NavLink to="/products" className={navLinkClass}>
+        {label}
+      </NavLink>
+    );
+  }
 
   return (
     // NAV_TEXT sits on the wrapper, not the button: the global `button { font:

@@ -625,7 +625,7 @@ export const seedData = {
   users: [
     {
       id: 'user-admin',
-      name: 'Aarav Shah',
+      name: 'Dearte Admin',
       email: 'admin@dearte.com',
       mobile: '9999999999',
       address: 'BKC, Mumbai',
