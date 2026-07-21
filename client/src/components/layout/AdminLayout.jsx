@@ -18,7 +18,7 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen bg-primary-bg text-text">
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="border-b border-border bg-surface p-4 shadow-sm sm:p-6 lg:border-b-0 lg:border-r">
+        <aside className="border-b border-border bg-surface p-4 shadow-sm sm:p-6 lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-y-auto lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="lux-label mb-2">Admin Console</p>
