@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { adminService } from '../services/adminService';
 import { Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
-import { Download, Plus, Trash2 } from 'lucide-react';
+import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 
 const textInput =
@@ -1640,8 +1640,18 @@ export function AdminProductsPage() {
   const { data: config } = useQuery({ queryKey: ['admin-config'], queryFn: adminService.config });
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyProduct);
+  const [search, setSearch] = useState('');
 
   if (isLoading || !config) return <LoadingBlock />;
+
+  const query = search.trim().toLowerCase();
+  const filteredProducts = query
+    ? products.filter((product) =>
+        [product.styleCode, product.name, product.sku, product.category, product.collection]
+          .filter(Boolean)
+          .some((field) => String(field).toLowerCase().includes(query))
+      )
+    : products;
 
   const saveProduct = async () => {
     const payload = {
@@ -1681,8 +1691,24 @@ export function AdminProductsPage() {
             <p className="lux-label">Products</p>
             <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyProduct); }}>New Product</Button>
           </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by style code, name, SKU, category…"
+              className={`${textInput} pl-9`}
+            />
+          </div>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            {filteredProducts.length} of {products.length} products
+          </p>
           <div className="max-h-[780px] space-y-3 overflow-y-auto pr-1">
-            {products.map((product) => (
+            {filteredProducts.length === 0 && (
+              <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">No products match “{search}”.</p>
+            )}
+            {filteredProducts.map((product) => (
               <button
                 key={product.id}
                 className={`flex w-full items-center gap-3 border p-4 text-left transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}

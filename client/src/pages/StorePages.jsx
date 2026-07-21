@@ -153,7 +153,7 @@ export function ProductListPage() {
   const params = useMemo(
     () => ({
       page,
-      limit: 6,
+      limit: 24,
       category: activeCategory,
       collection: activeCollection || filters.collection.join(','),
       occasion: activeOccasion || filters.occasion.join(','),
