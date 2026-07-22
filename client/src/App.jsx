@@ -14,6 +14,7 @@ const RegisterPage = lazy(() => import('./pages/AuthPages').then((module) => ({ 
 const ForgotPasswordPage = lazy(() => import('./pages/AuthPages').then((module) => ({ default: module.ForgotPasswordPage })));
 
 const CollectionsPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.CollectionsPage })));
+const OccasionsPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.OccasionsPage })));
 const ProductListPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.ProductListPage })));
 const ProductDetailPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.ProductDetailPage })));
 const CartPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.CartPage })));
@@ -109,6 +110,7 @@ function App() {
           <Route path="products" element={<GuestAccessRoute accessKey="pageProducts"><ProductListPage /></GuestAccessRoute>} />
           <Route path="collections" element={<GuestAccessRoute accessKey="pageCollections"><CollectionsPage /></GuestAccessRoute>} />
           <Route path="collections/:category" element={<LegacyCollectionRedirect />} />
+          <Route path="occasions" element={<OccasionsPage />} />
           <Route path="products/:styleCode" element={<GuestAccessRoute accessKey="pageProducts"><ProductDetailPage /></GuestAccessRoute>} />
           <Route path="cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
           <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />

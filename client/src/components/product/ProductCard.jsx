@@ -34,11 +34,11 @@ export function ProductCard({ product }) {
         aria-hidden
       />
       <Link to={`/products/${product.styleCode}`} className="block relative">
-        <div className="relative h-56 overflow-hidden bg-[var(--color-surface)] sm:h-72">
+        <div className="relative h-40 overflow-hidden bg-[var(--color-surface)] sm:h-72">
           <img
             src={product.images[0]}
             alt={product.name}
-            className="h-full w-full object-contain p-5 transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06]"
+            className="h-full w-full object-contain p-3 transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06] sm:p-5"
           />
           <p className="absolute left-4 top-4 text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--color-primary)]">
             Sale
@@ -55,19 +55,19 @@ export function ProductCard({ product }) {
           </button>
         </div>
 
-        <div className="space-y-3 border-t border-[var(--color-border)] p-4 sm:p-5">
+        <div className="space-y-2 border-t border-[var(--color-border)] p-3 sm:space-y-3 sm:p-5">
           <div className="grid grid-cols-[1fr_auto] items-start gap-3">
             <div>
-              <p className="line-clamp-2 font-serif text-xl leading-[1.25] text-[var(--color-text)] sm:text-[1.35rem]">
+              <p className="line-clamp-2 font-serif text-base leading-[1.25] text-[var(--color-text)] sm:text-[1.35rem]">
                 {product.name}
               </p>
-              <p className="mt-1.5 text-[11px] uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+              <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[11px]">
                 {product.styleCode}
               </p>
             </div>
           </div>
 
-          <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+          <p className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] sm:text-xs">
             <span>
               Diamond: {formatWeight(product.diamondWeight, 'ct')} | Gold: {formatWeight(product.goldWeight, 'g')}
             </span>
@@ -132,7 +132,7 @@ export function ProductCard({ product }) {
             )}
           </div>
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-2 pt-1 sm:gap-3">
             {/* Decorative metal-tone chips — content colours, not UI tokens */}
             {['#ddd', '#ececec', '#d9d9d9', '#f0efe9', '#f2d5b6'].map((swatch) => (
               <span

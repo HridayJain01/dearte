@@ -24,7 +24,7 @@ import { formatDate } from '../utils/formatters';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutSchema } from '../utils/validators';
-import { useCollections } from '../hooks/useProducts';
+import { useCollections, useOccasions } from '../hooks/useProducts';
 
 function ShopCategoryDiamondIcon({ className }) {
   return (
@@ -78,7 +78,7 @@ export function CollectionsPage() {
   }
 
   return (
-    <section className="page-shell animate-page-enter pb-14 pt-12 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20">
+    <section className="page-shell animate-page-enter pb-10 pt-6 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20">
       <Helmet>
         <title>Collections | DeArte Jewellery</title>
         <meta
@@ -87,10 +87,10 @@ export function CollectionsPage() {
         />
       </Helmet>
 
-      <header className="mb-10 text-center sm:mb-12 md:mb-14">
-        <ShopCategoryDiamondIcon className="mx-auto h-11 w-11 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
+      <header className="mb-6 text-center sm:mb-12 md:mb-14">
+        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
         <h1
-          className="mt-5 text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[2rem] md:text-[2.25rem]"
+          className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] sm:mt-5 sm:text-[2rem] md:text-[2.25rem]"
           style={{ color: navy }}
         >
           Shop by Collection
@@ -103,7 +103,7 @@ export function CollectionsPage() {
         </p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.map((collection) => (
           <Link
             key={collection.id}
@@ -122,12 +122,81 @@ export function CollectionsPage() {
             </div>
             <div className="space-y-2 p-4 sm:p-5">
               <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Collection</p>
-              <h2 className="lux-heading text-2xl text-[var(--color-text)]">{collection.name}</h2>
-              <p className="text-sm text-[var(--color-text-muted)]">Tap to shop the pieces curated under this collection story.</p>
+              <h2 className="lux-heading text-lg text-[var(--color-text)] sm:text-2xl">{collection.name}</h2>
+              <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces curated under this collection story.</p>
             </div>
           </Link>
         ))}
       </div>
+    </section>
+  );
+}
+
+/** Shop-by-occasion landing: mirrors the Collections frame, cards jump to the occasion-filtered products. */
+export function OccasionsPage() {
+  const { data, isLoading } = useOccasions();
+
+  const navy = '#002130';
+
+  if (isLoading) {
+    return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading occasions..." /></div>;
+  }
+
+  const occasions = data || [];
+
+  return (
+    <section className="page-shell animate-page-enter pb-10 pt-6 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20">
+      <Helmet>
+        <title>Occasions | DeArte Jewellery</title>
+        <meta
+          name="description"
+          content="Shop lab-grown diamond jewellery by occasion — bridal, everyday, gifting, and more."
+        />
+      </Helmet>
+
+      <header className="mb-6 text-center sm:mb-12 md:mb-14">
+        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
+        <h1
+          className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] sm:mt-5 sm:text-[2rem] md:text-[2.25rem]"
+          style={{ color: navy }}
+        >
+          Shop by Occasion
+        </h1>
+        <p
+          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed sm:text-lg"
+          style={{ color: `${navy}CC` }}
+        >
+          Find the piece made for the moment — bridal vows, everyday shine, or the perfect gift.
+        </p>
+      </header>
+
+      {occasions.length ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+          {occasions.map((occasion) => (
+            <Link
+              key={occasion.name}
+              to={`/products?occasion=${encodeURIComponent(occasion.name)}`}
+              className="group overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] transition duration-300 hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-lg"
+            >
+              <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--color-primary-bg)] via-[var(--color-surface-alt)] to-[var(--color-surface)]">
+                <ShopCategoryDiamondIcon className="h-14 w-14 opacity-60 transition duration-500 group-hover:scale-[1.08] group-hover:opacity-90 sm:h-16 sm:w-16" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/25 via-black/5 to-transparent" />
+              </div>
+              <div className="space-y-2 p-4 sm:p-5">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Occasion</p>
+                <h2 className="lux-heading text-lg text-[var(--color-text)] sm:text-2xl">{occasion.name}</h2>
+                <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces styled for {occasion.name.toLowerCase()}.</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No occasions yet"
+          description="Occasions are drawn from the catalogue. Check back once pieces have been tagged."
+          action={<Link to="/products"><Button>Browse products</Button></Link>}
+        />
+      )}
     </section>
   );
 }
@@ -169,12 +238,17 @@ export function ProductListPage() {
     [activeCategory, activeCollection, activeOccasion, filters, page, sort],
   );
 
-  const { data, isLoading } = useProducts(params);
+  const { data, isLoading, isFetching, isPlaceholderData } = useProducts(params);
   const { isAuthenticated } = useAuth();
 
-  if (isLoading) {
+  // Only the very first load (no data yet) blanks the page. Once we have
+  // results, filter changes keep the previous list on screen and update in
+  // place — see `placeholderData: keepPreviousData` in useProducts.
+  if (isLoading || !data) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Curating product library..." /></div>;
   }
+
+  const isRefreshing = isFetching && isPlaceholderData;
 
   return (
     <section className="page-shell section-gap">
@@ -195,14 +269,14 @@ export function ProductListPage() {
       ) : null}
       <div className="space-y-6">
         {!activeCategory && !activeCollection && !activeOccasion && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
             {PRODUCT_CATEGORY_TILES.map((tile) => (
               <ShopCategoryCard
                 key={tile.label}
                 label={tile.label}
                 categorySlug={tile.categorySlug}
                 imageSrc={tile.imageSrc}
-                className="aspect-[4/5] min-h-[17rem] w-full"
+                className="aspect-square min-h-[9rem] w-full sm:aspect-[4/5] sm:min-h-[17rem]"
               />
             ))}
           </div>
@@ -248,7 +322,11 @@ export function ProductListPage() {
           />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div
+          className={`grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-4 transition-opacity duration-200 ${
+            isRefreshing ? 'pointer-events-none opacity-60' : 'opacity-100'
+          }`}
+        >
           {data.items.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -378,7 +456,7 @@ export function ProductDetailPage() {
           <Panel className="overflow-hidden p-0">
             <TransformWrapper>
               <TransformComponent wrapperClass="h-full w-full">
-                <img src={activeImages[safeActiveImage] || data.images[0]} alt={data.name} className="h-[360px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
+                <img src={activeImages[safeActiveImage] || data.images[0]} alt={data.name} className="h-[280px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
               </TransformComponent>
             </TransformWrapper>
           </Panel>
@@ -391,13 +469,29 @@ export function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
           <div>
             <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">{data.styleCode}</p>
-            <h1 className="lux-heading mt-3 text-5xl">{data.name}</h1>
+            <h1 className="lux-heading mt-2 text-3xl sm:mt-3 sm:text-5xl">{data.name}</h1>
             <p className="mt-3 text-sm text-[var(--color-text-muted)]">
               {data.category} &gt; {data.subCategory} &gt; {data.collection}
             </p>
+            {data.occasions?.length ? (
+              <div className="mt-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Perfect for</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {data.occasions.map((occasion) => (
+                    <Link
+                      key={occasion}
+                      to={`/products?occasion=${encodeURIComponent(occasion)}`}
+                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1.5 text-xs text-[var(--color-text)] transition hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)]"
+                    >
+                      {occasion}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <Panel>

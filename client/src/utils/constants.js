@@ -20,8 +20,9 @@ export const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Products', to: '/products' },
   { label: 'Collections', to: '/collections' },
-  // Rendered as a dropdown in AppLayout; options come from /api/occasions.
-  { label: 'Occasions', to: '/products', occasionMenu: true },
+  // Links to the "Shop by Occasion" page; AppLayout also adds a quick-pick
+  // dropdown on hover with options from /api/occasions.
+  { label: 'Occasions', to: '/occasions', occasionMenu: true },
   { label: 'Best Sellers', to: '/products?sort=best-sellers' },
   { label: 'About Us', to: '/about' },
 ];

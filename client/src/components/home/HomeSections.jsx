@@ -17,18 +17,18 @@ function SectionIntro({ eyebrow, title, description, action, align = 'left', cla
   const centered = align === 'center';
 
   return (
-    <Reveal className={`mb-10 sm:mb-14 ${centered ? 'text-center' : ''} ${className}`}>
-      <div className={`flex flex-col gap-4 ${centered ? 'items-center' : 'md:flex-row md:items-end md:justify-between'}`}>
+    <Reveal className={`mb-6 sm:mb-14 ${centered ? 'text-center' : ''} ${className}`}>
+      <div className={`flex flex-col gap-3 sm:gap-4 ${centered ? 'items-center' : 'md:flex-row md:items-end md:justify-between'}`}>
         <div className={`max-w-2xl ${centered ? 'mx-auto' : ''}`}>
           {eyebrow ? (
-            <div className={`mb-4 flex items-center gap-3 ${centered ? 'justify-center' : ''}`}>
+            <div className={`mb-3 flex items-center gap-3 sm:mb-4 ${centered ? 'justify-center' : ''}`}>
               <span className="gold-hairline w-8" aria-hidden />
               <p className="lux-label">{eyebrow}</p>
             </div>
           ) : null}
-          <h2 className="lux-heading text-3xl sm:text-4xl md:text-6xl">{title}</h2>
+          <h2 className="lux-heading text-2xl sm:text-4xl md:text-6xl">{title}</h2>
           {description ? (
-            <p className="mt-4 text-sm text-[var(--color-text-muted)] md:text-base">{description}</p>
+            <p className="mt-2 text-sm text-[var(--color-text-muted)] sm:mt-4 md:text-base">{description}</p>
           ) : null}
         </div>
         {action}
@@ -95,17 +95,17 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, delay = 0 
 
 export function BrandExpressionFrame() {
   return (
-    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 overflow-hidden py-8 sm:py-14">
-      <Reveal className="page-shell mb-4 text-center sm:mb-8">
+    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 overflow-hidden py-6 sm:py-14">
+      <Reveal className="page-shell mb-3 text-center sm:mb-8">
         <span className="gold-hairline mx-auto w-16" aria-hidden />
-        <p className="lux-label mt-5">The DeArte Expression</p>
+        <p className="lux-label mt-4 sm:mt-5">The DeArte Expression</p>
       </Reveal>
       <Parallax speed={0.07}>
         <Reveal delay={120}>
           <img
             src={brandExpressionImage}
             alt="Origin Emotion Experience Radiance"
-            className="mx-auto block h-auto max-h-[32rem] w-full object-contain sm:max-h-[40rem]"
+            className="mx-auto block h-auto max-h-[15rem] w-full object-contain sm:max-h-[40rem]"
             loading="lazy"
           />
         </Reveal>
@@ -116,13 +116,13 @@ export function BrandExpressionFrame() {
 
 export function ProcessImageFrame() {
   return (
-    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 overflow-hidden pb-8 pt-4 sm:pb-14 sm:pt-8">
-      <Reveal className="page-shell mb-8 sm:mb-12">
+    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 overflow-hidden pb-6 pt-2 sm:pb-14 sm:pt-8">
+      <Reveal className="page-shell mb-5 sm:mb-12">
         <div className="flex items-center gap-3">
           <span className="gold-hairline w-8" aria-hidden />
           <p className="lux-label">The Atelier</p>
         </div>
-        <h2 className="lux-heading mt-4 max-w-3xl text-3xl sm:text-4xl md:text-6xl">
+        <h2 className="lux-heading mt-3 max-w-3xl text-2xl sm:text-4xl md:text-6xl">
           From rough brilliance to finished radiance.
         </h2>
       </Reveal>
@@ -131,7 +131,7 @@ export function ProcessImageFrame() {
           <img
             src={processImage}
             alt="Jewellery creation process"
-            className="block h-auto w-full"
+            className="mx-auto block h-auto max-h-[18rem] w-full object-contain sm:max-h-none sm:object-cover"
             loading="lazy"
           />
         </Reveal>
@@ -142,11 +142,11 @@ export function ProcessImageFrame() {
 
 export function CollectionsShowcase() {
   return (
-    <section className="page-shell pb-14 pt-8 sm:pb-20 sm:pt-10 md:pb-28 md:pt-12">
-      <Reveal as="header" className="mb-10 text-center sm:mb-12 md:mb-14">
-        <ShopCategoryDiamondIcon className="mx-auto h-11 w-11 text-[var(--color-accent)] sm:h-12 sm:w-12 md:h-13 md:w-13" />
-        <h2 className="lux-heading mt-5 text-3xl sm:text-4xl md:text-5xl">Shop by Category</h2>
-        <p className="mx-auto mt-3 max-w-160 text-sm leading-relaxed text-[var(--color-text-muted)] sm:text-lg">
+    <section className="page-shell pb-10 pt-6 sm:pb-20 sm:pt-10 md:pb-28 md:pt-12">
+      <Reveal as="header" className="mb-6 text-center sm:mb-12 md:mb-14">
+        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 text-[var(--color-accent)] sm:h-12 sm:w-12 md:h-13 md:w-13" />
+        <h2 className="lux-heading mt-4 text-2xl sm:text-4xl md:text-5xl">Shop by Category</h2>
+        <p className="mx-auto mt-2 max-w-160 text-sm leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-lg">
           Discover the perfect lab-grown diamond jewellery for everyday and special occasions.
         </p>
       </Reveal>
@@ -156,31 +156,31 @@ export function CollectionsShowcase() {
           label="Rings"
           categorySlug="Rings"
           imageSrc="/images/shop-category/rings.jpg"
-          className="aspect-4/5 min-h-70 w-full lg:aspect-auto lg:w-1/2 lg:self-stretch lg:min-h-144"
+          className="aspect-3/2 min-h-40 w-full sm:aspect-4/5 sm:min-h-70 lg:aspect-auto lg:w-1/2 lg:self-stretch lg:min-h-144"
         />
 
-        <div className="flex w-full min-h-0 flex-col gap-4 sm:gap-4.5 lg:w-1/2 lg:min-h-144">
+        <div className="flex w-full min-h-0 flex-col gap-3 sm:gap-4.5 lg:w-1/2 lg:min-h-144">
           <ShopCategoryCard
             label="Earrings"
             categorySlug="Earrings"
             imageSrc="/images/shop-category/earrings.jpg"
-            className="aspect-16/11 min-h-48 w-full lg:aspect-auto lg:min-h-0 lg:flex-1"
+            className="aspect-16/9 min-h-32 w-full sm:aspect-16/11 sm:min-h-48 lg:aspect-auto lg:min-h-0 lg:flex-1"
             delay={90}
           />
 
-          <div className="grid min-h-42 grid-cols-2 gap-4 sm:gap-4.5 lg:min-h-0 lg:flex-1">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4.5 lg:flex-1 lg:min-h-0">
             <ShopCategoryCard
               label="Bracelets"
               categorySlug="Bracelet"
               imageSrc="/images/shop-category/bracelets.jpg"
-              className="aspect-square min-h-42 w-full lg:aspect-auto lg:min-h-0 lg:h-full"
+              className="aspect-square min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 lg:h-full"
               delay={180}
             />
             <ShopCategoryCard
               label="Pendants"
               categorySlug="Necklaces"
               imageSrc="/images/shop-category/pendants.jpg"
-              className="aspect-square min-h-42 w-full lg:aspect-auto lg:min-h-0 lg:h-full"
+              className="aspect-square min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 lg:h-full"
               delay={270}
             />
           </div>
@@ -210,7 +210,7 @@ export function HeroSlider({ banners }) {
 
   return (
     <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2">
-      <div className="relative h-[calc(92svh-5.75rem)] overflow-hidden sm:h-[calc(88svh-6.5rem)]">
+      <div className="relative h-[58svh] min-h-[22rem] overflow-hidden sm:h-[calc(88svh-6.5rem)]">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
@@ -231,7 +231,7 @@ export function HeroSlider({ banners }) {
 
         <div className="relative z-10 flex h-full items-center">
           <div className="page-shell w-full">
-            <div key={slide.id} className="hero-copy flex max-w-3xl flex-col gap-4 py-10 sm:gap-5">
+            <div key={slide.id} className="hero-copy flex max-w-3xl flex-col gap-3 py-6 sm:gap-5 sm:py-10">
               <div className="animate-hero-line flex items-center gap-4" style={{ '--line-delay': '80ms' }}>
                 <span className="gold-hairline w-10" aria-hidden />
                 <p className="lux-label text-white/75!">Luxury B2B Jewellery Platform</p>
@@ -245,7 +245,7 @@ export function HeroSlider({ banners }) {
                 </p>
               ) : null}
               <h1
-                className="animate-hero-line lux-heading text-4xl text-white! sm:text-6xl md:text-8xl"
+                className="animate-hero-line lux-heading text-3xl text-white! sm:text-6xl md:text-8xl"
                 style={{ '--line-delay': '280ms' }}
               >
                 {slide.title}
@@ -299,7 +299,7 @@ export function HeroSlider({ banners }) {
 
 export function ProductRail({ title, description, products, link, bgClass = 'bg-transparent' }) {
   return (
-    <section className={`py-12 sm:py-20 ${bgClass}`}>
+    <section className={`py-8 sm:py-20 ${bgClass}`}>
       <div className="page-shell">
         <SectionIntro
           eyebrow="Curated Edit"
@@ -307,12 +307,12 @@ export function ProductRail({ title, description, products, link, bgClass = 'bg-
           description={description}
           action={<RailLink to={link}>View All</RailLink>}
         />
-        <div className="hide-scrollbar snap-rail flex gap-4 overflow-x-auto pb-4 sm:gap-6">
+        <div className="hide-scrollbar snap-rail flex gap-3 overflow-x-auto pb-4 sm:gap-6">
           {products.map((product, index) => (
             <Reveal
               key={product.id}
               delay={Math.min(index, 4) * 80}
-              className="min-w-[236px] max-w-[236px] flex-none snap-start sm:min-w-[320px] sm:max-w-[320px]"
+              className="min-w-[200px] max-w-[200px] flex-none snap-start sm:min-w-[320px] sm:max-w-[320px]"
             >
               <ProductCard product={product} />
             </Reveal>
@@ -441,24 +441,24 @@ export function EventsRail({ events }) {
           const status = getEventStatus(event.date);
 
           return (
-            <Reveal key={event.id} delay={Math.min(index, 3) * 90} className="min-w-[280px] flex-none snap-start sm:min-w-[360px]">
+            <Reveal key={event.id} delay={Math.min(index, 3) * 90} className="min-w-[240px] flex-none snap-start sm:min-w-[360px]">
               <article className="group h-full border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)]">
                 <div className="relative overflow-hidden">
                   <img
                     src={event.image}
                     alt={event.title}
-                    className="h-52 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-64"
+                    className="h-40 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-64"
                   />
                   <span className="absolute left-4 top-4 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]">
                     {status}
                   </span>
                 </div>
-                <div className="space-y-4 p-4 sm:p-6">
+                <div className="space-y-3 p-4 sm:space-y-4 sm:p-6">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
                     <CalendarDays className="h-4 w-4 text-[var(--color-accent)]" />
                     <span>{new Date(event.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
-                  <h3 className="font-serif text-2xl leading-tight text-[var(--color-text)] sm:text-[1.7rem]">{event.title}</h3>
+                  <h3 className="font-serif text-xl leading-tight text-[var(--color-text)] sm:text-[1.7rem]">{event.title}</h3>
                   <p className="text-sm leading-7 text-[var(--color-text-muted)]">{event.description}</p>
                 </div>
               </article>
@@ -564,13 +564,13 @@ export function CollectionsRail({ collections }) {
 
 export function CTABanner() {
   return (
-    <section className="relative w-full overflow-hidden bg-[var(--color-primary)] py-16 text-center sm:py-28">
+    <section className="relative w-full overflow-hidden bg-[var(--color-primary)] py-10 text-center sm:py-28">
       <div className="cta-glow pointer-events-none absolute inset-0" aria-hidden />
       <div className="light-sweep" aria-hidden />
       <Reveal className="page-shell relative mx-auto max-w-3xl">
         <span className="gold-hairline mx-auto w-16" aria-hidden />
-        <p className="lux-label mt-6 text-[var(--color-accent)]!">The atelier awaits</p>
-        <h2 className="lux-heading mb-8 mt-4 text-3xl text-white! sm:text-4xl md:text-6xl">Ready to curate your collection?</h2>
+        <p className="lux-label mt-5 text-[var(--color-accent)]! sm:mt-6">The atelier awaits</p>
+        <h2 className="lux-heading mb-6 mt-3 text-2xl text-white! sm:mb-8 sm:mt-4 sm:text-4xl md:text-6xl">Ready to curate your collection?</h2>
         <div className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
           <Link to="/products">
             <Button variant="secondary" className="w-full sm:w-auto">Explore Collection</Button>
