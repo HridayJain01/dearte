@@ -113,6 +113,10 @@ router.get('/me', async (req, res) => {
       const payload = verifyAccessToken(accessToken);
       const user = await User.findById(payload.sub);
       if (!user) return sendError(res, 'User not found', 401);
+      if (user.status !== 'Active') {
+        clearSessionCookies(res);
+        return sendError(res, 'Account is not active', 403);
+      }
       return sendSuccess(res, { user: userDto(user) });
     }
   } catch (error) {
@@ -130,6 +134,11 @@ router.get('/me', async (req, res) => {
     if (!user || !refreshTokenMatches(user.refreshTokens, refreshToken)) {
       clearSessionCookies(res);
       return sendError(res, 'Session expired', 401);
+    }
+
+    if (user.status !== 'Active') {
+      clearSessionCookies(res);
+      return sendError(res, 'Account is not active', 403);
     }
 
     const newAccessToken = signAccessToken(user);
@@ -152,6 +161,13 @@ router.post('/refresh', async (req, res) => {
     if (!user || !refreshTokenMatches(user.refreshTokens, refreshToken)) {
       clearSessionCookies(res);
       return sendError(res, 'Invalid session', 401);
+    }
+
+    // A deactivated account cannot mint a fresh access token from an old refresh
+    // token — otherwise deactivation would not take effect for up to 14 days.
+    if (user.status !== 'Active') {
+      clearSessionCookies(res);
+      return sendError(res, 'Account is not active', 403);
     }
 
     const nextRefreshToken = signRefreshToken(user);

@@ -69,7 +69,9 @@ export function ContactPage() {
             <p>{data.email}</p>
             <p>{data.hours}</p>
           </div>
-          <iframe title="DeArte map" src={data.mapsEmbed} className="mt-6 h-[320px] w-full border-0" />
+          {/^https:\/\//i.test(data.mapsEmbed || '') && (
+            <iframe title="DeArte map" src={data.mapsEmbed} className="mt-6 h-[320px] w-full border-0" />
+          )}
         </Panel>
       </div>
     </section>

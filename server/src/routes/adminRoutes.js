@@ -20,7 +20,7 @@ import { cloudinary } from '../config/cloudinary.js';
 import { seedData } from '../data/seed.js';
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
-import { escapeRegex } from '../utils/validation.js';
+import { asString, escapeRegex, isValidEmail, normalizeEmail } from '../utils/validation.js';
 import {
   serializeCatalogue,
   serializeMetalOption,
@@ -606,6 +606,16 @@ function sanitizeGuestCatalogue(body, current) {
   };
 }
 
+// The map embed is rendered as an <iframe src> on the public contact page, so
+// only a plain https URL is allowed through — never a javascript:/data: URI or a
+// bare host. `undefined` keeps the stored value; an empty string clears it.
+function sanitizeEmbedUrl(value, fallback = '') {
+  if (value === undefined) return typeof fallback === 'string' ? fallback : '';
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return '';
+  return /^https:\/\//i.test(raw) ? raw : '';
+}
+
 function sanitizeSiteSettings(body, current = null) {
   return {
     companyName: body.companyName ?? current?.companyName ?? '',
@@ -617,7 +627,7 @@ function sanitizeSiteSettings(body, current = null) {
     facebook: body.facebook ?? current?.facebook ?? '',
     address: body.address ?? current?.address ?? '',
     hours: body.hours ?? current?.hours ?? '',
-    mapsEmbed: body.mapsEmbed ?? current?.mapsEmbed ?? '',
+    mapsEmbed: sanitizeEmbedUrl(body.mapsEmbed, current?.mapsEmbed ?? ''),
     newsletterBlurb: body.newsletterBlurb ?? current?.newsletterBlurb ?? '',
     whatsappOperationsNumbers: body.whatsappOperationsNumbers ?? current?.whatsappOperationsNumbers ?? '',
     orderNotificationEmails: body.orderNotificationEmails ?? current?.orderNotificationEmails ?? '',
@@ -906,24 +916,49 @@ router.put('/users/:id', async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return sendError(res, 'User not found', 404);
 
-  const allowed = [
-    'name',
-    'email',
-    'mobile',
-    'address',
-    'city',
-    'state',
-    'country',
-    'pinCode',
-    'companyName',
-    'gstNumber',
-    'status',
-  ];
+  // This endpoint manages buyer/sales accounts only. Refusing admin targets stops
+  // one admin from demoting/renaming another (or hijacking their email to seize
+  // the account via a password reset).
+  if (!['buyer', 'sales'].includes(user.role)) {
+    return sendError(res, 'This account cannot be edited here', 403);
+  }
 
-  for (const field of allowed) {
+  // Free-text fields, coerced to bounded strings (defeats `{"$ne":...}`-style
+  // objects reaching Mongoose and caps length).
+  const textFields = {
+    name: 120,
+    mobile: 32,
+    address: 500,
+    city: 120,
+    state: 120,
+    country: 120,
+    pinCode: 20,
+    companyName: 200,
+    gstNumber: 32,
+  };
+
+  for (const [field, maxLength] of Object.entries(textFields)) {
     if (field in req.body) {
-      user[field] = req.body[field];
+      user[field] = asString(req.body[field], { maxLength });
     }
+  }
+
+  // Email goes through the same normalisation/validation as registration, and
+  // must stay unique across accounts.
+  if ('email' in req.body) {
+    const email = normalizeEmail(req.body.email);
+    if (!isValidEmail(email)) {
+      return sendError(res, 'A valid email address is required', 400);
+    }
+    const clash = await User.findOne({ email, _id: { $ne: user._id } });
+    if (clash) {
+      return sendError(res, 'Another account already uses this email', 409);
+    }
+    user.email = email;
+  }
+
+  if ('status' in req.body && ['Active', 'Inactive'].includes(req.body.status)) {
+    user.status = req.body.status;
   }
 
   // Role: only buyer <-> sales can be toggled here (never promote to admin via this route).

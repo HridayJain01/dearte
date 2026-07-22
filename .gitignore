@@ -17,3 +17,7 @@ server/dist
 *.key
 *.p12
 *.pfx
+
+# Local/mock database dumps: may contain password hashes and PII, never commit.
+server/src/data/runtime-db.json
+runtime-db.json

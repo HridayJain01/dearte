@@ -17,6 +17,13 @@ export const requireAuth = async (req, res, next) => {
       return sendError(res, 'User not found', 401);
     }
 
+    // A still-valid token must not outlive the account it belongs to. Login
+    // gates on status, but without this an admin-deactivated user (or a demoted
+    // sales account) keeps full access until the 14-day refresh token expires.
+    if (user.status !== 'Active') {
+      return sendError(res, 'Account is not active', 403);
+    }
+
     req.user = user;
     return next();
   } catch (error) {
@@ -34,7 +41,8 @@ export const optionalAuth = async (req, _res, next) => {
   try {
     const payload = verifyAccessToken(token);
     const user = await User.findById(payload.sub);
-    req.user = user || null;
+    // Treat a deactivated account as a guest so it never gets buyer-scoped access.
+    req.user = user && user.status === 'Active' ? user : null;
   } catch (error) {
     req.user = null;
   }

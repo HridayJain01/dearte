@@ -93,6 +93,24 @@ app.use('/api/admin/products/bulk-import', express.json({ limit: '25mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
+// CSRF hardening. Session cookies are SameSite=None in production (the client and
+// API live on different sites), so the browser attaches them to cross-site
+// requests. A forged <form>/<img> can only issue "simple" requests, which cannot
+// carry a custom header without triggering a CORS preflight that our allow-list
+// rejects. Requiring X-Requested-With on every state-changing call therefore
+// blocks silent cross-site POSTs (e.g. to /auth/logout) that carry no JSON body.
+// The Meta WhatsApp webhook is server-to-server and exempt.
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CSRF_EXEMPT_PREFIXES = ['/api/whatsapp'];
+app.use((req, res, next) => {
+  if (CSRF_SAFE_METHODS.has(req.method)) return next();
+  if (CSRF_EXEMPT_PREFIXES.some((prefix) => req.path.startsWith(prefix))) return next();
+  if (!req.get('x-requested-with')) {
+    return sendError(res, 'Missing X-Requested-With header', 403);
+  }
+  return next();
+});
+
 app.get('/api/health', (_req, res) =>
   // Deliberately does not touch the database or report row counts: an
   // unauthenticated endpoint should not be a free query or an inventory oracle.

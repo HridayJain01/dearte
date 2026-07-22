@@ -181,6 +181,20 @@ export function serializeUser(doc) {
   };
 }
 
+/**
+ * Minimal, non-sensitive view of a user. Used wherever a user reference is shown
+ * to someone other than that user (e.g. the admin who touched an order's status),
+ * so contact PII — email, mobile, address, GST — never leaks through a nested ref.
+ */
+export function serializeUserSummary(doc) {
+  if (!doc) return null;
+  return {
+    id: String(doc._id),
+    name: doc.name,
+    role: doc.role,
+  };
+}
+
 export function serializeOrder(doc) {
   if (!doc) return null;
   return {
@@ -192,7 +206,8 @@ export function serializeOrder(doc) {
       status: entry.status,
       note: entry.note,
       changedAt: entry.changedAt,
-      changedBy: entry.changedBy ? serializeUser(entry.changedBy) : null,
+      // Only the actor's name/role — never their contact PII — reaches the buyer.
+      changedBy: entry.changedBy ? serializeUserSummary(entry.changedBy) : null,
     })),
     paymentMethod: doc.paymentMethod,
     shippingAddress: doc.shippingAddress,
@@ -217,20 +232,30 @@ export function serializeOrder(doc) {
   };
 }
 
-export function serializeCatalogue(doc) {
+/**
+ * `includeAssignedUsers` must stay false for buyer-facing responses: the assigned
+ * list holds other buyers' contact PII (email, mobile, address, GST) that a
+ * co-assigned buyer has no reason to see. Admin callers pass it as true.
+ */
+export function serializeCatalogue(doc, { includeAssignedUsers = true } = {}) {
   if (!doc) return null;
-  return {
+  const base = {
     id: String(doc._id),
     name: doc.name,
     description: doc.description,
     coverImage: normalizeAsset(doc.coverImage),
     products: (doc.products || []).map(serializeProduct),
     productIds: (doc.products || []).map((item) => String(item._id || item)),
-    assignedUsers: (doc.assignedUsers || []).map(serializeUser),
-    assignedUserIds: (doc.assignedUsers || []).map((item) => String(item._id || item)),
     active: doc.active,
     archived: doc.archived,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
+
+  if (includeAssignedUsers) {
+    base.assignedUsers = (doc.assignedUsers || []).map(serializeUser);
+    base.assignedUserIds = (doc.assignedUsers || []).map((item) => String(item._id || item));
+  }
+
+  return base;
 }

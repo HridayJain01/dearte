@@ -573,8 +573,16 @@ router.get('/orders/:id', async (req, res) => {
 });
 
 router.post('/orders/:id/change-requests', async (req, res) => {
+  // Guard the `_id` branch: a non-ObjectId path segment would otherwise throw a
+  // Mongoose CastError instead of reading as a clean 404 (matches GET /orders/:id).
+  const identifier = String(req.params.id);
+  const matchers = [{ orderId: identifier }];
+  if (isObjectId(identifier)) {
+    matchers.unshift({ _id: identifier });
+  }
+
   const order = await Order.findOne({
-    $or: [{ _id: req.params.id }, { orderId: req.params.id }],
+    $or: matchers,
     user: req.user._id,
   });
 
@@ -635,15 +643,16 @@ router.get('/catalogues', async (req, res) => {
     active: true,
   })
     .sort({ createdAt: -1 })
+    // Deliberately not populating `assignedUsers`: a buyer only needs the products,
+    // and the assigned list holds other buyers' contact PII.
     .populate([
-      { path: 'assignedUsers' },
       {
         path: 'products',
         populate: productPopulate,
       },
     ]);
 
-  return sendSuccess(res, catalogues.map(serializeCatalogue));
+  return sendSuccess(res, catalogues.map((catalogue) => serializeCatalogue(catalogue, { includeAssignedUsers: false })));
 });
 
 export default router;
