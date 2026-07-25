@@ -72,6 +72,7 @@ export function markSessionStarted(expiresAt) {
 
 export function markSessionEnded() {
   sessionExpiresAt = 0;
+  renewAt = 0;
   try {
     window.localStorage.removeItem(SESSION_STORAGE_KEY);
   } catch {
@@ -126,7 +127,7 @@ export function refreshSession() {
 
 api.interceptors.request.use(async (config) => {
   if (config.skipSessionRefresh || isSessionEndpoint(config.url)) return config;
-  if (!hasSession() || Date.now() < sessionExpiresAt - REFRESH_SKEW_MS) return config;
+  if (!hasSession() || Date.now() < renewAt) return config;
 
   // A failed renewal still lets the request through: it simply goes out as a
   // guest, which is the correct result for a session that is genuinely over.
