@@ -15,7 +15,6 @@ const initialState = {
     diamondMax: '',
     goldMin: '',
     goldMax: '',
-    stockType: '',
   },
 };
 

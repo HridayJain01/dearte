@@ -34,7 +34,6 @@ import {
   asString,
   containsMatcher,
   escapeRegex,
-  oneOf,
   parsePagination,
   toNumber,
 } from '../utils/validation.js';
@@ -177,13 +176,12 @@ router.get('/products', async (req, res) => {
     sort,
     page = 1,
     limit = 24,
-    stockType,
   } = req.query;
 
   const filter = { status: 'Active' };
 
   // Every value below is coerced to a primitive string first. Express parses
-  // `?stockType[$ne]=x` into an object, so passing query values straight into
+  // `?status[$ne]=x` into an object, so passing query values straight into
   // a filter would let a caller inject Mongo operators. User text that reaches
   // $regex is escaped so it matches literally instead of compiling into a
   // pattern that can hang the event loop.
@@ -229,9 +227,6 @@ router.get('/products', async (req, res) => {
     const colors = await MetalOption.find({ name: { $in: toNameList(metalColor) } }).select('_id');
     filter.metalColor = { $in: colors.map((item) => item._id) };
   }
-
-  const safeStockType = oneOf(stockType, ['Ready Stock', 'Made to Order']);
-  if (safeStockType) filter.stockType = safeStockType;
 
   const diamondLow = toNumber(diamondMin);
   const diamondHigh = toNumber(diamondMax);
@@ -281,7 +276,6 @@ router.get('/products', async (req, res) => {
           { metal: matcher },
           { diamondQuality: matcher },
           { settingType: matcher },
-          { stockType: matcher },
           { occasion: matcher },
           { occasions: matcher },
           { 'specifications.attribute': matcher },

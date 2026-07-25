@@ -244,22 +244,6 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
           </div>
         </FilterDropdown>
 
-        <FilterDropdown label="Order Type" name="orderType" openFilter={openFilter} onToggle={toggle} onClose={close}>
-          <div className="min-w-[220px] p-4">
-            <Select
-              value={activeFilters.stockType}
-              onChange={(value) => {
-                setFilter('stockType', value);
-                close();
-              }}
-              options={[
-                { value: '', label: 'All' },
-                { value: 'Ready Stock', label: 'Ready Stock' },
-                { value: 'Make to Order', label: 'Make to Order' },
-              ]}
-            />
-          </div>
-        </FilterDropdown>
       </div>
 
       <div className="text-xs text-[var(--color-text-muted)]">

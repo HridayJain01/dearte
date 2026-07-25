@@ -370,7 +370,6 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       diamondQuality: String(pickFirstDefined(row, ['diamondquality'])).trim() || 'VS-GH',
       settingType: String(pickFirstDefined(row, ['settingtype'])).trim(),
       sku: String(pickFirstDefined(row, ['sku'])).trim() || styleCode,
-      stockType: options.stockType || 'Ready Stock',
       // Bulk-imported products should be purchasable immediately. The UI no
       // longer collects a per-import quantity, so default to an effectively
       // unlimited count rather than 0 (which would mark every style out of stock).
@@ -423,7 +422,6 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       occasion: item.occasions[0] || '',
       occasions: item.occasions,
       sku: item.sku,
-      stockType: item.stockType,
       status: item.status,
       isNewArrival: item.isNewArrival,
       isBestSeller: item.isBestSeller,
@@ -522,7 +520,6 @@ function sanitizeProductPayload(body, currentProduct = null) {
     occasion: body.occasion ?? currentProduct?.occasion ?? '',
     occasions: dedupeStrings(body.occasions ?? currentProduct?.occasions ?? []),
     sku: body.sku ?? currentProduct?.sku ?? '',
-    stockType: body.stockType ?? currentProduct?.stockType ?? 'Ready Stock',
     status: body.status ?? currentProduct?.status ?? 'Active',
     isNewArrival: parseBoolean(body.isNewArrival, currentProduct?.isNewArrival ?? false),
     isBestSeller: parseBoolean(body.isBestSeller, currentProduct?.isBestSeller ?? false),
@@ -1058,7 +1055,6 @@ router.post('/products/bulk-import', async (req, res) => {
     // longer supplies a single category/collection for the whole upload.
     const { payloads, errors } = buildBulkImportPayloads(rows, {
       cloudinaryBaseUrl: req.body.cloudinaryBaseUrl,
-      stockType: req.body.stockType,
       status: req.body.status,
       isNewArrival: req.body.isNewArrival,
       isBestSeller: req.body.isBestSeller,
@@ -1294,6 +1290,44 @@ router.delete('/subcategories/:id', async (req, res) => {
   return sendSuccess(res, null, 'Sub-category deleted');
 });
 
+// A product carries a single `collection` reference, so membership is edited from
+// the product side: everything the admin ticked points at this collection, and
+// anything that pointed here but was unticked is released.
+async function syncCollectionProducts(collectionId, productIds) {
+  const ids = toObjectIdArray(productIds);
+  await Product.updateMany(
+    { collection: collectionId, _id: { $nin: ids } },
+    { $set: { collection: null } },
+  );
+  if (ids.length) {
+    await Product.updateMany({ _id: { $in: ids } }, { $set: { collection: collectionId } });
+  }
+}
+
+async function collectionProductIdMap(collectionIds) {
+  const rows = await Product.find({ collection: { $in: collectionIds } })
+    .select('collection')
+    .lean();
+  const map = new Map();
+  rows.forEach((row) => {
+    const key = String(row.collection);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(String(row._id));
+  });
+  return map;
+}
+
+function serializeCollection(doc, productIds = []) {
+  return {
+    ...serializeTaxonomy(doc),
+    categoryId: doc.category ? String(doc.category._id || doc.category) : '',
+    categoryName: doc.category?.name || '',
+    subCategoryId: doc.subCategory ? String(doc.subCategory._id || doc.subCategory) : '',
+    subCategoryName: doc.subCategory?.name || '',
+    productIds,
+  };
+}
+
 router.get('/collections', async (req, res) => {
   const query = {};
   if (req.query.categoryId && isObjectId(req.query.categoryId)) {
@@ -1307,15 +1341,11 @@ router.get('/collections', async (req, res) => {
     .sort({ name: 1 })
     .populate(['category', 'subCategory']);
 
+  const productIdMap = await collectionProductIdMap(collections.map((item) => item._id));
+
   return sendSuccess(
     res,
-    collections.map((item) => ({
-      ...serializeTaxonomy(item),
-      categoryId: item.category ? String(item.category._id || item.category) : '',
-      categoryName: item.category?.name || '',
-      subCategoryId: item.subCategory ? String(item.subCategory._id || item.subCategory) : '',
-      subCategoryName: item.subCategory?.name || '',
-    })),
+    collections.map((item) => serializeCollection(item, productIdMap.get(String(item._id)) || [])),
   );
 });
 
@@ -1329,16 +1359,13 @@ router.post('/collections', async (req, res) => {
       image: normalizeAsset(req.body.image),
       active: parseBoolean(req.body.active, true),
     });
+    if (req.body.productIds !== undefined) {
+      await syncCollectionProducts(collection._id, req.body.productIds);
+    }
     await collection.populate(['category', 'subCategory']);
     return sendSuccess(
       res,
-      {
-        ...serializeTaxonomy(collection),
-        categoryId: collection.category ? String(collection.category._id || collection.category) : '',
-        categoryName: collection.category?.name || '',
-        subCategoryId: collection.subCategory ? String(collection.subCategory._id || collection.subCategory) : '',
-        subCategoryName: collection.subCategory?.name || '',
-      },
+      serializeCollection(collection, toObjectIdArray(req.body.productIds).map(String)),
       'Collection created',
     );
   } catch (error) {
@@ -1366,16 +1393,14 @@ router.put('/collections/:id', async (req, res) => {
       collection.active = parseBoolean(req.body.active, collection.active);
     }
     await collection.save();
+    if (req.body.productIds !== undefined) {
+      await syncCollectionProducts(collection._id, req.body.productIds);
+    }
     await collection.populate(['category', 'subCategory']);
+    const productIdMap = await collectionProductIdMap([collection._id]);
     return sendSuccess(
       res,
-      {
-        ...serializeTaxonomy(collection),
-        categoryId: collection.category ? String(collection.category._id || collection.category) : '',
-        categoryName: collection.category?.name || '',
-        subCategoryId: collection.subCategory ? String(collection.subCategory._id || collection.subCategory) : '',
-        subCategoryName: collection.subCategory?.name || '',
-      },
+      serializeCollection(collection, productIdMap.get(String(collection._id)) || []),
       'Collection updated',
     );
   } catch (error) {
@@ -1386,6 +1411,8 @@ router.put('/collections/:id', async (req, res) => {
 router.delete('/collections/:id', async (req, res) => {
   const collection = await Collection.findById(req.params.id);
   if (!collection) return sendError(res, 'Collection not found', 404);
+  // Products keep existing without a collection rather than dangling at a dead id.
+  await Product.updateMany({ collection: collection._id }, { $set: { collection: null } });
   await collection.deleteOne();
   return sendSuccess(res, null, 'Collection deleted');
 });

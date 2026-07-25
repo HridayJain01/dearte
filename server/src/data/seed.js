@@ -28,7 +28,7 @@ export const seedData = {
     },
     {
       id: 'banner-2',
-      title: 'Ready Stock Meets Make to Order',
+      title: 'Crafted To Order, Every Piece',
       subtitle:
         'A premium B2B ordering workflow designed for sales teams, showrooms, and export partners.',
       ctaLabel: 'See Best Sellers',

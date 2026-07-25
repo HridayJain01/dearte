@@ -41,6 +41,7 @@ const AdminProductsPage = lazy(() => import('./pages/AdminPages').then((module) 
 const AdminOrdersPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminOrdersPage })));
 const AdminWhatsAppPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminWhatsAppPage })));
 const AdminCataloguesPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminCataloguesPage })));
+const AdminCollectionsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminCollectionsPage })));
 const AdminConfigPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminConfigPage })));
 const AdminTestimonialsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminTestimonialsPage })));
 const AdminRolesPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminRolesPage })));
@@ -150,6 +151,7 @@ function App() {
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="whatsapp" element={<AdminWhatsAppPage />} />
           <Route path="catalogues" element={<AdminCataloguesPage />} />
+          <Route path="collections" element={<AdminCollectionsPage />} />
           <Route path="config" element={<AdminConfigPage />} />
           <Route path="testimonials" element={<AdminTestimonialsPage />} />
           <Route path="roles" element={<AdminRolesPage />} />

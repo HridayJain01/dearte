@@ -28,7 +28,6 @@ const emptyProduct = {
   settingType: '',
   occasion: '',
   occasions: [],
-  stockType: 'Ready Stock',
   status: 'Active',
   description: '',
   media: [],
@@ -134,6 +133,7 @@ const emptyCollection = {
   subCategoryId: '',
   image: emptyAsset,
   active: true,
+  productIds: [],
 };
 const emptyMetalOption = { name: '', group: 'Metal Color', swatch: emptyAsset, active: true };
 const emptyTrustedBrand = {
@@ -813,12 +813,6 @@ function ProductEditor({
             )}
           </div>
         </Field>
-        <Field label="Stock Type">
-          <select className={textInput} value={form.stockType} onChange={(event) => setForm((current) => ({ ...current, stockType: event.target.value }))}>
-            <option value="Ready Stock">Ready Stock</option>
-            <option value="Make to Order">Make to Order</option>
-          </select>
-        </Field>
         <Field label="Status">
           <select className={textInput} value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}>
             <option value="Active">Active</option>
@@ -918,8 +912,7 @@ function BulkProductImportPanel({ onImported }) {
   const [importErrors, setImportErrors] = useState([]);
   // Taxonomy comes from the sheet itself, so only upload-wide defaults live here.
   const [importOptions, setImportOptions] = useState({
-    stockType: 'Ready Stock',
-      status: 'Active',
+        status: 'Active',
     isNewArrival: false,
     isBestSeller: false,
   });
@@ -1758,7 +1751,6 @@ export function AdminProductsPage() {
                     settingType: product.settingType,
                     occasion: product.occasion,
                     occasions: product.occasions || [],
-                    stockType: product.stockType,
                     status: product.status,
                     description: product.description,
                     media: product.media || [],
@@ -1780,9 +1772,6 @@ export function AdminProductsPage() {
                   <p className="truncate text-sm text-[var(--color-text-muted)]">{product.name}</p>
                   <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
                     {[product.category, product.collection].filter(Boolean).join(' › ') || 'No collection'}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                    {product.stockType === 'Ready Stock' ? 'Ready Stock' : 'Made to order'}
                   </p>
                 </div>
               </button>
@@ -2170,6 +2159,223 @@ export function AdminCataloguesPage() {
   );
 }
 
+export function AdminCollectionsPage() {
+  const queryClient = useQueryClient();
+  const { data: collections = [], isLoading } = useQuery({ queryKey: ['admin-collections'], queryFn: () => adminService.collections() });
+  const { data: config } = useQuery({ queryKey: ['admin-config'], queryFn: adminService.config });
+  const { data: products = [] } = useQuery({ queryKey: ['admin-products'], queryFn: adminService.products });
+  const [editingId, setEditingId] = useState(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedOnly, setSelectedOnly] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(emptyCollection);
+
+  const categories = config?.categories || [];
+  const subCategories = config?.subCategories || [];
+
+  const filteredProducts = useMemo(() => {
+    const term = productSearch.toLowerCase().trim();
+    const selected = new Set(form.productIds);
+    return products.filter((product) => {
+      if (selectedOnly && !selected.has(product.id)) return false;
+      if (!term) return true;
+      return [product.styleCode, product.name, product.sku, product.category, product.subCategory, product.collection]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(term));
+    });
+  }, [productSearch, products, selectedOnly, form.productIds]);
+
+  // A product lives in exactly one collection, so flag the ones this edit would
+  // pull away from another collection instead of letting it happen silently.
+  const movingCount = useMemo(
+    () =>
+      form.productIds.filter((id) => {
+        const product = products.find((item) => item.id === id);
+        return product && product.collectionId && product.collectionId !== editingId;
+      }).length,
+    [form.productIds, products, editingId],
+  );
+
+  const startNew = () => {
+    setEditingId(null);
+    setForm(emptyCollection);
+    setProductSearch('');
+    setSelectedOnly(false);
+  };
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-config'] });
+    queryClient.invalidateQueries({ queryKey: ['home'] });
+  };
+
+  const toggleProduct = (id) =>
+    setForm((current) => ({
+      ...current,
+      productIds: current.productIds.includes(id)
+        ? current.productIds.filter((value) => value !== id)
+        : [...current.productIds, id],
+    }));
+
+  if (isLoading) return <LoadingBlock />;
+
+  return (
+    <div className="space-y-5 sm:space-y-8">
+      <SectionHeading eyebrow="Collections" title="Curate collections and their products" description="Create a collection, then search the catalogue and tick the exact styles that belong to it." />
+      <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <Panel className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="lux-label">Collections</p>
+            <Button variant="secondary" onClick={startNew}>New Collection</Button>
+          </div>
+          {collections.map((collection) => (
+            <button
+              key={collection.id}
+              className={`flex w-full items-center gap-3 rounded border p-3 text-left hover:border-[var(--color-border-active)] ${editingId === collection.id ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`}
+              onClick={() => {
+                setEditingId(collection.id);
+                setProductSearch('');
+                setSelectedOnly(false);
+                setForm({
+                  id: collection.id,
+                  name: collection.name || '',
+                  slug: collection.slug || '',
+                  categoryId: collection.categoryId || '',
+                  subCategoryId: collection.subCategoryId || '',
+                  image: normalizeAsset(collection.image),
+                  active: collection.active !== false,
+                  productIds: collection.productIds || [],
+                });
+              }}
+            >
+              <Thumbnail asset={collection.image} alt={collection.name} />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[var(--color-text)]">{collection.name}</p>
+                <p className="truncate text-xs text-[var(--color-text-muted)]">
+                  {collection.productIds?.length || 0} products
+                  {collection.categoryName ? ` • ${collection.categoryName}` : ''}
+                  {collection.active === false ? ' • Inactive' : ''}
+                </p>
+              </div>
+            </button>
+          ))}
+          {collections.length ? null : <p className="text-sm text-[var(--color-text-muted)]">No collections yet.</p>}
+        </Panel>
+
+        <Panel className="space-y-4">
+          <p className="lux-label">{editingId ? 'Edit Collection' : 'Create Collection'}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Name"><input className={textInput} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+            <Field label="Slug"><input className={textInput} value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="Left blank, generated from the name" /></Field>
+            <Field label="Category">
+              <select className={textInput} value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value, subCategoryId: '' }))}>
+                <option value="">All categories (brand collection)</option>
+                {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Sub-category">
+              <select className={textInput} value={form.subCategoryId} onChange={(event) => setForm((current) => ({ ...current, subCategoryId: event.target.value }))}>
+                <option value="">All sub-categories</option>
+                {subCategories.filter((item) => !form.categoryId || item.categoryId === form.categoryId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <AssetField label="Collection image" value={form.image} onChange={(image) => setForm((current) => ({ ...current, image }))} folder="dearte/site/collections" />
+
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <p className="lux-label">Products in this collection ({form.productIds.length})</p>
+              <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                <input type="checkbox" checked={selectedOnly} onChange={(event) => setSelectedOnly(event.target.checked)} /> Show selected only
+              </label>
+            </div>
+            <Field label="Search products">
+              <input className={textInput} value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Style code, name, SKU, category, collection" />
+            </Field>
+            <div className="max-h-[380px] space-y-2 overflow-y-auto pr-1">
+              {filteredProducts.map((product) => {
+                const elsewhere = product.collectionId && product.collectionId !== editingId ? product.collection : '';
+                return (
+                  <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                    <input type="checkbox" checked={form.productIds.includes(product.id)} onChange={() => toggleProduct(product.id)} />
+                    <Thumbnail asset={product.media?.[0]} alt={product.name} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--color-text)]">{product.styleCode}</p>
+                      <p className="truncate text-xs text-[var(--color-text-muted)]">
+                        {product.name}
+                        {elsewhere ? ` • currently in ${elsewhere}` : ''}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
+              {filteredProducts.length ? null : <p className="text-sm text-[var(--color-text-muted)]">No products match this search.</p>}
+            </div>
+            {movingCount ? (
+              <p className="text-xs text-[var(--color-text-muted)]">
+                {movingCount} selected {movingCount === 1 ? 'product belongs' : 'products belong'} to another collection and will be moved here on save.
+              </p>
+            ) : null}
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+            <input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active
+          </label>
+
+          <div className="flex gap-3">
+            <Button
+              disabled={saving}
+              onClick={async () => {
+                if (!form.name.trim()) {
+                  toast.error('Collection name is required');
+                  return;
+                }
+                setSaving(true);
+                try {
+                  if (editingId) await adminService.updateCollection(editingId, form);
+                  else await adminService.createCollection(form);
+                  toast.success(editingId ? 'Collection updated' : 'Collection created');
+                  startNew();
+                  refresh();
+                } catch (error) {
+                  toast.error(error?.response?.data?.message || 'Could not save collection');
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {editingId ? 'Update Collection' : 'Create Collection'}
+            </Button>
+            {editingId ? (
+              <Button
+                variant="danger"
+                disabled={saving}
+                onClick={async () => {
+                  if (!window.confirm(`Delete "${form.name}"? Its ${form.productIds.length} product(s) stay in the catalogue without a collection.`)) return;
+                  setSaving(true);
+                  try {
+                    await adminService.deleteCollection(editingId);
+                    toast.success('Collection deleted');
+                    startNew();
+                    refresh();
+                  } catch (error) {
+                    toast.error(error?.response?.data?.message || 'Could not delete collection');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
 export function AdminWhatsAppPage() {
   const queryClient = useQueryClient();
   const { data: waStatus, isLoading: waLoading } = useQuery({
@@ -2536,7 +2742,6 @@ export function AdminConfigPage() {
   const [siteSettingsDraft, setSiteSettingsDraft] = useState(null);
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [subCategoryForm, setSubCategoryForm] = useState(emptySubCategory);
-  const [collectionForm, setCollectionForm] = useState(emptyCollection);
   const [metalForm, setMetalForm] = useState(emptyMetalOption);
   const [brandForm, setBrandForm] = useState(emptyTrustedBrand);
   const siteSettings = siteSettingsDraft || data?.siteSettings || emptySiteSettings;
@@ -2551,7 +2756,7 @@ export function AdminConfigPage() {
 
   return (
     <div className="flex flex-col gap-5 sm:gap-8">
-      <SectionHeading eyebrow="Configuration" title="Site settings and taxonomy managers" description="These records now power admin dropdowns and frontend content structure." />
+      <SectionHeading eyebrow="Configuration" title="Site settings and taxonomy managers" description="These records now power admin dropdowns and frontend content structure. Collections are managed on the Collections page." />
 
       <Panel className="order-3 space-y-4">
         <p className="lux-label">Site settings</p>
@@ -2729,41 +2934,6 @@ export function AdminConfigPage() {
             </select>
           </Field>
           <AssetField label="Sub-category image" value={subCategoryForm.image} onChange={(image) => setSubCategoryForm((current) => ({ ...current, image }))} folder="dearte/site/subcategories" />
-        </TaxonomyManager>
-
-        <TaxonomyManager
-          title="Collections"
-          items={data.collections || []}
-          onEdit={(item) => setCollectionForm({ ...item, image: normalizeAsset(item.image) })}
-          onNew={() => setCollectionForm(emptyCollection)}
-          onSave={async () => {
-            if (collectionForm.id) await adminService.updateCollection(collectionForm.id, collectionForm);
-            else await adminService.createCollection(collectionForm);
-            setCollectionForm(emptyCollection);
-            refresh();
-          }}
-          onDelete={collectionForm.id ? async () => {
-            await adminService.deleteCollection(collectionForm.id);
-            setCollectionForm(emptyCollection);
-            refresh();
-          } : null}
-          saveLabel={collectionForm.id ? 'Update Collection' : 'Create Collection'}
-        >
-          <Field label="Name"><input className={textInput} value={collectionForm.name} onChange={(event) => setCollectionForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label="Slug"><input className={textInput} value={collectionForm.slug} onChange={(event) => setCollectionForm((current) => ({ ...current, slug: event.target.value }))} /></Field>
-          <Field label="Category">
-            <select className={textInput} value={collectionForm.categoryId} onChange={(event) => setCollectionForm((current) => ({ ...current, categoryId: event.target.value }))}>
-              <option value="">Select category</option>
-              {(data.categories || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </Field>
-          <Field label="Sub-category">
-            <select className={textInput} value={collectionForm.subCategoryId} onChange={(event) => setCollectionForm((current) => ({ ...current, subCategoryId: event.target.value }))}>
-              <option value="">Select sub-category</option>
-              {(data.subCategories || []).filter((item) => !collectionForm.categoryId || item.categoryId === collectionForm.categoryId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </Field>
-          <AssetField label="Collection image" value={collectionForm.image} onChange={(image) => setCollectionForm((current) => ({ ...current, image }))} folder="dearte/site/collections" />
         </TaxonomyManager>
 
         <TaxonomyManager

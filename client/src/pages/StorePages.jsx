@@ -261,7 +261,6 @@ export function ProductListPage() {
       diamondMax: filters.diamondMax,
       goldMin: filters.goldMin,
       goldMax: filters.goldMax,
-      stockType: filters.stockType,
     }),
     [activeCategory, activeCollection, activeOccasion, activeSearch, filters, page, sort],
   );
@@ -322,11 +321,6 @@ export function ProductListPage() {
           ),
       })),
     ),
-    filters.stockType && {
-      key: `stockType:${filters.stockType}`,
-      label: filters.stockType,
-      onRemove: () => setFilter('stockType', ''),
-    },
     ...[
       ['diamondMin', 'Diamond Min'],
       ['diamondMax', 'Diamond Max'],
@@ -767,7 +761,6 @@ export function ProductDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)]">
-            <span>{data.stockType}</span>
             <button
               className="inline-flex items-center gap-2 transition hover:text-[var(--color-primary)]"
               onClick={async () => {
