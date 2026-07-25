@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { User } from '../models/index.js';
 import {
+  ACCESS_TOKEN_TTL_MS,
   COOKIE_NAMES,
   accessCookieOptions,
   generateOtp,
@@ -68,6 +69,15 @@ function clearSessionCookies(res) {
   res.clearCookie(COOKIE_NAMES.refresh, refreshCookieOptions());
 }
 
+/**
+ * Every response that hands out an access cookie also reports when that cookie
+ * dies. The client renews just before that moment, so an idle tab never falls
+ * back to the guest catalogue mid-session.
+ */
+function sessionPayload(user, expiresAt = Date.now() + ACCESS_TOKEN_TTL_MS) {
+  return { user: userDto(user), sessionExpiresAt: expiresAt };
+}
+
 router.post('/login', credentialLimiter, async (req, res) => {
   const email = normalizeEmail(req.body?.email);
   const password = req.body?.password;
@@ -97,7 +107,7 @@ router.post('/login', credentialLimiter, async (req, res) => {
   await user.save();
 
   setSessionCookies(res, accessToken, refreshToken);
-  return sendSuccess(res, { user: userDto(user) }, 'Login successful');
+  return sendSuccess(res, sessionPayload(user), 'Login successful');
 });
 
 router.get('/me', async (req, res) => {
@@ -117,7 +127,7 @@ router.get('/me', async (req, res) => {
         clearSessionCookies(res);
         return sendError(res, 'Account is not active', 403);
       }
-      return sendSuccess(res, { user: userDto(user) });
+      return sendSuccess(res, sessionPayload(user, payload.exp * 1000));
     }
   } catch (error) {
     // fall through to refresh flow
@@ -143,7 +153,7 @@ router.get('/me', async (req, res) => {
 
     const newAccessToken = signAccessToken(user);
     res.cookie(COOKIE_NAMES.access, newAccessToken, accessCookieOptions());
-    return sendSuccess(res, { user: userDto(user) });
+    return sendSuccess(res, sessionPayload(user));
   } catch (error) {
     clearSessionCookies(res);
     return sendError(res, 'Session expired', 401);
@@ -180,7 +190,7 @@ router.post('/refresh', async (req, res) => {
     await user.save();
 
     setSessionCookies(res, nextAccessToken, nextRefreshToken);
-    return sendSuccess(res, { user: userDto(user) }, 'Session refreshed');
+    return sendSuccess(res, sessionPayload(user), 'Session refreshed');
   } catch (error) {
     clearSessionCookies(res);
     return sendError(res, 'Invalid session', 401);

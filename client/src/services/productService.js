@@ -10,6 +10,7 @@ export const productService = {
   testimonials: () => unwrap(api.get('/testimonials')),
   collections: () => unwrap(api.get('/collections')),
   occasions: () => unwrap(api.get('/occasions')),
+  navCategories: () => unwrap(api.get('/nav/categories')),
   careers: () => unwrap(api.get('/careers')),
   staticPage: (slug) => unwrap(api.get(`/site/static/${slug}`)),
   faq: () => unwrap(api.get('/faq')),

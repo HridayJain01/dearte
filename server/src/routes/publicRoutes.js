@@ -451,6 +451,39 @@ router.get('/categories', requireAuth, async (req, res) => {
   return sendSuccess(res, visible.map(serializeTaxonomy));
 });
 
+// Powers the "Products" nav dropdown (category -> sub category). Open to guests
+// so the menu is never empty before sign-in — the category names are already
+// public on the products page tiles, and /products still scopes the results
+// themselves. A logged-in restricted buyer only sees their granted categories.
+router.get('/nav/categories', async (req, res) => {
+  const [categories, subCategories, collections] = await Promise.all([
+    Category.find({ active: true }).sort({ name: 1 }),
+    SubCategory.find({ active: true }).populate('category').sort({ name: 1 }),
+    Collection.find({ active: true }).select('category'),
+  ]);
+
+  // A buyer granted only a collection can still reach that collection's parent
+  // category, so keep those parents in the menu (same rule as /categories).
+  const grantedCollectionIds = new Set(req.user ? allowedCollectionIds(req.user) : []);
+  const extraCategoryIds = collections
+    .filter((col) => grantedCollectionIds.has(String(col._id)))
+    .map((col) => String(col.category?._id || col.category || ''));
+
+  const visible = req.user
+    ? filterCategoriesForUser(req.user, categories, extraCategoryIds)
+    : categories;
+
+  return sendSuccess(
+    res,
+    visible.map((cat) => ({
+      ...serializeTaxonomy(cat),
+      subCategories: subCategories
+        .filter((sub) => String(sub.category?._id) === String(cat._id))
+        .map((sub) => sub.name),
+    })),
+  );
+});
+
 router.get('/collections', requireAuth, async (req, res) => {
   const all = await Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 });
   const collections = filterCollectionsForUser(req.user, all);

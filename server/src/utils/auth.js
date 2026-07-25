@@ -9,6 +9,11 @@ export const COOKIE_NAMES = {
   refresh: 'dearte_refresh',
 };
 
+// The access token's lifetime is reported to the client (see /auth/me and
+// /auth/refresh) so it can renew the session before the cookie lapses instead
+// of discovering the expiry through a failed request.
+export const ACCESS_TOKEN_TTL_MS = 1000 * 60 * 15;
+
 function isProd() {
   return isProduction;
 }
@@ -18,7 +23,7 @@ export function accessCookieOptions() {
     httpOnly: true,
     secure: isProd(),
     sameSite: isProd() ? 'none' : 'lax',
-    maxAge: 1000 * 60 * 15,
+    maxAge: ACCESS_TOKEN_TTL_MS,
     path: '/',
   };
 }
@@ -41,7 +46,7 @@ export function signAccessToken(user) {
       email: user.email,
     },
     ACCESS_SECRET,
-    { expiresIn: '15m' },
+    { expiresIn: ACCESS_TOKEN_TTL_MS / 1000 },
   );
 }
 

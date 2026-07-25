@@ -36,3 +36,11 @@ export const useOccasions = () =>
     queryFn: productService.occasions,
     staleTime: 5 * 60 * 1000,
   });
+
+// Category -> sub category tree for the "Products" nav dropdown.
+export const useNavCategories = () =>
+  useQuery({
+    queryKey: ['nav-categories'],
+    queryFn: productService.navCategories,
+    staleTime: 5 * 60 * 1000,
+  });

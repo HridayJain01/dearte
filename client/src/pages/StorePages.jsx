@@ -217,10 +217,12 @@ export function ProductListPage() {
   const { category } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = category ? decodeURIComponent(category) : searchParams.get('category') || '';
+  // Set by the header's category dropdown, which links straight to a sub category.
+  const activeSubCategory = searchParams.get('subCategory') || '';
   const activeCollection = searchParams.get('collection') || '';
   const activeOccasion = searchParams.get('occasion') || '';
   const activeSearch = searchParams.get('search') || '';
-  const pageScope = `${activeCategory}::${activeCollection}::${activeOccasion}::${activeSearch}`;
+  const pageScope = `${activeCategory}::${activeSubCategory}::${activeCollection}::${activeOccasion}::${activeSearch}`;
   const [paging, setPaging] = useState({ scope: pageScope, page: 1 });
   const { filters, sort, setSort, setFilter, resetFilters } = useFilters();
   const page = paging.scope === pageScope ? paging.page : 1;
@@ -265,14 +267,14 @@ export function ProductListPage() {
       occasion: activeOccasion || filters.occasion.join(','),
       search: activeSearch,
       sort,
-      subCategory: filters.subCategory.join(','),
+      subCategory: activeSubCategory || filters.subCategory.join(','),
       metalColor: filters.metalColor.join(','),
       diamondMin: filters.diamondMin,
       diamondMax: filters.diamondMax,
       goldMin: filters.goldMin,
       goldMax: filters.goldMax,
     }),
-    [activeCategory, activeCollection, activeOccasion, activeSearch, filters, page, sort],
+    [activeCategory, activeSubCategory, activeCollection, activeOccasion, activeSearch, filters, page, sort],
   );
 
   const { data, isLoading, isFetching, isPlaceholderData } = useProducts(params);
@@ -304,6 +306,11 @@ export function ProductListPage() {
       label: activeCategory,
       // A /products/:category route has no query param to drop.
       onRemove: () => (category ? navigate('/products') : dropSearchParam('category')),
+    },
+    activeSubCategory && {
+      key: `url:subCategory:${activeSubCategory}`,
+      label: activeSubCategory,
+      onRemove: () => dropSearchParam('subCategory'),
     },
     activeCollection && {
       key: `url:collection:${activeCollection}`,
@@ -358,7 +365,7 @@ export function ProductListPage() {
     <section className="page-shell section-gap">
       <SectionHeading
         eyebrow="Products"
-        title={activeCategory || activeCollection || activeOccasion || 'Shop by Product'}
+        title={activeSubCategory || activeCategory || activeCollection || activeOccasion || 'Shop by Product'}
         description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
       />
       {!isAuthenticated ? (
@@ -372,7 +379,7 @@ export function ProductListPage() {
         </Panel>
       ) : null}
       <div className="space-y-6">
-        {!activeCategory && !activeCollection && !activeOccasion && (
+        {!activeCategory && !activeSubCategory && !activeCollection && !activeOccasion && (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
             {PRODUCT_CATEGORY_TILES.map((tile) => (
               <ShopCategoryCard
@@ -1165,11 +1172,11 @@ export function CheckoutPage() {
   } = form;
   const reviewValues = form.getValues();
 
-  const handleNextStep = async () => {
+  const handleNextStep = () => {
     setStep((value) => Math.min(steps.length - 1, value + 1));
   };
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const placeOrder = form.handleSubmit(async (values) => {
     try {
       const order = await orderService.create(values);
       await refreshCart();
@@ -1202,7 +1209,10 @@ export function CheckoutPage() {
       </div>
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel>
-          <form className="space-y-5" onSubmit={onSubmit}>
+          {/* The order is placed from the Place Order button only. Native form
+              submission stays disabled so no stray submit (Enter key, or a
+              button React re-typed mid-click) can skip the review step. */}
+          <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
             {step === 0 ? (
               <textarea {...form.register('notes')} placeholder="Special instructions and delivery preferences" className="min-h-[160px] w-full border border-[var(--color-border)] bg-transparent p-4 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]" />
             ) : null}
@@ -1216,12 +1226,17 @@ export function CheckoutPage() {
               <Button type="button" variant="secondary" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))}>
                 Back
               </Button>
+              {/* Distinct keys keep these as separate DOM nodes: without them
+                  React reuses one <button> and patching its type during the
+                  click made the browser submit the form on the same click. */}
               {step < steps.length - 1 ? (
-                <Button type="button" onClick={handleNextStep}>
+                <Button key="next-step" type="button" onClick={handleNextStep}>
                   Next Step
                 </Button>
               ) : (
-                <Button type="submit" loading={isSubmitting}>Place Order</Button>
+                <Button key="place-order" type="button" loading={isSubmitting} disabled={isSubmitting} onClick={placeOrder}>
+                  Place Order
+                </Button>
               )}
             </div>
           </form>

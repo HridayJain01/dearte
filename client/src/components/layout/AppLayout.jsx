@@ -1,8 +1,8 @@
-import { Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
+import { ChevronDown, Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
-import { useOccasions } from '../../hooks/useProducts';
+import { useNavCategories, useOccasions } from '../../hooks/useProducts';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
@@ -77,6 +77,184 @@ function OccasionsNavMenu({ label, occasions }) {
   );
 }
 
+// The product list reads both params off the URL, so a menu pick lands on a
+// pre-filtered page (see ProductListPage).
+const categoryHref = (category) => `/products?category=${encodeURIComponent(category)}`;
+const subCategoryHref = (category, subCategory) =>
+  `${categoryHref(category)}&subCategory=${encodeURIComponent(subCategory)}`;
+
+// Desktop "Products" nav item: hovering reveals the full category list, and
+// hovering a category swaps the second pane to that category's sub categories.
+// Categories are fetched so newly added ones need no code change.
+function CategoryNavMenu({ label, to, categories }) {
+  const [open, setOpen] = useState(false);
+  // Which category the second pane is showing; null falls back to the first.
+  const [activeId, setActiveId] = useState(null);
+  const wrapRef = useRef(null);
+
+  const close = () => {
+    setOpen(false);
+    setActiveId(null);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapRef.current && !wrapRef.current.contains(event.target)) close();
+    }
+    function handleEscape(event) {
+      if (event.key === 'Escape') close();
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  // Before the categories land (or for a buyer granted nothing) the label stays
+  // a plain link rather than an empty dropdown.
+  if (!categories.length) {
+    return (
+      <NavLink to={to} className={navLinkClass}>
+        {label}
+      </NavLink>
+    );
+  }
+
+  const activeCategory = categories.find((item) => item.id === activeId) || categories[0];
+  const subCategories = activeCategory.subCategories || [];
+
+  return (
+    <div
+      ref={wrapRef}
+      className={`${NAV_TEXT} relative`}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={close}
+    >
+      <NavLink to={to} aria-expanded={open} aria-haspopup="true" className={navLinkClass}>
+        {label}
+      </NavLink>
+      {open ? (
+        <div className="absolute left-0 top-full z-40 flex border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg">
+          <div className="max-h-[70vh] min-w-[230px] overflow-auto py-2">
+            <Link
+              to={to}
+              onClick={close}
+              className={`${NAV_TEXT} block px-4 py-2 text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-primary)]`}
+            >
+              All Products
+            </Link>
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                to={categoryHref(category.name)}
+                onClick={close}
+                onMouseEnter={() => setActiveId(category.id)}
+                onFocus={() => setActiveId(category.id)}
+                className={`${NAV_TEXT} block px-4 py-2 hover:bg-[var(--color-surface-alt)] ${
+                  category.id === activeCategory.id
+                    ? 'bg-[var(--color-surface-alt)] text-[var(--color-primary)]'
+                    : 'text-[var(--color-text)] hover:text-[var(--color-primary)]'
+                }`}
+              >
+                {category.name}
+              </Link>
+            ))}
+          </div>
+          {subCategories.length ? (
+            <div className="max-h-[70vh] min-w-[240px] overflow-auto border-l border-[var(--color-border)] py-2">
+              <p className="lux-label px-4 py-2 !text-[var(--color-text-muted)]">
+                {activeCategory.name}
+              </p>
+              <Link
+                to={categoryHref(activeCategory.name)}
+                onClick={close}
+                className={`${NAV_TEXT} block px-4 py-2 text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-primary)]`}
+              >
+                All {activeCategory.name}
+              </Link>
+              {subCategories.map((subCategory) => (
+                <Link
+                  key={subCategory}
+                  to={subCategoryHref(activeCategory.name, subCategory)}
+                  onClick={close}
+                  className={`${NAV_TEXT} block px-4 py-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-primary)]`}
+                >
+                  {subCategory}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Mobile counterpart of CategoryNavMenu: an accordion inside the burger menu,
+// since there is no hover to open a flyout with.
+function CategoryMobileMenu({ label, to, categories, onNavigate }) {
+  const [expandedId, setExpandedId] = useState(null);
+
+  return (
+    <div className="py-2">
+      <NavLink to={to} onClick={onNavigate} className={`${NAV_TEXT} block min-h-11 py-2`}>
+        {label}
+      </NavLink>
+      {categories.length ? (
+        <div className="mt-1 flex flex-col border-l border-[var(--color-border)] pl-3">
+          {categories.map((category) => {
+            const subCategories = category.subCategories || [];
+            const isExpanded = expandedId === category.id;
+
+            return (
+              <div key={category.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <Link
+                    to={categoryHref(category.name)}
+                    onClick={onNavigate}
+                    className={`${NAV_TEXT} min-h-11 flex-1 py-2 text-[var(--color-text-muted)]`}
+                  >
+                    {category.name}
+                  </Link>
+                  {subCategories.length ? (
+                    <button
+                      type="button"
+                      aria-label={`${isExpanded ? 'Hide' : 'Show'} ${category.name} sub categories`}
+                      aria-expanded={isExpanded}
+                      onClick={() => setExpandedId(isExpanded ? null : category.id)}
+                      className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-text-muted)]"
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 transition ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  ) : null}
+                </div>
+                {isExpanded ? (
+                  <div className="flex flex-col border-l border-[var(--color-border)] pl-3">
+                    {subCategories.map((subCategory) => (
+                      <Link
+                        key={subCategory}
+                        to={subCategoryHref(category.name, subCategory)}
+                        onClick={onNavigate}
+                        className={`${NAV_TEXT} min-h-11 py-2 text-[var(--color-text-muted)]`}
+                      >
+                        {subCategory}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function AppLayout() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,7 +262,9 @@ export function AppLayout() {
   const { cart } = useCart();
   const { wishlist } = useWishlist();
   const { data: occasions } = useOccasions();
+  const { data: navCategories } = useNavCategories();
   const occasionList = occasions || [];
+  const categoryList = navCategories || [];
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -110,15 +290,26 @@ export function AppLayout() {
           </Link>
 
           <nav className="hidden items-center gap-6 lg:flex">
-            {NAV_LINKS.map((link) =>
-              link.occasionMenu ? (
-                <OccasionsNavMenu key={link.label} label={link.label} occasions={occasionList} />
-              ) : (
+            {NAV_LINKS.map((link) => {
+              if (link.occasionMenu) {
+                return <OccasionsNavMenu key={link.label} label={link.label} occasions={occasionList} />;
+              }
+              if (link.categoryMenu) {
+                return (
+                  <CategoryNavMenu
+                    key={link.label}
+                    label={link.label}
+                    to={link.to}
+                    categories={categoryList}
+                  />
+                );
+              }
+              return (
                 <NavLink key={link.to} to={link.to} className={navLinkClass}>
                   {link.label}
                 </NavLink>
-              ),
-            )}
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-3">
@@ -168,7 +359,15 @@ export function AppLayout() {
         {menuOpen ? (
           <div className="safe-bottom-pad page-shell flex flex-col gap-4 border-t border-[var(--color-border)] bg-[var(--color-primary-bg)] py-4 lg:hidden">
             {NAV_LINKS.map((link) =>
-              link.occasionMenu ? (
+              link.categoryMenu ? (
+                <CategoryMobileMenu
+                  key={link.label}
+                  label={link.label}
+                  to={link.to}
+                  categories={categoryList}
+                  onNavigate={() => setMenuOpen(false)}
+                />
+              ) : link.occasionMenu ? (
                 <div key={link.label} className="py-2">
                   <NavLink
                     to="/occasions"

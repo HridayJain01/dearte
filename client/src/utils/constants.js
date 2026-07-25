@@ -19,7 +19,9 @@ import {
 
 export const NAV_LINKS = [
   { label: 'Home', to: '/' },
-  { label: 'Products', to: '/products' },
+  // Links to the full product list; AppLayout also adds a category dropdown on
+  // hover with the category -> sub category tree from /api/nav/categories.
+  { label: 'Products', to: '/products', categoryMenu: true },
   { label: 'Collections', to: '/collections' },
   // Links to the "Shop by Occasion" page; AppLayout also adds a quick-pick
   // dropdown on hover with options from /api/occasions.

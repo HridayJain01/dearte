@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
+import { markSessionEnded } from '../services/api';
 import { userService } from '../services/userService';
 import { brandLogoAlt, brandLogoUrl } from '../utils/brandLogo';
 import { Button, Input, PasswordInput, Panel, SectionHeading } from '../components/ui/Primitives';
@@ -135,6 +136,9 @@ export function ForgotPasswordPage() {
 
   const onResetPassword = resetForm.handleSubmit(async ({ otp, newPassword }) => {
     await userService.resetPassword({ email: sentEmail, otp, newPassword });
+    // A reset revokes every session server-side, so drop the local marker too
+    // rather than letting the app try to renew a session that no longer exists.
+    markSessionEnded();
     toast.success('Password updated. Please log in.');
     navigate('/login');
   });
