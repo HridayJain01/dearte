@@ -31,10 +31,29 @@ function FilterDropdown({ label, name, openFilter, onToggle, children }) {
   );
 }
 
+// The API cross-filters the facets, so a value can drop out of the list while
+// it is still selected. Keep selected values on screen so they stay untickable.
+const withSelected = (options, selected) => [
+  ...new Set([...(options || []), ...(selected || [])]),
+];
+
 export function ProductFilters({ filters, activeFilters, setFilter, resetFilters }) {
   const [openFilter, setOpenFilter] = useState(null);
   const panelRef = useRef(null);
-  const subCategories = filters.categories?.flatMap((category) => category.subCategories) || [];
+  const categories = withSelected(
+    filters.categories?.map((category) => category.name),
+    activeFilters.category,
+  ).map((name) => ({ name }));
+  const subCategories = withSelected(
+    filters.categories?.flatMap((category) => category.subCategories),
+    activeFilters.subCategory,
+  );
+  const collections = withSelected(
+    filters.collections?.map((collection) => collection.name),
+    activeFilters.collection,
+  ).map((name) => ({ name }));
+  const occasions = withSelected(filters.occasions, activeFilters.occasion);
+  const metalColors = withSelected(filters.metalColors, activeFilters.metalColor);
 
   const toggle = (name) => setOpenFilter((prev) => (prev === name ? null : name));
   const close = () => setOpenFilter(null);
@@ -56,8 +75,8 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
         <FilterDropdown label="Category" name="category" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="max-h-64 min-w-[220px] overflow-auto p-4">
             <div className="space-y-2 text-sm">
-              {filters.categories?.length ? (
-                filters.categories.map((category) => (
+              {categories.length ? (
+                categories.map((category) => (
                   <label key={category.name} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
                     <input
                       type="checkbox"
@@ -80,7 +99,8 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
         <FilterDropdown label="Sub Category" name="subCategory" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="max-h-64 min-w-[220px] overflow-auto p-4">
             <div className="space-y-2 text-sm">
-              {subCategories.map((subCategory) => (
+              {subCategories.length ? (
+                subCategories.map((subCategory) => (
                 <label key={subCategory} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
                   <input
                     type="checkbox"
@@ -92,7 +112,10 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
                   />
                   {subCategory}
                 </label>
-              ))}
+                ))
+              ) : (
+                <p className="text-[var(--color-text-muted)]">No sub categories available.</p>
+              )}
             </div>
           </div>
         </FilterDropdown>
@@ -100,7 +123,8 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
         <FilterDropdown label="Collection" name="collection" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="max-h-64 min-w-[220px] overflow-auto p-4">
             <div className="space-y-2 text-sm">
-              {filters.collections?.map((collection) => (
+              {collections.length ? (
+                collections.map((collection) => (
                 <label key={collection.name} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
                   <input
                     type="checkbox"
@@ -112,7 +136,10 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
                   />
                   {collection.name}
                 </label>
-              ))}
+                ))
+              ) : (
+                <p className="text-[var(--color-text-muted)]">No collections available.</p>
+              )}
             </div>
           </div>
         </FilterDropdown>
@@ -120,8 +147,8 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
         <FilterDropdown label="Occasion" name="occasion" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="max-h-64 min-w-[220px] overflow-auto p-4">
             <div className="space-y-2 text-sm">
-              {filters.occasions?.length ? (
-                filters.occasions.map((occasion) => (
+              {occasions.length ? (
+                occasions.map((occasion) => (
                   <label key={occasion} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
                     <input
                       type="checkbox"
@@ -144,7 +171,8 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
         <FilterDropdown label="Metal Color" name="metalColor" openFilter={openFilter} onToggle={toggle} onClose={close}>
           <div className="min-w-[220px] p-4">
             <div className="flex flex-wrap gap-2">
-              {filters.metalColors?.map((metalColor) => (
+              {metalColors.length ? (
+                metalColors.map((metalColor) => (
                 <button
                   key={metalColor}
                   onClick={() => {
@@ -159,7 +187,10 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
                 >
                   {metalColor}
                 </button>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-[var(--color-text-muted)]">No metal colors available.</p>
+              )}
             </div>
           </div>
         </FilterDropdown>

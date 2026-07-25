@@ -265,9 +265,31 @@ router.get('/products', async (req, res) => {
   const accessFilter = productAccessFilter(req.user, req.guestCatalogue);
   const scopedFilter = withAccess(filter, accessFilter);
 
-  // Facet list is scoped to access but NOT to the current filter, so the
-  // Occasion dropdown keeps showing every option the buyer may pick.
-  const [items, total, allCategories, allCollections, metalColors, allSubCategories, occasionValues] = await Promise.all([
+  // Facets are cross-filtered: each dropdown lists only the values that still
+  // have products once every OTHER active filter is applied. Its own field is
+  // excluded so the options already picked in that dropdown stay selectable and
+  // siblings can still be added. This works in both directions — picking a
+  // category narrows the sub-category list, and picking a sub-category narrows
+  // the category list.
+  const facetFilter = (excludeKey) => {
+    const clone = { ...filter };
+    delete clone[excludeKey];
+    return withAccess(clone, accessFilter);
+  };
+
+  const [
+    items,
+    total,
+    allCategories,
+    allCollections,
+    metalColors,
+    allSubCategories,
+    occasionValues,
+    facetCategoryIds,
+    facetSubCategoryIds,
+    facetCollectionIds,
+    facetMetalColorIds,
+  ] = await Promise.all([
     applySort(Product.find(scopedFilter).populate(productPopulate), sort)
       .skip((currentPage - 1) * pageSize)
       .limit(pageSize),
@@ -276,19 +298,33 @@ router.get('/products', async (req, res) => {
     Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 }),
     MetalOption.find({ active: true }).sort({ name: 1 }),
     SubCategory.find({ active: true }).populate('category').sort({ name: 1 }),
-    Product.distinct('occasions', withAccess({ status: 'Active' }, accessFilter)),
+    Product.distinct('occasions', facetFilter('occasions')),
+    Product.distinct('category', facetFilter('category')),
+    Product.distinct('subCategory', facetFilter('subCategory')),
+    Product.distinct('collection', facetFilter('collection')),
+    Product.distinct('metalColor', facetFilter('metalColor')),
   ]);
+
+  const toIdSet = (values) => new Set(values.filter(Boolean).map(String));
+  const availableCategoryIds = toIdSet(facetCategoryIds);
+  const availableSubCategoryIds = toIdSet(facetSubCategoryIds);
+  const availableCollectionIds = toIdSet(facetCollectionIds);
+  const availableMetalColorIds = toIdSet(facetMetalColorIds);
 
   // Scope the filter facets to the buyer's access. Categories that only contain
   // a granted collection are kept so the buyer can still navigate to them.
-  const collections = filterCollectionsForUser(req.user, allCollections, req.guestCatalogue);
+  const collections = filterCollectionsForUser(req.user, allCollections, req.guestCatalogue).filter((item) =>
+    availableCollectionIds.has(String(item._id)),
+  );
   const grantedCollectionIds = new Set(
     req.user ? allowedCollectionIds(req.user) : (req.guestCatalogue?.collections || []).map(String),
   );
   const extraCategoryIds = allCollections
     .filter((col) => grantedCollectionIds.has(String(col._id)))
     .map((col) => String(col.category?._id || col.category || ''));
-  const categories = filterCategoriesForUser(req.user, allCategories, extraCategoryIds, req.guestCatalogue);
+  const categories = filterCategoriesForUser(req.user, allCategories, extraCategoryIds, req.guestCatalogue).filter(
+    (cat) => availableCategoryIds.has(String(cat._id)),
+  );
   const visibleCategoryIds = new Set(categories.map((cat) => String(cat._id)));
 
   // A guest may be granted a sub-category directly (without its parent category),
@@ -296,7 +332,8 @@ router.get('/products', async (req, res) => {
   const guestSubCategoryIds = new Set((req.guestCatalogue?.subCategories || []).map(String));
   const subCategories = allSubCategories.filter(
     (sub) =>
-      visibleCategoryIds.has(String(sub.category?._id)) || guestSubCategoryIds.has(String(sub._id)),
+      availableSubCategoryIds.has(String(sub._id)) &&
+      (visibleCategoryIds.has(String(sub.category?._id)) || guestSubCategoryIds.has(String(sub._id))),
   );
 
   return sendSuccess(res, {
@@ -316,7 +353,9 @@ router.get('/products', async (req, res) => {
         name: item.name,
       })),
       occasions: cleanOccasions(occasionValues),
-      metalColors: metalColors.map((item) => item.name),
+      metalColors: metalColors
+        .filter((item) => availableMetalColorIds.has(String(item._id)))
+        .map((item) => item.name),
       diamondRange: [0.1, 2.0],
       goldRange: [2, 20],
     },

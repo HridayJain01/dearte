@@ -481,13 +481,12 @@ export function ProductDetailPage() {
                 <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Perfect for</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {data.occasions.map((occasion) => (
-                    <Link
+                    <span
                       key={occasion}
-                      to={`/products?occasion=${encodeURIComponent(occasion)}`}
-                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1.5 text-xs text-[var(--color-text)] transition hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)]"
+                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1.5 text-xs text-[var(--color-text)]"
                     >
                       {occasion}
-                    </Link>
+                    </span>
                   ))}
                 </div>
               </div>

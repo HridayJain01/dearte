@@ -178,7 +178,7 @@ export function CollectionsShowcase() {
             />
             <ShopCategoryCard
               label="Pendants"
-              categorySlug="Necklaces"
+              categorySlug="Pendant"
               imageSrc="/images/shop-category/pendants.jpg"
               className="aspect-square min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 lg:h-full"
               delay={270}
