@@ -249,13 +249,55 @@ router.get('/products', async (req, res) => {
     if (goldHigh !== null) filter.goldWeight.$lte = goldHigh;
   }
 
-  const searchMatcher = containsMatcher(search, { maxLength: 120 });
-  if (searchMatcher) {
-    filter.$or = [
-      { styleCode: searchMatcher },
-      { name: searchMatcher },
-      { description: searchMatcher },
-    ];
+  // Free-text search spans the product's own metadata plus the taxonomy it
+  // points at (category / sub category / collection / metal colour), which live
+  // in separate collections and so have to be resolved to ids first. Multiple
+  // words are ANDed, so "rose gold studs" narrows instead of widening — each
+  // word may land on a different field.
+  const searchTerms = asString(search, { maxLength: 120 })
+    .split(/\s+/)
+    .map((term) => term.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  if (searchTerms.length) {
+    const termClauses = await Promise.all(
+      searchTerms.map(async (term) => {
+        const matcher = containsMatcher(term, { maxLength: 120 });
+        const byName = { $or: [{ name: matcher }, { slug: matcher }] };
+        const [categoryIds, subCategoryIds, collectionIds, metalColorIds] = await Promise.all([
+          Category.find(byName).select('_id'),
+          SubCategory.find(byName).select('_id'),
+          Collection.find(byName).select('_id'),
+          MetalOption.find({ name: matcher }).select('_id'),
+        ]);
+
+        const clause = [
+          { styleCode: matcher },
+          { name: matcher },
+          { description: matcher },
+          { sku: matcher },
+          { metalType: matcher },
+          { metal: matcher },
+          { diamondQuality: matcher },
+          { settingType: matcher },
+          { stockType: matcher },
+          { occasion: matcher },
+          { occasions: matcher },
+          { 'specifications.attribute': matcher },
+          { 'specifications.value': matcher },
+          { 'colorVariants.color': matcher },
+        ];
+        if (categoryIds.length) clause.push({ category: { $in: categoryIds.map((item) => item._id) } });
+        if (subCategoryIds.length) clause.push({ subCategory: { $in: subCategoryIds.map((item) => item._id) } });
+        if (collectionIds.length) clause.push({ collection: { $in: collectionIds.map((item) => item._id) } });
+        if (metalColorIds.length) clause.push({ metalColor: { $in: metalColorIds.map((item) => item._id) } });
+
+        return { $or: clause };
+      }),
+    );
+
+    filter.$and = termClauses;
   }
 
   // Bounded so a caller cannot request the whole catalogue in one query.

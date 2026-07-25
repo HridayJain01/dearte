@@ -30,7 +30,6 @@ const productSchema = new mongoose.Schema(
     occasions: { type: [String], default: [], index: true },
     sku: { type: String, default: '' },
     stockType: { type: String, enum: ['Ready Stock', 'Make to Order'], default: 'Ready Stock' },
-    stockQuantity: { type: Number, default: 0 },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
     isNewArrival: { type: Boolean, default: false },
     isBestSeller: { type: Boolean, default: false },

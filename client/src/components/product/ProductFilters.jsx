@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Panel } from '../ui/Primitives';
+import { Panel } from '../ui/Primitives';
 import { Select } from '../ui/Select';
 
 const toggleArrayValue = (values, value) =>
@@ -37,7 +37,7 @@ const withSelected = (options, selected) => [
   ...new Set([...(options || []), ...(selected || [])]),
 ];
 
-export function ProductFilters({ filters, activeFilters, setFilter, resetFilters }) {
+export function ProductFilters({ filters, activeFilters, setFilter }) {
   const [openFilter, setOpenFilter] = useState(null);
   const panelRef = useRef(null);
   const categories = withSelected(
@@ -260,10 +260,6 @@ export function ProductFilters({ filters, activeFilters, setFilter, resetFilters
             />
           </div>
         </FilterDropdown>
-
-        <Button variant="ghost" className="min-h-[42px] px-3" onClick={resetFilters}>
-          Clear All
-        </Button>
       </div>
 
       <div className="text-xs text-[var(--color-text-muted)]">

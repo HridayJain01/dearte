@@ -18,6 +18,7 @@ import {
 } from '../models/index.js';
 import { cloudinary } from '../config/cloudinary.js';
 import { seedData } from '../data/seed.js';
+import { OCCASIONS } from '../data/taxonomy.js';
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { asString, escapeRegex, isValidEmail, normalizeEmail } from '../utils/validation.js';
@@ -93,6 +94,14 @@ function toObjectId(value, fieldName) {
   }
 
   return new mongoose.Types.ObjectId(value);
+}
+
+// For references that are legitimately absent — a brand collection spans every
+// category, so it is saved with no category/sub category at all. Blank clears
+// the field; a non-blank but malformed id still errors.
+function toOptionalObjectId(value, fieldName) {
+  if (value === undefined || value === null || value === '') return null;
+  return toObjectId(value, fieldName);
 }
 
 function parseBoolean(value, defaultValue = false) {
@@ -299,10 +308,6 @@ function fileNameColorMismatch(fileName, color) {
   return '';
 }
 
-// Effectively-unlimited default stock for bulk-imported Ready Stock products so
-// they are always purchasable. Admins can still adjust per product afterward.
-const BULK_IMPORT_DEFAULT_STOCK = 999;
-
 function buildBulkImportPayloads(rows = [], options = {}) {
   const productsByStyle = new Map();
   const errors = [];
@@ -369,7 +374,6 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       // Bulk-imported products should be purchasable immediately. The UI no
       // longer collects a per-import quantity, so default to an effectively
       // unlimited count rather than 0 (which would mark every style out of stock).
-      stockQuantity: Number(options.stockQuantity ?? BULK_IMPORT_DEFAULT_STOCK),
       status: options.status || 'Active',
       isNewArrival: parseBoolean(options.isNewArrival, false),
       isBestSeller: parseBoolean(options.isBestSeller, false),
@@ -420,7 +424,6 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       occasions: item.occasions,
       sku: item.sku,
       stockType: item.stockType,
-      stockQuantity: item.stockQuantity,
       status: item.status,
       isNewArrival: item.isNewArrival,
       isBestSeller: item.isBestSeller,
@@ -520,7 +523,6 @@ function sanitizeProductPayload(body, currentProduct = null) {
     occasions: dedupeStrings(body.occasions ?? currentProduct?.occasions ?? []),
     sku: body.sku ?? currentProduct?.sku ?? '',
     stockType: body.stockType ?? currentProduct?.stockType ?? 'Ready Stock',
-    stockQuantity: Number(body.stockQuantity ?? currentProduct?.stockQuantity ?? 0),
     status: body.status ?? currentProduct?.status ?? 'Active',
     isNewArrival: parseBoolean(body.isNewArrival, currentProduct?.isNewArrival ?? false),
     isBestSeller: parseBoolean(body.isBestSeller, currentProduct?.isBestSeller ?? false),
@@ -653,15 +655,6 @@ function sanitizeCataloguePayload(body, current = null) {
 }
 
 async function restoreStockForOrder(order) {
-  for (const item of order.items) {
-    const productId = item.product?._id || item.product;
-    const product = await Product.findById(productId);
-    if (product?.stockType === 'Ready Stock') {
-      product.stockQuantity += item.quantity;
-      await product.save();
-    }
-  }
-
   order.stockDeducted = false;
 }
 
@@ -674,15 +667,6 @@ async function deductStockForOrder(order) {
 
     if (!product) {
       throw new Error('Unable to deduct stock because a product is missing.');
-    }
-
-    if (product.stockType === 'Ready Stock') {
-      if (product.stockQuantity < item.quantity) {
-        throw new Error(`Only ${product.stockQuantity} unit(s) available for ${product.styleCode}.`);
-      }
-
-      product.stockQuantity -= item.quantity;
-      await product.save();
     }
   }
 
@@ -1075,7 +1059,6 @@ router.post('/products/bulk-import', async (req, res) => {
     const { payloads, errors } = buildBulkImportPayloads(rows, {
       cloudinaryBaseUrl: req.body.cloudinaryBaseUrl,
       stockType: req.body.stockType,
-      stockQuantity: req.body.stockQuantity,
       status: req.body.status,
       isNewArrival: req.body.isNewArrival,
       isBestSeller: req.body.isBestSeller,
@@ -1328,7 +1311,7 @@ router.get('/collections', async (req, res) => {
     res,
     collections.map((item) => ({
       ...serializeTaxonomy(item),
-      categoryId: String(item.category?._id || item.category),
+      categoryId: item.category ? String(item.category._id || item.category) : '',
       categoryName: item.category?.name || '',
       subCategoryId: item.subCategory ? String(item.subCategory._id || item.subCategory) : '',
       subCategoryName: item.subCategory?.name || '',
@@ -1341,8 +1324,8 @@ router.post('/collections', async (req, res) => {
     const collection = await Collection.create({
       name: String(req.body.name || '').trim(),
       slug: slugify(req.body.slug || req.body.name || ''),
-      category: toObjectId(req.body.categoryId, 'categoryId'),
-      subCategory: toObjectId(req.body.subCategoryId, 'subCategoryId'),
+      category: toOptionalObjectId(req.body.categoryId, 'categoryId'),
+      subCategory: toOptionalObjectId(req.body.subCategoryId, 'subCategoryId'),
       image: normalizeAsset(req.body.image),
       active: parseBoolean(req.body.active, true),
     });
@@ -1351,9 +1334,9 @@ router.post('/collections', async (req, res) => {
       res,
       {
         ...serializeTaxonomy(collection),
-        categoryId: String(collection.category?._id || collection.category),
+        categoryId: collection.category ? String(collection.category._id || collection.category) : '',
         categoryName: collection.category?.name || '',
-        subCategoryId: String(collection.subCategory?._id || collection.subCategory),
+        subCategoryId: collection.subCategory ? String(collection.subCategory._id || collection.subCategory) : '',
         subCategoryName: collection.subCategory?.name || '',
       },
       'Collection created',
@@ -1372,9 +1355,11 @@ router.put('/collections/:id', async (req, res) => {
     if (req.body.slug !== undefined || req.body.name !== undefined) {
       collection.slug = slugify(req.body.slug || req.body.name || collection.slug);
     }
-    if (req.body.categoryId) collection.category = toObjectId(req.body.categoryId, 'categoryId');
-    if (req.body.subCategoryId) {
-      collection.subCategory = toObjectId(req.body.subCategoryId, 'subCategoryId');
+    if (req.body.categoryId !== undefined) {
+      collection.category = toOptionalObjectId(req.body.categoryId, 'categoryId');
+    }
+    if (req.body.subCategoryId !== undefined) {
+      collection.subCategory = toOptionalObjectId(req.body.subCategoryId, 'subCategoryId');
     }
     if (req.body.image !== undefined) collection.image = normalizeAsset(req.body.image);
     if (req.body.active !== undefined) {
@@ -1386,9 +1371,9 @@ router.put('/collections/:id', async (req, res) => {
       res,
       {
         ...serializeTaxonomy(collection),
-        categoryId: String(collection.category?._id || collection.category),
+        categoryId: collection.category ? String(collection.category._id || collection.category) : '',
         categoryName: collection.category?.name || '',
-        subCategoryId: String(collection.subCategory?._id || collection.subCategory),
+        subCategoryId: collection.subCategory ? String(collection.subCategory._id || collection.subCategory) : '',
         subCategoryName: collection.subCategory?.name || '',
       },
       'Collection updated',
@@ -1826,10 +1811,13 @@ router.get('/config', async (_req, res) => {
       Product.distinct('occasions'),
     ]);
 
-  // Free-text occasions off the Excel import: drop blanks, de-dupe case-insensitively.
+  // Admin needs every occasion from the product master to tag with, not just the
+  // ones already in use, so the master list is unioned with the free-text values
+  // that came off older Excel imports. Blanks dropped, de-duped case-insensitively.
+  // The storefront menu stays derived from tagged products (publicRoutes).
   const occasions = [
     ...new Map(
-      (occasionValues || [])
+      [...OCCASIONS, ...(occasionValues || [])]
         .map((value) => (typeof value === 'string' ? value.trim() : ''))
         .filter(Boolean)
         .map((name) => [name.toLowerCase(), name]),
@@ -1846,7 +1834,7 @@ router.get('/config', async (_req, res) => {
     })),
     collections: collections.map((item) => ({
       ...serializeTaxonomy(item),
-      categoryId: String(item.category?._id || item.category),
+      categoryId: item.category ? String(item.category._id || item.category) : '',
       categoryName: item.category?.name || '',
       subCategoryId: item.subCategory ? String(item.subCategory._id || item.subCategory) : '',
       subCategoryName: item.subCategory?.name || '',

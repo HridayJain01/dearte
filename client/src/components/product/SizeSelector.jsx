@@ -8,7 +8,7 @@ import { Select } from '../ui/Select';
  * several sizes without leaving the product page. A size already used by
  * another row is disabled rather than hidden, which keeps the list stable.
  */
-export function SizeSelector({ chart, lines, onChange, onOpenChart, maxQuantity }) {
+export function SizeSelector({ chart, lines, onChange, onOpenChart }) {
   const updateLine = (index, patch) => {
     onChange(lines.map((line, current) => (current === index ? { ...line, ...patch } : line)));
   };
@@ -25,7 +25,6 @@ export function SizeSelector({ chart, lines, onChange, onOpenChart, maxQuantity 
 
   const totalUnits = lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
   const allSizesUsed = lines.length >= chart.rows.length;
-  const atStockCeiling = Number.isFinite(maxQuantity) && totalUnits >= maxQuantity;
 
   return (
     <div className="space-y-4">
@@ -55,8 +54,6 @@ export function SizeSelector({ chart, lines, onChange, onOpenChart, maxQuantity 
           }));
 
           const quantity = Number(line.quantity || 1);
-          const otherUnits = totalUnits - quantity;
-          const canIncrease = !Number.isFinite(maxQuantity) || otherUnits + quantity + 1 <= maxQuantity;
 
           return (
             <div
@@ -91,7 +88,6 @@ export function SizeSelector({ chart, lines, onChange, onOpenChart, maxQuantity 
                   <button
                     type="button"
                     aria-label="Increase quantity"
-                    disabled={!canIncrease}
                     onClick={() => updateLine(index, { quantity: quantity + 1 })}
                     className="p-3 text-[var(--color-text)] transition hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:text-[var(--color-text)]"
                   >
@@ -118,7 +114,7 @@ export function SizeSelector({ chart, lines, onChange, onOpenChart, maxQuantity 
         <button
           type="button"
           onClick={addLine}
-          disabled={allSizesUsed || atStockCeiling}
+          disabled={allSizesUsed}
           className="inline-flex items-center gap-2 border border-dashed border-[var(--color-border-active)] px-4 py-2.5 text-xs uppercase tracking-[0.14em] text-[var(--color-primary)] transition hover:bg-[var(--color-surface-alt)] disabled:cursor-not-allowed disabled:border-[var(--color-border)] disabled:text-[var(--color-text-muted)] disabled:hover:bg-transparent"
         >
           <Plus className="h-3.5 w-3.5" />

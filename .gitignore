@@ -21,3 +21,7 @@ server/dist
 # Local/mock database dumps: may contain password hashes and PII, never commit.
 server/src/data/runtime-db.json
 runtime-db.json
+
+# Pre-migration safety dumps written by server/scripts/*.js. Contain buyer
+# emails, carts and wishlists — keep them local for rollback, never commit.
+server/scripts/backup-*.json

@@ -118,7 +118,6 @@ export function serializeProduct(doc) {
     occasions: doc.occasions || [],
     sku: doc.sku,
     stockType: doc.stockType,
-    stockQuantity: doc.stockQuantity,
     status: doc.status,
     isNewArrival: doc.isNewArrival,
     isBestSeller: doc.isBestSeller,

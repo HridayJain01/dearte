@@ -17,7 +17,6 @@ export function ProductCard({ product }) {
   const needsSize = Boolean(resolveSizeChart(product));
 
   const cartItem = cart?.items?.find((i) => i.product?.id === product.id);
-  const isOutOfStock = product.stockType === 'Ready Stock' && (product.stockQuantity ?? 0) <= 0;
 
   const ensureAuth = async (action) => {
     if (!isAuthenticated) {
@@ -108,7 +107,6 @@ export function ProductCard({ product }) {
                 variant="secondary"
                 className="w-full border border-[var(--color-border)] bg-transparent text-[var(--color-text)] hover:border-[var(--color-border-active)] hover:bg-[var(--color-surface-alt)]"
                 icon={ShoppingBag}
-                disabled={isOutOfStock}
                 onClick={(e) => {
                   // A sized style can't be added from the grid: the size has to be
                   // chosen on the product page first.
@@ -127,7 +125,7 @@ export function ProductCard({ product }) {
                   );
                 }}
               >
-                {isOutOfStock ? 'Out of stock' : needsSize ? 'Select size' : 'Add to cart'}
+                {needsSize ? 'Select size' : 'Add to cart'}
               </Button>
             )}
           </div>

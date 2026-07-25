@@ -60,11 +60,13 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, to }) {
   );
 }
 
+// `categorySlug` must match a category name in the product master
+// (server/src/data/taxonomy.js) or the tile links to an empty result set.
 const PRODUCT_CATEGORY_TILES = [
   { label: 'Rings', categorySlug: 'Rings', imageSrc: '/images/shop-category/rings.jpg' },
-  { label: 'Earrings', categorySlug: 'Earrings', imageSrc: '/images/shop-category/earrings.jpg' },
-  { label: 'Bracelets', categorySlug: 'Bracelet', imageSrc: '/images/shop-category/bracelets.jpg' },
-  { label: 'Pendants', categorySlug: 'Necklaces', imageSrc: '/images/shop-category/pendants.jpg' },
+  { label: 'Earring', categorySlug: 'Earring', imageSrc: '/images/shop-category/earrings.jpg' },
+  { label: 'Bracelet', categorySlug: 'Bracelet', imageSrc: '/images/shop-category/bracelets.jpg' },
+  { label: 'Pendant', categorySlug: 'Pendant', imageSrc: '/images/shop-category/pendants.jpg' },
 ];
 
 /** Shop-by-collection landing: curated collection cards like Ocean Collection, Lunar Collection, and more. */
@@ -266,6 +268,78 @@ export function ProductListPage() {
 
   const { data, isLoading, isFetching, isPlaceholderData } = useProducts(params);
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const dropSearchParam = (key) =>
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
+
+  const clearAll = () => {
+    resetFilters();
+    setSearchParams(sort ? { sort } : {});
+    if (category) navigate('/products');
+  };
+
+  // Chips mirror every active refinement, whether it came from the URL (a
+  // category route / query param) or from the filter dropdowns, so each one
+  // needs its own removal path.
+  const activeChips = [
+    activeCategory && {
+      key: `url:category:${activeCategory}`,
+      label: activeCategory,
+      // A /products/:category route has no query param to drop.
+      onRemove: () => (category ? navigate('/products') : dropSearchParam('category')),
+    },
+    activeCollection && {
+      key: `url:collection:${activeCollection}`,
+      label: activeCollection,
+      onRemove: () => dropSearchParam('collection'),
+    },
+    activeOccasion && {
+      key: `url:occasion:${activeOccasion}`,
+      label: activeOccasion,
+      onRemove: () => dropSearchParam('occasion'),
+    },
+    activeSearch && {
+      key: `url:search:${activeSearch}`,
+      label: `Search: ${activeSearch}`,
+      onRemove: () => setSearchDraft(''),
+    },
+    ...['category', 'subCategory', 'collection', 'occasion', 'metalColor'].flatMap((field) =>
+      filters[field].map((value) => ({
+        key: `${field}:${value}`,
+        label: value,
+        onRemove: () =>
+          setFilter(
+            field,
+            filters[field].filter((item) => item !== value),
+          ),
+      })),
+    ),
+    filters.stockType && {
+      key: `stockType:${filters.stockType}`,
+      label: filters.stockType,
+      onRemove: () => setFilter('stockType', ''),
+    },
+    ...[
+      ['diamondMin', 'Diamond Min'],
+      ['diamondMax', 'Diamond Max'],
+      ['goldMin', 'Gold Min'],
+      ['goldMax', 'Gold Max'],
+    ]
+      .filter(([field]) => filters[field] !== '' && filters[field] !== undefined && filters[field] !== null)
+      .map(([field, label]) => ({
+        key: field,
+        label: `${label}: ${filters[field]}`,
+        onRemove: () => setFilter(field, ''),
+      })),
+  ].filter(Boolean);
 
   // Only the very first load (no data yet) blanks the page. Once we have
   // results, filter changes keep the previous list on screen and update in
@@ -314,7 +388,7 @@ export function ProductListPage() {
             type="search"
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder="Search by style code, name or description"
+            placeholder="Search style code, name, category, collection, occasion, metal"
             aria-label="Search products"
             className="min-h-12 w-full border border-[var(--color-border)] bg-[var(--color-surface)] py-3 pl-11 pr-11 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)]"
           />
@@ -333,23 +407,39 @@ export function ProductListPage() {
           filters={data.filters}
           activeFilters={filters}
           setFilter={setFilter}
-          resetFilters={() => {
-            resetFilters();
-            setSearchParams(sort ? { sort } : {});
-          }}
         />
         <div className="lux-panel flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm text-[var(--color-text-muted)]">{data.total} items found</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {[activeCategory, activeCollection, activeOccasion, ...filters.category, ...filters.subCategory, ...filters.collection, ...filters.occasion, ...filters.metalColor, filters.stockType]
-                .filter(Boolean)
-                .map((chip) => (
-                  <span key={chip} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1 text-xs tracking-[0.08em] text-[var(--color-text-muted)] uppercase">
-                    {chip}
-                  </span>
-                ))}
-            </div>
+            {activeChips.length ? (
+              <div className="mt-2 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {activeChips.map((chip) => (
+                    <span
+                      key={chip.key}
+                      className="flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-1 pl-3 pr-1 text-xs uppercase tracking-[0.08em] text-[var(--color-text-muted)]"
+                    >
+                      {chip.label}
+                      <button
+                        type="button"
+                        onClick={chip.onRemove}
+                        aria-label={`Remove filter ${chip.label}`}
+                        className="flex h-5 w-5 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="text-xs uppercase tracking-[0.12em] text-[var(--color-primary)] underline"
+                >
+                  Clear All
+                </button>
+              </div>
+            ) : null}
           </div>
           <Select
             className="w-full sm:w-64"
@@ -608,22 +698,10 @@ export function ProductDetailPage() {
                 lines={sizeLines}
                 onChange={setSizeLines}
                 onOpenChart={() => setIsSizeChartOpen(true)}
-                maxQuantity={data.stockType === 'Ready Stock' ? data.stockQuantity ?? 0 : undefined}
               />
             </Panel>
           ) : null}
 
-          {data.stockType === 'Ready Stock' ? (
-            <p className="text-sm text-[var(--color-text-muted)]">
-              {data.stockQuantity > 0 ? (
-                <span>{data.stockQuantity} in stock</span>
-              ) : (
-                <span className="text-[var(--color-primary)]">Out of stock</span>
-              )}
-            </p>
-          ) : (
-            <p className="text-sm text-[var(--color-text-muted)]">Made to order — not held as finished stock.</p>
-          )}
           <div className="flex flex-col gap-3">
             {cartItem && !sizeChart ? (
               <div className="flex w-full items-center border border-[var(--color-border)]">
@@ -652,10 +730,7 @@ export function ProductDetailPage() {
             ) : (
               <Button
                 className="w-full"
-                disabled={
-                  (data.stockType === 'Ready Stock' && (data.stockQuantity ?? 0) <= 0) ||
-                  (sizeChart && !sizeLines.every((line) => line.size))
-                }
+                disabled={sizeChart && !sizeLines.every((line) => line.size)}
                 onClick={() =>
                   requireAuth(() =>
                     addToCart({

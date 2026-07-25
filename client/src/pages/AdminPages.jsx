@@ -27,8 +27,8 @@ const emptyProduct = {
   diamondQuality: 'VS-GH',
   settingType: '',
   occasion: '',
+  occasions: [],
   stockType: 'Ready Stock',
-  stockQuantity: 10,
   status: 'Active',
   description: '',
   media: [],
@@ -556,7 +556,7 @@ function buildProductSpecifications(form) {
     { attribute: 'Gold Weight', value: `${Number(form.goldWeight || 0).toFixed(2)} g` },
     { attribute: 'Diamond Quality', value: form.diamondQuality || '' },
     { attribute: 'Setting Type', value: form.settingType || '' },
-    { attribute: 'Occasion', value: form.occasion || '' },
+    { attribute: 'Occasion', value: (form.occasions || []).join(', ') || form.occasion || '' },
     { attribute: 'SKU', value: form.sku || `${form.styleCode}-SKU` },
   ].filter((item) => item.value);
 
@@ -708,14 +708,19 @@ function ProductEditor({
   subCategories,
   collections,
   metalOptions,
+  occasions,
 }) {
   const availableSubCategories = subCategories.filter(
     (item) => !form.categoryId || item.categoryId === form.categoryId,
   );
+  // A collection with no category is a brand collection from the product master
+  // (Prithvi, Monsoon Magic, ...). Those span the whole catalogue, so they stay
+  // selectable whatever category the style is in — only collections pinned to a
+  // different category are filtered out.
   const availableCollections = collections.filter(
     (item) =>
-      (!form.categoryId || item.categoryId === form.categoryId) &&
-      (!form.subCategoryId || item.subCategoryId === form.subCategoryId),
+      (!item.categoryId || !form.categoryId || item.categoryId === form.categoryId) &&
+      (!item.subCategoryId || !form.subCategoryId || item.subCategoryId === form.subCategoryId),
   );
 
   const addSpecification = () => {
@@ -781,8 +786,33 @@ function ProductEditor({
         <Field label="Gold Weight (g)"><input type="number" step="0.01" className={textInput} value={form.goldWeight} onChange={(event) => setForm((current) => ({ ...current, goldWeight: Number(event.target.value) }))} /></Field>
         <Field label="Diamond Quality"><input className={textInput} value={form.diamondQuality} onChange={(event) => setForm((current) => ({ ...current, diamondQuality: event.target.value }))} /></Field>
         <Field label="Setting Type"><input className={textInput} value={form.settingType} onChange={(event) => setForm((current) => ({ ...current, settingType: event.target.value }))} /></Field>
-        <Field label="Occasion"><input className={textInput} value={form.occasion} onChange={(event) => setForm((current) => ({ ...current, occasion: event.target.value }))} /></Field>
-        <Field label="Stock Quantity"><input type="number" min="0" className={textInput} value={form.stockQuantity} onChange={(event) => setForm((current) => ({ ...current, stockQuantity: Number(event.target.value) }))} /></Field>
+        <Field label="Occasions">
+          {/* The storefront's "Shop by Occasion" menu and the product filters read
+              the occasions array, so tagging has to happen here. `occasion` is the
+              older single-value field and is kept as the first selection. */}
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {occasions.length ? (
+              occasions.map((name) => (
+                <label key={name} className="flex cursor-pointer items-center gap-2 text-sm text-[var(--color-text)]">
+                  <input
+                    type="checkbox"
+                    checked={(form.occasions || []).includes(name)}
+                    onChange={() => setForm((current) => {
+                      const selected = current.occasions || [];
+                      const next = selected.includes(name)
+                        ? selected.filter((item) => item !== name)
+                        : [...selected, name];
+                      return { ...current, occasions: next, occasion: next[0] || '' };
+                    })}
+                  />
+                  {name}
+                </label>
+              ))
+            ) : (
+              <p className="text-sm text-[var(--color-text-muted)]">No occasions configured yet.</p>
+            )}
+          </div>
+        </Field>
         <Field label="Stock Type">
           <select className={textInput} value={form.stockType} onChange={(event) => setForm((current) => ({ ...current, stockType: event.target.value }))}>
             <option value="Ready Stock">Ready Stock</option>
@@ -889,8 +919,7 @@ function BulkProductImportPanel({ onImported }) {
   // Taxonomy comes from the sheet itself, so only upload-wide defaults live here.
   const [importOptions, setImportOptions] = useState({
     stockType: 'Ready Stock',
-    stockQuantity: 10,
-    status: 'Active',
+      status: 'Active',
     isNewArrival: false,
     isBestSeller: false,
   });
@@ -988,7 +1017,6 @@ function BulkProductImportPanel({ onImported }) {
       const result = await adminService.bulkImportProducts({
         rows: rowsForImport,
         cloudinaryBaseUrl: cloudinaryBaseUrl.trim(),
-        stockQuantity: importOptions.stockQuantity,
         isNewArrival: importOptions.isNewArrival,
         isBestSeller: importOptions.isBestSeller,
       });
@@ -1050,15 +1078,6 @@ function BulkProductImportPanel({ onImported }) {
             value={cloudinaryBaseUrl}
             onChange={(event) => setCloudinaryBaseUrl(event.target.value)}
             placeholder="https://res.cloudinary.com/<cloud>/image/upload/v123/dearte/products"
-          />
-        </Field>
-        <Field label="Default stock quantity">
-          <input
-            type="number"
-            min="0"
-            className={textInput}
-            value={importOptions.stockQuantity}
-            onChange={(event) => setImportOptions((current) => ({ ...current, stockQuantity: Number(event.target.value) }))}
           />
         </Field>
       </div>
@@ -1738,8 +1757,8 @@ export function AdminProductsPage() {
                     diamondQuality: product.diamondQuality,
                     settingType: product.settingType,
                     occasion: product.occasion,
+                    occasions: product.occasions || [],
                     stockType: product.stockType,
-                    stockQuantity: product.stockQuantity,
                     status: product.status,
                     description: product.description,
                     media: product.media || [],
@@ -1763,7 +1782,7 @@ export function AdminProductsPage() {
                     {[product.category, product.collection].filter(Boolean).join(' › ') || 'No collection'}
                   </p>
                   <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                    {product.stockType === 'Ready Stock' ? `${product.stockQuantity} units` : 'Made to order'}
+                    {product.stockType === 'Ready Stock' ? 'Ready Stock' : 'Made to order'}
                   </p>
                 </div>
               </button>
@@ -1785,6 +1804,7 @@ export function AdminProductsPage() {
           subCategories={config.subCategories || []}
           collections={config.collections || []}
           metalOptions={config.metalOptions || []}
+          occasions={config.occasions || []}
         />
       </div>
     </div>
@@ -1801,10 +1821,12 @@ export function AdminOrdersPage() {
   const [statusChangeFlow, setStatusChangeFlow] = useState(null);
   const [statusNotifyOptionalNote, setStatusNotifyOptionalNote] = useState('');
   const [statusSaving, setStatusSaving] = useState(false);
+  const [notesDraft, setNotesDraft] = useState('');
 
   useEffect(() => {
     setStatusChangeFlow(null);
     setStatusNotifyOptionalNote('');
+    setNotesDraft(selectedOrder?.notes || '');
   }, [selectedOrder?.id]);
 
   if (isLoading) return <LoadingBlock />;
@@ -1908,10 +1930,22 @@ export function AdminOrdersPage() {
               </div>
             ) : null}
             <Field label="Notes">
-              <textarea className={textareaInput} defaultValue={selectedOrder.notes || ''} onBlur={async (event) => {
-                await adminService.updateOrder(selectedOrder.id, { notes: event.target.value });
-                queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-              }} />
+              <textarea
+                key={selectedOrder.id}
+                className={textareaInput}
+                value={notesDraft}
+                onChange={(event) => setNotesDraft(event.target.value)}
+                onBlur={async () => {
+                  if (notesDraft === (selectedOrder.notes || '')) return;
+                  const orderId = selectedOrder.id;
+                  try {
+                    await adminService.updateOrder(orderId, { notes: notesDraft });
+                    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+                  } catch (error) {
+                    toast.error(error?.response?.data?.message || error?.message || 'Could not save notes.');
+                  }
+                }}
+              />
             </Field>
             <div className="space-y-3">
               <p className="text-sm text-[var(--color-text-muted)]">Line items</p>

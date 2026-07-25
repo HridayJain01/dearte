@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { categoryImages, collectionImages, seedData, subCategoryImages } from '../data/seed.js';
+import { CATEGORY_TREE, COLLECTIONS } from '../data/taxonomy.js';
 import {
   Banner,
   Catalogue,
@@ -10,14 +11,13 @@ import {
   MetalOption,
   Order,
   PopupAd,
-  Product,
   SiteSettings,
   SubCategory,
   Testimonial,
   TrustedBrand,
   User,
 } from '../models/index.js';
-import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
+import { normalizeAsset } from '../utils/assets.js';
 import { slugify } from '../utils/slugify.js';
 import { isProduction } from '../config/env.js';
 import { validatePassword } from '../utils/validation.js';
@@ -85,31 +85,47 @@ async function ensureCategory(name) {
 
 async function ensureSubCategory(name, category) {
   const imageUrl = subCategoryImages[name] || '';
-  let subCategory = await SubCategory.findOne({ name, category: category._id });
+  // Matched on name alone, not name + category: sub-category names are globally
+  // unique across the product master, and matching on the pair would create a
+  // second record whenever a sub-category moves to a different parent category.
+  let subCategory = await SubCategory.findOne({ name });
   if (!subCategory) {
     subCategory = await SubCategory.create({
       name,
-      slug: slugify(`${category.name}-${name}`),
+      // Globally unique names mean the name alone is enough for the (globally
+      // unique) slug.
+      slug: slugify(name),
       category: category._id,
       image: normalizeAsset({ secureUrl: imageUrl }),
       active: true,
     });
-  } else if (!subCategory.image?.publicId && imageUrl) {
-    subCategory.image = normalizeAsset({ secureUrl: imageUrl });
-    await subCategory.save();
+    return subCategory;
   }
+
+  let dirty = false;
+  if (String(subCategory.category) !== String(category._id)) {
+    subCategory.category = category._id;
+    dirty = true;
+  }
+  if (!subCategory.image?.publicId && imageUrl) {
+    subCategory.image = normalizeAsset({ secureUrl: imageUrl });
+    dirty = true;
+  }
+  if (dirty) await subCategory.save();
   return subCategory;
 }
 
-async function ensureCollection(name, category, subCategory) {
+// Brand collections from the product master span every category, so they carry
+// no category/sub category parent and are keyed on name alone.
+async function ensureCollection(name) {
   const imageUrl = collectionImages[name] || '';
-  let collection = await Collection.findOne({ name, subCategory: subCategory._id });
+  let collection = await Collection.findOne({ name });
   if (!collection) {
     collection = await Collection.create({
       name,
-      slug: slugify(`${category.name}-${subCategory.name}-${name}`),
-      category: category._id,
-      subCategory: subCategory._id,
+      slug: slugify(name),
+      category: null,
+      subCategory: null,
       image: normalizeAsset({ secureUrl: imageUrl }),
       active: true,
     });
@@ -118,6 +134,25 @@ async function ensureCollection(name, category, subCategory) {
     await collection.save();
   }
   return collection;
+}
+
+/**
+ * Creates the category -> sub-category tree and the brand collections from the
+ * product master. Runs on every boot (not just the first) so a taxonomy added
+ * to the master sheet appears without a manual step, and is idempotent: an
+ * existing record is left exactly as the admin edited it.
+ */
+async function ensureMasterTaxonomy() {
+  for (const entry of CATEGORY_TREE) {
+    const category = await ensureCategory(entry.name);
+    for (const subName of entry.subCategories) {
+      await ensureSubCategory(subName, category);
+    }
+  }
+
+  for (const name of COLLECTIONS) {
+    await ensureCollection(name);
+  }
 }
 
 async function ensureMetalOption(name) {
@@ -137,51 +172,11 @@ export async function seedDatabase() {
   const productIdMap = new Map();
   const userIdMap = new Map();
 
+  // The category/sub-category/collection tree comes from the product master and
+  // is kept current on every boot, independent of the one-time demo seeding below.
+  await ensureMasterTaxonomy();
+
   if (existingUsers === 0) {
-    for (const product of seedData.products) {
-      const category = await ensureCategory(product.category);
-      const subCategory = await ensureSubCategory(product.subCategory, category);
-      const collection = await ensureCollection(product.collection, category, subCategory);
-      const metalOption = await ensureMetalOption(product.metalColor);
-
-      const created = await Product.create({
-        styleCode: product.styleCode,
-        name: product.name,
-        description: product.description,
-        category: category._id,
-        subCategory: subCategory._id,
-        collection: collection._id,
-        metalType: product.metal,
-        metalColor: metalOption._id,
-        metal: product.metal,
-        diamondWeight: product.diamondWeight,
-        goldWeight: product.goldWeight,
-        diamondQuality: product.diamondQuality,
-        settingType: product.settingType,
-        occasion: product.occasion,
-        sku: product.sku,
-        stockType: product.stockType,
-        stockQuantity: product.stockQuantity || 10,
-        status: product.status === 'Inactive' ? 'Inactive' : 'Active',
-        isNewArrival: product.isNewArrival,
-        isBestSeller: product.isBestSeller,
-        media: normalizeAssetArray(
-          (product.images || []).map((url, index) => ({
-            secureUrl: url,
-            alt: `${product.name} ${index + 1}`,
-            resourceType: 'image',
-          })),
-        ),
-        customizationOptions: product.customizationOptions,
-        specifications: product.specifications,
-        views: product.views || 0,
-        cartAdds: product.cartAdds || 0,
-        orderCount: product.orderCount || 0,
-      });
-
-      productIdMap.set(product.id, created._id);
-    }
-
     for (const user of seedData.users) {
       const seededCart = seedData.carts.find((cart) => cart.userId === user.id);
       const seededWishlist = seedData.wishlists.find((wishlist) => wishlist.userId === user.id);

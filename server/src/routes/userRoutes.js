@@ -107,29 +107,11 @@ function isSameCartLine(item, productId, customization) {
   );
 }
 
-function totalUnitsForProductInCart(user, productId, excludeItemId = null) {
-  return (user.cart?.items || []).reduce((sum, item) => {
-    if (String(item.product) !== String(productId) && String(item.product?._id) !== String(productId)) {
-      return sum;
-    }
-
-    if (excludeItemId && String(item._id) === String(excludeItemId)) {
-      return sum;
-    }
-
-    return sum + Number(item.quantity || 0);
-  }, 0);
-}
-
 async function validateReadyStockOrThrow(orderLikeItems) {
   for (const line of orderLikeItems) {
     const product = await Product.findById(line.product);
     if (!product) {
       throw new Error('One or more products are unavailable.');
-    }
-
-    if (product.stockType === 'Ready Stock' && Number(line.quantity || 0) > Number(product.stockQuantity || 0)) {
-      throw new Error(`Only ${product.stockQuantity} unit(s) available for ${product.styleCode}.`);
     }
   }
 }
@@ -142,15 +124,6 @@ async function deductOrderStock(order) {
 
     if (!product) {
       throw new Error('Unable to deduct stock because a product is missing.');
-    }
-
-    if (product.stockType === 'Ready Stock') {
-      if (product.stockQuantity < line.quantity) {
-        throw new Error(`Only ${product.stockQuantity} unit(s) available for ${product.styleCode}.`);
-      }
-
-      product.stockQuantity -= line.quantity;
-      await product.save();
     }
   }
 
@@ -244,11 +217,6 @@ router.post('/cart/add', async (req, res) => {
   }
 
   const addQty = mergedLines.reduce((sum, line) => sum + line.quantity, 0);
-  const nextTotal = totalUnitsForProductInCart(req.user, productId) + addQty;
-  if (product.stockType === 'Ready Stock' && nextTotal > product.stockQuantity) {
-    return sendError(res, `Only ${product.stockQuantity} unit(s) available for this style.`, 409);
-  }
-
   if (!req.user.cart) {
     req.user.cart = { items: [], specialInstructions: '' };
   }
@@ -304,13 +272,6 @@ router.put('/cart/:itemId', async (req, res) => {
     const quantity = Number(req.body.quantity);
     if (quantity < 1) {
       return sendError(res, 'Quantity must be at least 1', 400);
-    }
-
-    if (product.stockType === 'Ready Stock') {
-      const totalWithoutItem = totalUnitsForProductInCart(req.user, item.product, item._id);
-      if (totalWithoutItem + quantity > product.stockQuantity) {
-        return sendError(res, `Only ${product.stockQuantity} unit(s) available for this style.`, 409);
-      }
     }
 
     item.quantity = quantity;

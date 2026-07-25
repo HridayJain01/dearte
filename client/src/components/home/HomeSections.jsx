@@ -161,8 +161,8 @@ export function CollectionsShowcase() {
 
         <div className="flex w-full min-h-0 flex-col gap-3 sm:gap-4.5 lg:w-1/2 lg:min-h-144">
           <ShopCategoryCard
-            label="Earrings"
-            categorySlug="Earrings"
+            label="Earring"
+            categorySlug="Earring"
             imageSrc="/images/shop-category/earrings.jpg"
             className="aspect-16/9 min-h-32 w-full sm:aspect-16/11 sm:min-h-48 lg:aspect-auto lg:min-h-0 lg:flex-1"
             delay={90}
@@ -170,14 +170,14 @@ export function CollectionsShowcase() {
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4.5 lg:flex-1 lg:min-h-0">
             <ShopCategoryCard
-              label="Bracelets"
+              label="Bracelet"
               categorySlug="Bracelet"
               imageSrc="/images/shop-category/bracelets.jpg"
               className="aspect-square min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 lg:h-full"
               delay={180}
             />
             <ShopCategoryCard
-              label="Pendants"
+              label="Pendant"
               categorySlug="Pendant"
               imageSrc="/images/shop-category/pendants.jpg"
               className="aspect-square min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 lg:h-full"
