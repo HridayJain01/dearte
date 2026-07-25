@@ -96,9 +96,15 @@ function sizeContextFor(product) {
  * Two cart lines are the same line only when every customisation axis matches,
  * size included — that is what lets one style sit in the cart at two sizes.
  */
+function idOf(value) {
+  return String(value?._id || value || '');
+}
+
 function isSameCartLine(item, productId, customization) {
   return (
-    String(item.product?._id || item.product) === String(productId) &&
+    // Either side may be a populated document or a raw ObjectId depending on the
+    // caller, so normalise both before comparing.
+    idOf(item.product) === idOf(productId) &&
     item.customization?.goldColor === customization.goldColor &&
     item.customization?.goldCarat === customization.goldCarat &&
     item.customization?.diamondQuality === customization.diamondQuality &&
@@ -180,11 +186,42 @@ router.post('/cart/add', async (req, res) => {
   const sizeContext = sizeContextFor(product);
   const chart = resolveSizeChart(sizeContext);
 
-  // A sized style can be added at several sizes in one go. Everything else
-  // funnels through the same path as a single anonymous line.
+  // A style can be added in several combinations in one go. Each line may
+  // override any customisation axis, so one request can carry, say, Rose Gold
+  // 14K in size 12 alongside White Gold 9K in size 14.
   const requestedLines = Array.isArray(lines) && lines.length
     ? lines
-    : [{ size: customization.size, quantity }];
+    : [{ ...customization, quantity }];
+
+  if (!req.user.cart) {
+    req.user.cart = { items: [], specialInstructions: '' };
+  }
+
+  const baseCustomization = {
+    // Fall back to the first colour variant rather than the raw options list:
+    // that is the colour the storefront shows first, and the one whose photos
+    // the cart line will render.
+    goldColor:
+      asString(customization.goldColor, { maxLength: 120 }) ||
+      product.colorVariants?.[0]?.color ||
+      product.customizationOptions?.goldColors?.[0] ||
+      '',
+    goldCarat:
+      asString(customization.goldCarat, { maxLength: 120 }) ||
+      product.customizationOptions?.goldCarats?.[0] ||
+      '',
+    diamondQuality:
+      asString(customization.diamondQuality, { maxLength: 120 }) ||
+      product.customizationOptions?.diamondQualities?.[0] ||
+      '',
+    note: asString(customization.note, { maxLength: 2000 }),
+  };
+
+  // Each line falls back to the shared selection for any axis it leaves out.
+  const axisFor = (line, key, maxLength = 120) =>
+    (line[key] === undefined || line[key] === null || line[key] === ''
+      ? baseCustomization[key]
+      : asString(line[key], { maxLength }));
 
   const normalizedLines = [];
   for (const line of requestedLines) {
@@ -202,37 +239,39 @@ router.post('/cart/add', async (req, res) => {
       return sendError(res, `"${size}" is not a valid ${chart.noun.toLowerCase()} for this style.`, 400);
     }
 
-    normalizedLines.push({ size, quantity: lineQty });
+    normalizedLines.push({
+      quantity: lineQty,
+      customization: {
+        goldColor: axisFor(line, 'goldColor'),
+        goldCarat: axisFor(line, 'goldCarat'),
+        diamondQuality: axisFor(line, 'diamondQuality'),
+        note: axisFor(line, 'note', 2000),
+        size,
+      },
+    });
   }
 
-  // Same size requested twice in one payload — fold it into a single line.
+  // The identical combination requested twice in one payload folds into a
+  // single line. Colour and karat are part of that identity, so Rose 14K and
+  // White 14K in the same size stay two separate lines.
   const mergedLines = [];
   for (const line of normalizedLines) {
-    const match = mergedLines.find((entry) => entry.size === line.size);
+    const match = mergedLines.find((entry) =>
+      ['goldColor', 'goldCarat', 'diamondQuality', 'note', 'size'].every(
+        (key) => entry.customization[key] === line.customization[key],
+      ),
+    );
+
     if (match) {
       match.quantity += line.quantity;
     } else {
-      mergedLines.push({ ...line });
+      mergedLines.push({ ...line, customization: { ...line.customization } });
     }
   }
 
-  const addQty = mergedLines.reduce((sum, line) => sum + line.quantity, 0);
-  if (!req.user.cart) {
-    req.user.cart = { items: [], specialInstructions: '' };
-  }
-
-  const baseCustomization = {
-    goldColor: customization.goldColor || product.customizationOptions?.goldColors?.[0] || '',
-    goldCarat: customization.goldCarat || product.customizationOptions?.goldCarats?.[0] || '',
-    diamondQuality:
-      customization.diamondQuality || product.customizationOptions?.diamondQualities?.[0] || '',
-    note: asString(customization.note, { maxLength: 2000 }),
-  };
-
   for (const line of mergedLines) {
-    const lineCustomization = { ...baseCustomization, size: line.size };
     const existing = (req.user.cart.items || []).find((item) =>
-      isSameCartLine(item, productId, lineCustomization),
+      isSameCartLine(item, product._id, line.customization),
     );
 
     if (existing) {
@@ -241,17 +280,18 @@ router.post('/cart/add', async (req, res) => {
       req.user.cart.items.push({
         product: product._id,
         quantity: line.quantity,
-        customization: lineCustomization,
+        customization: line.customization,
       });
     }
   }
 
+  const addQty = mergedLines.reduce((sum, line) => sum + line.quantity, 0);
   product.cartAdds += addQty;
   await Promise.all([req.user.save(), product.save()]);
   await populateUserCommerceState(req.user);
 
   const message = mergedLines.length > 1
-    ? `${mergedLines.length} sizes added to cart`
+    ? `${mergedLines.length} combinations added to cart`
     : 'Item added to cart';
 
   return sendSuccess(res, serializeCart(req.user), message);
@@ -282,10 +322,16 @@ router.put('/cart/:itemId', async (req, res) => {
     // would drag internal properties onto the document.
     const current = item.customization || {};
     const incoming = req.body.customization;
+    const carryOver = (key, maxLength = 120) =>
+      (incoming[key] === undefined ? current[key] ?? '' : asString(incoming[key], { maxLength }));
     const next = {
-      goldColor: incoming.goldColor ?? current.goldColor ?? '',
-      goldCarat: incoming.goldCarat ?? current.goldCarat ?? '',
-      diamondQuality: incoming.diamondQuality ?? current.diamondQuality ?? '',
+      goldColor: carryOver('goldColor'),
+      goldCarat: carryOver('goldCarat'),
+      diamondQuality: carryOver('diamondQuality'),
+      // `note` is part of the line's identity, so dropping it here would both
+      // lose the buyer's custom request and let the line merge into an
+      // unrelated one on the duplicate check below.
+      note: carryOver('note', 2000),
       size: current.size ?? '',
     };
 
@@ -309,7 +355,7 @@ router.put('/cart/:itemId', async (req, res) => {
       item.deleteOne();
       await req.user.save();
       await populateUserCommerceState(req.user);
-      return sendSuccess(res, serializeCart(req.user), 'Cart updated');
+      return sendSuccess(res, serializeCart(req.user), 'Combined with the matching line already in your cart');
     }
 
     item.customization = next;

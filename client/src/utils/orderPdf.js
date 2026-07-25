@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { formatDate, formatWeight } from './formatters';
 import { brandLogoUrl } from './brandLogo';
+import { diamondWeightFor, goldWeightFor, variantImage } from './productVariants';
 
 const BRAND = {
   charcoal: '#1f1d1a',
@@ -220,8 +221,14 @@ function drawItemCard(doc, item, imageDataUrl, x, y, w, h) {
   doc.setFontSize(8.3);
   doc.setTextColor(BRAND.muted);
   doc.text(`Qty: ${item.quantity}`, detailsX, y + 21);
-  doc.text(`Diamond: ${formatWeight(product.diamondWeight || 0, 'ct')}`, detailsX, y + 25.5);
-  doc.text(`Gold: ${formatWeight(product.goldWeight || 0, 'g')}`, detailsX, y + 30);
+  doc.text(`Diamond: ${formatWeight(diamondWeightFor(product), 'ct')}`, detailsX, y + 25.5);
+  // Karat-aware, so a 9K line does not quote the style's 18K weight.
+  const goldCarat = item.customization?.goldCarat;
+  doc.text(
+    `Gold: ${formatWeight(goldWeightFor(product, goldCarat), 'g')}${goldCarat ? ` (${goldCarat})` : ''}`,
+    detailsX,
+    y + 30,
+  );
 
   const customization = [
     item.customization?.goldColor,
@@ -258,7 +265,8 @@ async function generatePdf({ payload, user, filename }) {
   const preloadedImages = await Promise.all(
     payload.items.map(async (item) => ({
       id: item.id,
-      dataUrl: await imageToDataUrl(item.product?.images?.[0] || ''),
+      // The photo of the colour that was actually ordered, not the style default.
+      dataUrl: await imageToDataUrl(variantImage(item.product, item.customization)),
     })),
   );
 

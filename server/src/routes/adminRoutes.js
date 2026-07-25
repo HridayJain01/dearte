@@ -182,9 +182,12 @@ function mergeCustomizationOptions(bodyOptions, currentOptions, colorVariants) {
   const derivedColors = dedupeStrings(colorVariants.map((variant) => variant.color));
 
   return {
-    goldColors: derivedColors.length
-      ? derivedColors
-      : dedupeStrings(incoming.goldColors || ['Yellow Gold', 'Rose Gold', 'White Gold']),
+    // Union, not replacement: having a photo gallery for one colour must not
+    // withdraw the other colours the style is sold in.
+    goldColors: dedupeStrings([
+      ...derivedColors,
+      ...(incoming.goldColors || ['Yellow Gold', 'Rose Gold', 'White Gold']),
+    ]),
     goldCarats: dedupeStrings(incoming.goldCarats || ['9K', '14K', '18K']),
     diamondQualities: dedupeStrings(incoming.diamondQualities || ['SI-IJ', 'VS-GH', 'VVS-EF']),
   };
@@ -428,7 +431,14 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       media: buildPrimaryMedia(colorVariants),
       colorVariants,
       customizationOptions: {
-        goldColors: colorVariants.map((variant) => variant.color),
+        // The sheet supplies images per colour, not the colours the style is
+        // sold in — keep the full offering so every colour stays orderable.
+        goldColors: dedupeStrings([
+          ...colorVariants.map((variant) => variant.color),
+          'Yellow Gold',
+          'Rose Gold',
+          'White Gold',
+        ]),
         goldCarats: ['9K', '14K', '18K'],
         diamondQualities: ['SI-IJ', item.diamondQuality || 'VS-GH', 'VVS-EF'],
       },

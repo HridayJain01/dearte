@@ -17,10 +17,19 @@ import { Select } from '../components/ui/Select';
 import { ProductCard } from '../components/product/ProductCard';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
-import { SizeSelector } from '../components/product/SizeSelector';
+import { CombinationSelector } from '../components/product/CombinationSelector';
 import { defaultSizeFor, resolveSizeChart } from '../data/sizeMaster';
 import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatWeight } from '../utils/formatters';
+import {
+  customizationChips,
+  customizationSummary,
+  diamondWeightFor,
+  goldColorSwatch,
+  goldWeightFor,
+  variantImage,
+  variantImages,
+} from '../utils/productVariants';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutSchema } from '../utils/validators';
@@ -483,16 +492,11 @@ export function ProductListPage() {
 export function ProductDetailPage() {
   const { styleCode } = useParams();
   const [activeImage, setActiveImage] = useState(0);
-  const [selection, setSelection] = useState({
-    goldColor: '',
-    goldCarat: '',
-    diamondQuality: '',
-    note: '',
-  });
-  const [sizeState, setSizeState] = useState({ productId: null, lines: [] });
+  const [note, setNote] = useState('');
+  const [lineState, setLineState] = useState({ productId: null, lines: [], activeIndex: 0 });
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
   const { data, isLoading } = useProduct(styleCode);
-  const { cart, addToCart, updateCart, removeFromCart } = useCart();
+  const { cart, addToCart } = useCart();
   const { wishlist, addToWishlist } = useWishlist();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -500,50 +504,47 @@ export function ProductDetailPage() {
 
   const sizeChart = useMemo(() => resolveSizeChart(data || {}), [data]);
 
-  // Derived rather than synced through an effect: until the buyer touches the
-  // picker, a product falls back to a single mid-range row from its chart.
-  const sizeLines =
-    sizeState.productId === data?.id
-      ? sizeState.lines
-      : sizeChart
-        ? [{ size: defaultSizeFor(data), quantity: 1 }]
-        : [];
-
-  const setSizeLines = (update) =>
-    setSizeState((current) => ({
-      productId: data?.id,
-      lines: typeof update === 'function' ? update(current.productId === data?.id ? current.lines : sizeLines) : update,
-    }));
-
   const availableGoldColors = data?.customizationOptions?.goldColors || [];
   const availableGoldCarats = data?.customizationOptions?.goldCarats || [];
   const availableDiamondQualities = data?.customizationOptions?.diamondQualities || [];
-  const effectiveSelection = {
-    goldColor: availableGoldColors.includes(selection.goldColor)
-      ? selection.goldColor
-      : data?.colorVariants?.[0]?.color || availableGoldColors[0] || '',
-    goldCarat: availableGoldCarats.includes(selection.goldCarat)
-      ? selection.goldCarat
-      : availableGoldCarats[1] || availableGoldCarats[0] || '',
-    diamondQuality: availableDiamondQualities.includes(selection.diamondQuality)
-      ? selection.diamondQuality
-      : availableDiamondQualities[1] || availableDiamondQualities[0] || '',
-    note: selection.note || '',
+
+  // The combination a fresh row starts from: the first photographed colour, and
+  // the mid option of each remaining axis.
+  const defaultCombination = {
+    goldColor: data?.colorVariants?.[0]?.color || availableGoldColors[0] || '',
+    goldCarat: availableGoldCarats[1] || availableGoldCarats[0] || '',
+    diamondQuality: availableDiamondQualities[1] || availableDiamondQualities[0] || '',
+    size: sizeChart ? defaultSizeFor(data) : '',
+    quantity: 1,
   };
-  const selectedVariant = data?.colorVariants?.find((variant) => variant.color === effectiveSelection.goldColor);
-  const activeImages = selectedVariant?.views?.map((item) => item.asset?.secureUrl).filter(Boolean)?.length
-    ? selectedVariant.views.map((item) => item.asset.secureUrl).filter(Boolean)
-    : data?.images || [];
+
+  // Derived rather than synced through an effect: until the buyer touches the
+  // builder, a product shows a single default row.
+  const orderLines = lineState.productId === data?.id ? lineState.lines : [defaultCombination];
+  const activeIndex = Math.min(lineState.productId === data?.id ? lineState.activeIndex : 0, orderLines.length - 1);
+  const activeLine = orderLines[activeIndex] || defaultCombination;
+
+  const setOrderLines = (lines) =>
+    setLineState((current) => ({
+      productId: data?.id,
+      lines,
+      activeIndex: Math.min(current.productId === data?.id ? current.activeIndex : 0, Math.max(0, lines.length - 1)),
+    }));
+
+  const setActiveIndex = (index) =>
+    setLineState((current) => ({
+      productId: data?.id,
+      lines: current.productId === data?.id ? current.lines : orderLines,
+      activeIndex: index,
+    }));
+
+  // The gallery follows the row the buyer is working on.
+  const activeImages = variantImages(data, activeLine.goldColor);
   const safeActiveImage = activeImages[activeImage] ? activeImage : 0;
 
-  const cartItem = cart?.items?.find(
-    (i) =>
-      i.product?.id === data?.id &&
-      i.customization?.goldColor === effectiveSelection.goldColor &&
-      i.customization?.goldCarat === effectiveSelection.goldCarat &&
-      i.customization?.diamondQuality === effectiveSelection.diamondQuality &&
-      (i.customization?.note || '') === effectiveSelection.note,
-  );
+  // Every line of this style already in the cart, so the buyer can see what a
+  // repeat visit would be adding to.
+  const existingCartLines = cart?.items?.filter((i) => i.product?.id === data?.id) || [];
   const effectiveWishlistCollectionId = wishlistCollectionId || wishlist?.collections?.[0]?.id || '';
 
   if (isLoading) {
@@ -646,98 +647,57 @@ export function ProductDetailPage() {
           </Panel>
 
           <Panel>
-            <p className="lux-label mb-4">Customization</p>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Select
-                label="Gold Color"
-                options={availableGoldColors}
-                value={effectiveSelection.goldColor}
-                onChange={(option) => {
-                  setSelection((current) => ({ ...current, goldColor: option }));
-                  setActiveImage(0);
-                }}
-              />
-              <Select
-                label="Gold Carat"
-                options={availableGoldCarats}
-                value={effectiveSelection.goldCarat}
-                onChange={(option) => setSelection((current) => ({ ...current, goldCarat: option }))}
-              />
-              <Select
-                label="Diamond Quality"
-                options={availableDiamondQualities}
-                value={effectiveSelection.diamondQuality}
-                onChange={(option) => setSelection((current) => ({ ...current, diamondQuality: option }))}
-              />
-            </div>
-            <label className="mt-4 block text-sm">
-              <span className="mb-2 block text-[var(--color-text-muted)]">Custom request for this piece (optional)</span>
+            <CombinationSelector
+              chart={sizeChart}
+              options={{
+                goldColors: availableGoldColors,
+                goldCarats: availableGoldCarats,
+                diamondQualities: availableDiamondQualities,
+              }}
+              lines={orderLines}
+              onChange={setOrderLines}
+              activeIndex={activeIndex}
+              onActivate={(index) => {
+                setActiveIndex(index);
+                setActiveImage(0);
+              }}
+              onOpenChart={() => setIsSizeChartOpen(true)}
+            />
+            <label className="mt-5 block text-sm">
+              <span className="mb-2 block text-[var(--color-text-muted)]">
+                Custom request (optional) — applies to every combination above
+              </span>
               <textarea
-                value={selection.note}
-                onChange={(event) => setSelection((current) => ({ ...current, note: event.target.value }))}
-                placeholder="e.g. engrave initials, specific ring size, alter chain length, special finishing..."
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="e.g. engrave initials, alter chain length, special finishing..."
                 className="min-h-[96px] w-full border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
               />
             </label>
-            <div className="mt-5 border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
-              Your Selection: {effectiveSelection.goldColor}, {effectiveSelection.goldCarat}, {effectiveSelection.diamondQuality}
-              {effectiveSelection.note ? <span className="mt-1 block">Custom request: {effectiveSelection.note}</span> : null}
-            </div>
           </Panel>
 
-          {sizeChart ? (
-            <Panel>
-              <SizeSelector
-                chart={sizeChart}
-                lines={sizeLines}
-                onChange={setSizeLines}
-                onOpenChart={() => setIsSizeChartOpen(true)}
-              />
-            </Panel>
-          ) : null}
-
           <div className="flex flex-col gap-3">
-            {cartItem && !sizeChart ? (
-              <div className="flex w-full items-center border border-[var(--color-border)]">
-                <button
-                  className="flex h-12 flex-1 items-center justify-center text-2xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
-                  onClick={() =>
-                    requireAuth(() =>
-                      cartItem.quantity <= 1
-                        ? removeFromCart(cartItem.id)
-                        : updateCart(cartItem.id, { quantity: cartItem.quantity - 1 }),
-                    )
-                  }
-                >
-                  −
-                </button>
-                <span className="min-w-[3rem] border-x border-[var(--color-border)] py-3 text-center text-sm font-medium text-[var(--color-text)]">
-                  {cartItem.quantity}
-                </span>
-                <button
-                  className="flex h-12 flex-1 items-center justify-center text-2xl leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
-                  onClick={() => requireAuth(() => updateCart(cartItem.id, { quantity: cartItem.quantity + 1 }))}
-                >
-                  +
-                </button>
-              </div>
-            ) : (
-              <Button
-                className="w-full"
-                disabled={sizeChart && !sizeLines.every((line) => line.size)}
-                onClick={() =>
-                  requireAuth(() =>
-                    addToCart({
-                      productId: data.id,
-                      customization: effectiveSelection,
-                      ...(sizeChart ? { lines: sizeLines } : { quantity: 1 }),
-                    }),
-                  )
-                }
-              >
-                {sizeChart && sizeLines.length > 1 ? `Add ${sizeLines.length} Sizes to Cart` : 'Add to Cart'}
-              </Button>
-            )}
+            <Button
+              className="w-full"
+              disabled={Boolean(sizeChart) && !orderLines.every((line) => line.size)}
+              onClick={() =>
+                requireAuth(() =>
+                  addToCart({
+                    productId: data.id,
+                    customization: { note },
+                    lines: orderLines,
+                  }),
+                )
+              }
+            >
+              {orderLines.length > 1 ? `Add ${orderLines.length} Combinations to Cart` : 'Add to Cart'}
+            </Button>
+            {existingCartLines.length ? (
+              <Link to="/cart" className="text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+                Already in your cart: {existingCartLines.reduce((sum, line) => sum + line.quantity, 0)} pieces across{' '}
+                {existingCartLines.length} {existingCartLines.length === 1 ? 'combination' : 'combinations'}
+              </Link>
+            ) : null}
             <div className="flex items-stretch gap-2">
               {(wishlist?.collections?.length ?? 0) > 1 && (
                 <select
@@ -789,18 +749,164 @@ export function ProductDetailPage() {
         chart={sizeChart}
         open={isSizeChartOpen}
         onClose={() => setIsSizeChartOpen(false)}
-        selectedSize={sizeLines[0]?.size}
+        selectedSize={activeLine.size}
         onSelectSize={(size) => {
-          // Applies to the first row; further rows stay under the buyer's control.
-          setSizeLines((current) =>
-            current.length
-              ? current.map((line, index) => (index === 0 ? { ...line, size } : line))
-              : [{ size, quantity: 1 }],
-          );
+          // Applies to the row being worked on; the others stay untouched.
+          setOrderLines(orderLines.map((line, index) => (index === activeIndex ? { ...line, size } : line)));
           setIsSizeChartOpen(false);
         }}
       />
     </section>
+  );
+}
+
+/**
+ * One cart line. Everything shown here is resolved from the line's own
+ * customization — image, chips and weights — so two lines of the same style at
+ * different colours or karats never read as the same piece.
+ */
+function CartLine({ item, onUpdate, onRemove }) {
+  const product = item.product || {};
+  const customization = item.customization || {};
+  const chart = resolveSizeChart(product);
+  const options = product.customizationOptions || {};
+  const image = variantImage(product, customization);
+  const swatch = goldColorSwatch(customization.goldColor);
+  const goldWeight = goldWeightFor(product, customization.goldCarat);
+  const diamondWeight = diamondWeightFor(product);
+
+  const editSelection = (patch) => onUpdate(item.id, { customization: patch });
+
+  return (
+    <Panel className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="flex-shrink-0 sm:w-28">
+        <div className="relative">
+          <img
+            src={image}
+            alt={`${product.name}${customization.goldColor ? ` in ${customization.goldColor}` : ''}`}
+            className="h-40 w-full object-cover sm:h-28 sm:w-28"
+          />
+          {customization.goldColor ? (
+            <span
+              title={customization.goldColor}
+              className="absolute bottom-1.5 right-1.5 h-4 w-4 border border-white shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
+              style={{ backgroundColor: swatch }}
+            />
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="min-w-0 flex-1">
+          <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{product.styleCode}</p>
+          <h3 className="mt-1.5 text-lg font-semibold leading-tight text-[var(--color-text)]">{product.name}</h3>
+
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {customizationChips(customization, { sizeNoun: chart?.noun || 'Size' }).map((chip) => (
+              <span
+                key={chip.label}
+                className="inline-flex items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2.5 py-1 text-xs text-[var(--color-text)]"
+              >
+                {chip.swatch ? (
+                  <span
+                    className="h-3 w-3 border border-[var(--color-border)]"
+                    style={{ backgroundColor: chip.swatch }}
+                  />
+                ) : null}
+                <span className="text-[var(--color-text-muted)]">{chip.label}:</span>
+                {chip.value}
+              </span>
+            ))}
+          </div>
+
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+            <span>
+              Gold {formatWeight(goldWeight, 'g')}
+              {customization.goldCarat ? ` (${customization.goldCarat})` : ''} · Diamond {formatWeight(diamondWeight, 'ct')}
+            </span>
+            <WeightDisclaimerTrigger />
+          </p>
+
+          {customization.note ? (
+            <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+              <span className="text-[var(--color-text)]">Custom request:</span> {customization.note}
+            </p>
+          ) : null}
+
+          <div className="mt-3 border-t border-[var(--color-border)] pt-3">
+            <p className="lux-label mb-2 text-[10px]">Edit this piece</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {options.goldColors?.length ? (
+                <Select
+                  buttonClassName="min-h-9 py-1.5 text-xs"
+                  options={options.goldColors}
+                  value={customization.goldColor}
+                  placeholder="Gold colour"
+                  onChange={(goldColor) => editSelection({ goldColor })}
+                />
+              ) : null}
+              {options.goldCarats?.length ? (
+                <Select
+                  buttonClassName="min-h-9 py-1.5 text-xs"
+                  options={options.goldCarats}
+                  value={customization.goldCarat}
+                  placeholder="Gold karat"
+                  onChange={(goldCarat) => editSelection({ goldCarat })}
+                />
+              ) : null}
+              {options.diamondQualities?.length ? (
+                <Select
+                  buttonClassName="min-h-9 py-1.5 text-xs"
+                  options={options.diamondQualities}
+                  value={customization.diamondQuality}
+                  placeholder="Diamond quality"
+                  onChange={(diamondQuality) => editSelection({ diamondQuality })}
+                />
+              ) : null}
+              {chart ? (
+                <Select
+                  buttonClassName="min-h-9 py-1.5 text-xs"
+                  options={chart.rows.map((row) => ({ value: row.size, label: row.size, hint: row.hint }))}
+                  value={customization.size}
+                  placeholder={chart.noun}
+                  onChange={(size) => editSelection({ size })}
+                />
+              ) : null}
+            </div>
+            <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">
+              Changing an option here updates this line only. If it matches another line in your cart, the two are combined.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border border-[var(--color-border)]">
+            <button
+              className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+              onClick={() => onUpdate(item.id, { quantity: Math.max(1, item.quantity - 1) })}
+            >
+              −
+            </button>
+            <span className="w-8 border-x border-[var(--color-border)] text-center text-sm font-medium text-[var(--color-text)]">
+              {item.quantity}
+            </span>
+            <button
+              className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+              onClick={() => onUpdate(item.id, { quantity: item.quantity + 1 })}
+            >
+              +
+            </button>
+          </div>
+          <button
+            onClick={() => onRemove(item.id)}
+            aria-label="Remove from cart"
+            className="flex h-9 w-9 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </Panel>
   );
 }
 
@@ -809,8 +915,16 @@ export function CartPage() {
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
-  const totalDiamondWeight = cart.items.reduce((sum, item) => sum + (Number(item.product?.diamondWeight || 0) * (item.quantity || 1)), 0);
-  const totalGoldWeight = cart.items.reduce((sum, item) => sum + (Number(item.product?.goldWeight || 0) * (item.quantity || 1)), 0);
+  const totalDiamondWeight = cart.items.reduce(
+    (sum, item) => sum + diamondWeightFor(item.product) * (item.quantity || 1),
+    0,
+  );
+  // Karat-aware: a 9K line weighs its own 9K figure, not the style's default.
+  const totalGoldWeight = cart.items.reduce(
+    (sum, item) => sum + goldWeightFor(item.product, item.customization?.goldCarat) * (item.quantity || 1),
+    0,
+  );
+  const totalPieces = cart.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   const handleDownloadPdf = async () => {
     try {
@@ -841,80 +955,22 @@ export function CartPage() {
       <SectionHeading eyebrow="Cart" title="Order review without visible pricing." description="Pricing will be confirmed by your sales representative." />
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          {cart.items.map((item) => {
-            const itemChart = resolveSizeChart(item.product);
-
-            return (
-            <Panel key={item.id} className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <img
-                src={item.product.images[0]}
-                alt={item.product.name}
-                className="h-40 w-full flex-shrink-0 object-cover sm:h-28 sm:w-28"
-              />
-              <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
-                <div className="min-w-0 flex-1">
-                  <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{item.product.styleCode}</p>
-                  <h3 className="mt-1.5 text-lg font-semibold leading-tight text-[var(--color-text)]">{item.product.name}</h3>
-                  <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                    {item.customization.goldColor} · {item.customization.goldCarat} · {item.customization.diamondQuality}
-                  </p>
-                  {itemChart && item.customization.size ? (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1 text-xs text-[var(--color-primary)]">
-                        {itemChart.noun}: {item.customization.size}
-                      </span>
-                      <Select
-                        className="w-44"
-                        buttonClassName="min-h-9 py-1.5 text-xs"
-                        options={itemChart.rows.map((row) => ({ value: row.size, label: row.size, hint: row.hint }))}
-                        value={item.customization.size}
-                        onChange={(size) => updateCart(item.id, { customization: { size } })}
-                      />
-                    </div>
-                  ) : null}
-                  {item.customization.note ? (
-                    <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                      <span className="text-[var(--color-text)]">Custom request:</span> {item.customization.note}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center border border-[var(--color-border)]">
-                    <button
-                      className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
-                      onClick={() => updateCart(item.id, { quantity: Math.max(1, item.quantity - 1) })}
-                    >
-                      −
-                    </button>
-                    <span className="w-8 border-x border-[var(--color-border)] text-center text-sm font-medium text-[var(--color-text)]">
-                      {item.quantity}
-                    </span>
-                    <button
-                      className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
-                      onClick={() => updateCart(item.id, { quantity: item.quantity + 1 })}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="flex h-9 w-9 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </Panel>
-            );
-          })}
+          {cart.items.map((item) => (
+            <CartLine key={item.id} item={item} onUpdate={updateCart} onRemove={removeFromCart} />
+          ))}
         </div>
 
         <Panel className="h-fit space-y-5">
           <p className="lux-label">Order Summary</p>
           <div className="border-t border-[var(--color-border)] pt-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-text-muted)]">Total Items</span>
-              <span className="text-3xl font-light text-[var(--color-primary)]">{cart.items.length}</span>
+              <span className="text-sm text-[var(--color-text-muted)]">
+                Total Pieces
+                <span className="mt-0.5 block text-xs">
+                  across {cart.items.length} {cart.items.length === 1 ? 'variant' : 'variants'}
+                </span>
+              </span>
+              <span className="text-3xl font-light text-[var(--color-primary)]">{totalPieces}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]">
@@ -1185,12 +1241,18 @@ export function CheckoutPage() {
           <div className="space-y-4">
             {cart.items.map((item) => (
               <div key={item.id} className="flex items-center gap-4 border-b border-[var(--color-border)] pb-4">
-                <img src={item.product.images[0]} alt={item.product.name} className="h-16 w-16 object-cover" />
-                <div>
+                <img
+                  src={variantImage(item.product, item.customization)}
+                  alt={item.product.name}
+                  className="h-16 w-16 flex-shrink-0 object-cover"
+                />
+                <div className="min-w-0">
                   <p className="text-[var(--color-text)]">{item.product.name}</p>
                   <p className="text-xs text-[var(--color-text-muted)]">
-                    Qty {item.quantity} • {item.customization.goldCarat}
-                    {item.customization.size ? ` • Size ${item.customization.size}` : ''}
+                    Qty {item.quantity} •{' '}
+                    {customizationSummary(item.customization, {
+                      sizeNoun: resolveSizeChart(item.product)?.noun || 'Size',
+                    })}
                   </p>
                 </div>
               </div>
@@ -1303,7 +1365,7 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
               {order.items.map((item) => (
                 <div key={item.id} className="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 sm:flex-row">
                   <img
-                    src={item.product?.images?.[0] || item.product?.media?.[0]?.secureUrl}
+                    src={variantImage(item.product, item.customization) || item.product?.media?.[0]?.secureUrl}
                     alt={item.product?.name || 'Product'}
                     className="h-12 w-12 flex-shrink-0 border border-[var(--color-border)] object-cover"
                   />
@@ -1311,6 +1373,18 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
                     <div>
                       <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
+                      {/* The ordered combination, so a buyer can tell two lines of
+                          the same style apart when raising a change request. */}
+                      <p className="mt-0.5 text-xs text-[var(--color-text)]">
+                        {customizationSummary(item.customization, {
+                          sizeNoun: resolveSizeChart(item.product)?.noun || 'Size',
+                        })}
+                      </p>
+                      {item.customization?.note ? (
+                        <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                          Custom request: {item.customization.note}
+                        </p>
+                      ) : null}
                     </div>
                     {(item.changeRequests || []).map((cr) => (
                       <div key={cr.id} className="flex items-start justify-between gap-2 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2">

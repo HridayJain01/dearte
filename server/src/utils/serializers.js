@@ -77,9 +77,17 @@ export function serializeProduct(doc) {
   const fallbackMedia = normalizeAssetArray(doc.media);
   const primaryVariantImages = colorVariants[0]?.views?.map((item) => item.asset).filter((item) => item.secureUrl) || [];
   const media = fallbackMedia.length ? fallbackMedia : primaryVariantImages;
-  const goldColors = colorVariants.length
-    ? colorVariants.map((variant) => variant.color).filter(Boolean)
-    : doc.customizationOptions?.goldColors || [];
+  // Every colour the style is offered in — the union of the colours that have
+  // photo galleries and the colours on the product's option list. Deriving this
+  // from `colorVariants` alone made a style that was only photographed in one
+  // colour un-orderable in any other, which is not what the catalogue means.
+  // Photographed colours lead so the storefront defaults to one with imagery.
+  const goldColors = [
+    ...new Set([
+      ...colorVariants.map((variant) => variant.color).filter(Boolean),
+      ...(doc.customizationOptions?.goldColors || []),
+    ]),
+  ];
 
   return {
     id: String(doc._id),

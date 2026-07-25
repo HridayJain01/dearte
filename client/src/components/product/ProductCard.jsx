@@ -6,6 +6,7 @@ import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
 import { formatWeight } from '../../utils/formatters';
 import { resolveSizeChart } from '../../data/sizeMaster';
+import { goldColorSwatch, sameCustomization, variantImages } from '../../utils/productVariants';
 
 export function ProductCard({ product }) {
   const { isAuthenticated } = useAuth();
@@ -16,7 +17,22 @@ export function ProductCard({ product }) {
   // size on the product page instead.
   const needsSize = Boolean(resolveSizeChart(product));
 
-  const cartItem = cart?.items?.find((i) => i.product?.id === product.id);
+  const options = product.customizationOptions || {};
+  // The single combination this card adds. It has to be spelled out because the
+  // stepper below may only drive that one line.
+  const quickAddCustomization = {
+    goldColor: options.goldColors?.[0] || '',
+    goldCarat: options.goldCarats?.[1] || options.goldCarats?.[0] || '',
+    diamondQuality: options.diamondQualities?.[1] || options.diamondQualities?.[0] || '',
+  };
+
+  const productLines = cart?.items?.filter((i) => i.product?.id === product.id) || [];
+  // Match on the full combination, not just the product: a style already in the
+  // cart in another colour or karat must still be addable from the grid.
+  const cartItem = productLines.find((i) => sameCustomization(i.customization, quickAddCustomization));
+  const otherVariantCount = productLines.length - (cartItem ? 1 : 0);
+
+  const swatches = (options.goldColors?.length ? options.goldColors : ['Yellow Gold']).slice(0, 5);
 
   const ensureAuth = async (action) => {
     if (!isAuthenticated) {
@@ -35,7 +51,7 @@ export function ProductCard({ product }) {
       <Link to={`/products/${product.styleCode}`} className="block relative">
         <div className="relative h-40 overflow-hidden bg-[var(--color-surface)] sm:h-72">
           <img
-            src={product.images[0]}
+            src={variantImages(product, quickAddCustomization.goldColor)[0]}
             alt={product.name}
             className="h-full w-full object-contain p-3 transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06] sm:p-5"
           />
@@ -116,11 +132,7 @@ export function ProductCard({ product }) {
                     addToCart({
                       productId: product.id,
                       quantity: 1,
-                      customization: {
-                        goldColor: product.customizationOptions.goldColors[0],
-                        goldCarat: product.customizationOptions.goldCarats[1] || product.customizationOptions.goldCarats[0],
-                        diamondQuality: product.customizationOptions.diamondQualities[1] || product.customizationOptions.diamondQualities[0],
-                      },
+                      customization: quickAddCustomization,
                     }),
                   );
                 }}
@@ -128,15 +140,21 @@ export function ProductCard({ product }) {
                 {needsSize ? 'Select size' : 'Add to cart'}
               </Button>
             )}
+            {otherVariantCount ? (
+              <p className="mt-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                {otherVariantCount} other {otherVariantCount === 1 ? 'variant' : 'variants'} in cart
+              </p>
+            ) : null}
           </div>
 
           <div className="flex gap-2 pt-1 sm:gap-3">
-            {/* Decorative metal-tone chips — content colours, not UI tokens */}
-            {['#ddd', '#ececec', '#d9d9d9', '#f0efe9', '#f2d5b6'].map((swatch) => (
+            {/* Metal tones this style is actually offered in */}
+            {swatches.map((color) => (
               <span
-                key={`${product.id}-${swatch}`}
+                key={`${product.id}-${color}`}
+                title={color}
                 className="h-4 w-4 border border-[var(--color-border)]"
-                style={{ backgroundColor: swatch }}
+                style={{ backgroundColor: goldColorSwatch(color) }}
               />
             ))}
           </div>

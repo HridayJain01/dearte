@@ -6,6 +6,7 @@ import { adminService } from '../services/adminService';
 import { Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
 import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
+import { variantImage } from '../utils/productVariants';
 
 const textInput =
   'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--color-border-active)]';
@@ -1680,9 +1681,16 @@ export function AdminProductsPage() {
       media: form.media,
       colorVariants: form.colorVariants || [],
       customizationOptions: {
-        goldColors: form.colorVariants?.length
-          ? form.colorVariants.map((variant) => variant.color)
-          : ['Yellow Gold', 'Rose Gold', 'White Gold'],
+        // Uploading a gallery for one colour must not remove the others from
+        // the buyer's choices, so union rather than replace.
+        goldColors: [
+          ...new Set([
+            ...(form.colorVariants || []).map((variant) => variant.color).filter(Boolean),
+            'Yellow Gold',
+            'Rose Gold',
+            'White Gold',
+          ]),
+        ],
         goldCarats: ['9K', '14K', '18K'],
         diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
       },
@@ -1940,7 +1948,12 @@ export function AdminOrdersPage() {
               <p className="text-sm text-[var(--color-text-muted)]">Line items</p>
               {selectedOrder.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 rounded border border-[var(--color-border)] p-3">
-                  <Thumbnail asset={item.product?.media?.[0]} alt={item.product?.name} />
+                  {/* The colour that was ordered — two lines of one style must
+                      not show the same photo on the fulfilment screen. */}
+                  <Thumbnail
+                    asset={variantImage(item.product, item.customization) || item.product?.media?.[0]}
+                    alt={item.product?.name}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
                     <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
