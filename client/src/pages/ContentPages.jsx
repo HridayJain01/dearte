@@ -91,7 +91,7 @@ export function AboutPage() {
               We design with emotional depth, engineer for scale, and deliver collections that feel both elevated and sellable.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link to="/products">
+              <Link to="/collections">
                 <Button variant="primary" className="w-full sm:w-auto">Explore Collection</Button>
               </Link>
               <Link to="/contact">

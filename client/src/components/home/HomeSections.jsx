@@ -573,7 +573,7 @@ export function CTABanner() {
         <h2 className="lux-heading mb-6 mt-3 text-2xl text-white! sm:mb-8 sm:mt-4 sm:text-4xl md:text-6xl">Ready to curate your collection?</h2>
         <div className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
           <Link to="/products">
-            <Button variant="secondary" className="w-full sm:w-auto">Explore Collection</Button>
+            <Button variant="secondary" className="w-full sm:w-auto">Explore Products</Button>
           </Link>
           <Link to="/checkout">
             <Button variant="ghost" className="w-full border-white/30! text-white! hover:bg-white/10! sm:w-auto">Shop Now</Button>
