@@ -18,7 +18,7 @@ import {
 } from '../models/index.js';
 import { cloudinary } from '../config/cloudinary.js';
 import { seedData } from '../data/seed.js';
-import { OCCASIONS } from '../data/taxonomy.js';
+import { DIAMOND_QUALITIES, DIAMOND_QUALITY, OCCASIONS } from '../data/taxonomy.js';
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { asString, escapeRegex, isValidEmail, normalizeEmail } from '../utils/validation.js';
@@ -189,7 +189,8 @@ function mergeCustomizationOptions(bodyOptions, currentOptions, colorVariants) {
       ...(incoming.goldColors || ['Yellow Gold', 'Rose Gold', 'White Gold']),
     ]),
     goldCarats: dedupeStrings(incoming.goldCarats || ['9K', '14K', '18K']),
-    diamondQualities: dedupeStrings(incoming.diamondQualities || ['SI-IJ', 'VS-GH', 'VVS-EF']),
+    // The house makes one diamond quality; incoming values are ignored.
+    diamondQualities: [...DIAMOND_QUALITIES],
   };
 }
 
@@ -370,7 +371,7 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       metal: String(pickFirstDefined(row, ['metal'])).trim(),
       weights,
       occasions: readOccasions(row),
-      diamondQuality: String(pickFirstDefined(row, ['diamondquality'])).trim() || 'VS-GH',
+      diamondQuality: DIAMOND_QUALITY,
       settingType: String(pickFirstDefined(row, ['settingtype'])).trim(),
       sku: String(pickFirstDefined(row, ['sku'])).trim() || styleCode,
       // Bulk-imported products should be purchasable immediately. The UI no
@@ -420,7 +421,7 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       // Legacy flat fields, derived from the 18kt figures.
       diamondWeight: weights.diamond,
       goldWeight: weights.net.k18,
-      diamondQuality: item.diamondQuality,
+      diamondQuality: DIAMOND_QUALITY,
       settingType: item.settingType,
       occasion: item.occasions[0] || '',
       occasions: item.occasions,
@@ -440,7 +441,7 @@ function buildBulkImportPayloads(rows = [], options = {}) {
           'White Gold',
         ]),
         goldCarats: ['9K', '14K', '18K'],
-        diamondQualities: ['SI-IJ', item.diamondQuality || 'VS-GH', 'VVS-EF'],
+        diamondQualities: [...DIAMOND_QUALITIES],
       },
       specifications: [
         ['Gross Wt (18kt)', weights.gross.k18],
@@ -525,7 +526,7 @@ function sanitizeProductPayload(body, currentProduct = null) {
     diamondWeight: Number(body.diamondWeight ?? currentProduct?.diamondWeight ?? 0),
     goldWeight: Number(body.goldWeight ?? currentProduct?.goldWeight ?? 0),
     weights: normalizeWeightsInput(body.weights ?? currentProduct?.weights),
-    diamondQuality: body.diamondQuality ?? currentProduct?.diamondQuality ?? '',
+    diamondQuality: DIAMOND_QUALITY,
     settingType: body.settingType ?? currentProduct?.settingType ?? '',
     occasion: body.occasion ?? currentProduct?.occasion ?? '',
     occasions: dedupeStrings(body.occasions ?? currentProduct?.occasions ?? []),

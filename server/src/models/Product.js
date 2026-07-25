@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { DIAMOND_QUALITY } from '../data/taxonomy.js';
 import {
   assetSchema,
   customizationOptionsSchema,
@@ -24,7 +25,7 @@ const productSchema = new mongoose.Schema(
     diamondWeight: { type: Number, default: 0 },
     goldWeight: { type: Number, default: 0 },
     weights: { type: productWeightsSchema, default: () => ({}) },
-    diamondQuality: { type: String, default: '' },
+    diamondQuality: { type: String, default: DIAMOND_QUALITY },
     settingType: { type: String, default: '' },
     occasion: { type: String, default: '' },
     occasions: { type: [String], default: [], index: true },

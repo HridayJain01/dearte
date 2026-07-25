@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { DIAMOND_QUALITY } from './taxonomy.js';
 
 /**
  * Taxonomy imagery, keyed by name. The product master (see data/taxonomy.js)
@@ -242,7 +243,7 @@ export const seedData = {
         },
         {
           title: 'Grade Comparison',
-          bullets: ['SI-IJ: value-forward everyday assortment', 'VS-GH: premium commercial quality', 'VVS-EF: high-luxury refined brilliance'],
+          bullets: [`${DIAMOND_QUALITY}: the single house quality — refined brilliance on every style`],
         },
       ],
     },

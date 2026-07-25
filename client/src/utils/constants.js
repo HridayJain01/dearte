@@ -65,3 +65,9 @@ export const SUPPORT_PAGES = [
   { icon: Building2, title: 'Private catalogue workflows', text: 'Role-aware buyer experiences and curated access.' },
   { icon: Briefcase, title: 'Trade-first operations', text: 'Admin-managed catalogues, approvals, and reporting surfaces.' },
 ];
+
+/**
+ * The house makes a single diamond quality, so it is displayed as a fixed
+ * spec rather than offered as a choice anywhere in the storefront or admin.
+ */
+export const DIAMOND_QUALITY = 'VVS-VS EF';

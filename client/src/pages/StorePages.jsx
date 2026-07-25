@@ -21,6 +21,7 @@ import { CombinationSelector } from '../components/product/CombinationSelector';
 import { defaultSizeFor, resolveSizeChart } from '../data/sizeMaster';
 import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { formatDate, formatWeight } from '../utils/formatters';
+import { DIAMOND_QUALITY } from '../utils/constants';
 import {
   customizationChips,
   customizationSummary,
@@ -506,14 +507,13 @@ export function ProductDetailPage() {
 
   const availableGoldColors = data?.customizationOptions?.goldColors || [];
   const availableGoldCarats = data?.customizationOptions?.goldCarats || [];
-  const availableDiamondQualities = data?.customizationOptions?.diamondQualities || [];
 
   // The combination a fresh row starts from: the first photographed colour, and
   // the mid option of each remaining axis.
   const defaultCombination = {
     goldColor: data?.colorVariants?.[0]?.color || availableGoldColors[0] || '',
     goldCarat: availableGoldCarats[1] || availableGoldCarats[0] || '',
-    diamondQuality: availableDiamondQualities[1] || availableDiamondQualities[0] || '',
+    diamondQuality: DIAMOND_QUALITY,
     size: sizeChart ? defaultSizeFor(data) : '',
     quantity: 1,
   };
@@ -652,7 +652,6 @@ export function ProductDetailPage() {
               options={{
                 goldColors: availableGoldColors,
                 goldCarats: availableGoldCarats,
-                diamondQualities: availableDiamondQualities,
               }}
               lines={orderLines}
               onChange={setOrderLines}
@@ -852,15 +851,6 @@ function CartLine({ item, onUpdate, onRemove }) {
                   value={customization.goldCarat}
                   placeholder="Gold karat"
                   onChange={(goldCarat) => editSelection({ goldCarat })}
-                />
-              ) : null}
-              {options.diamondQualities?.length ? (
-                <Select
-                  buttonClassName="min-h-9 py-1.5 text-xs"
-                  options={options.diamondQualities}
-                  value={customization.diamondQuality}
-                  placeholder="Diamond quality"
-                  onChange={(diamondQuality) => editSelection({ diamondQuality })}
                 />
               ) : null}
               {chart ? (
@@ -1134,7 +1124,7 @@ export function WishlistPage() {
                         customization: {
                           goldColor: item.product.customizationOptions.goldColors[0],
                           goldCarat: item.product.customizationOptions.goldCarats[0],
-                          diamondQuality: item.product.customizationOptions.diamondQualities[0],
+                          diamondQuality: DIAMOND_QUALITY,
                         },
                       })
                     }

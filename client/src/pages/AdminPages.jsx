@@ -7,6 +7,7 @@ import { Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } fr
 import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { variantImage } from '../utils/productVariants';
+import { DIAMOND_QUALITY } from '../utils/constants';
 
 const textInput =
   'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--color-border-active)]';
@@ -25,7 +26,7 @@ const emptyProduct = {
   metal: '',
   diamondWeight: 0,
   goldWeight: 0,
-  diamondQuality: 'VS-GH',
+  diamondQuality: DIAMOND_QUALITY,
   settingType: '',
   occasion: '',
   occasions: [],
@@ -555,7 +556,7 @@ function buildProductSpecifications(form) {
     { attribute: 'Metal', value: form.metal || '' },
     { attribute: 'Diamond Weight', value: `${Number(form.diamondWeight || 0).toFixed(2)} ct` },
     { attribute: 'Gold Weight', value: `${Number(form.goldWeight || 0).toFixed(2)} g` },
-    { attribute: 'Diamond Quality', value: form.diamondQuality || '' },
+    { attribute: 'Diamond Quality', value: DIAMOND_QUALITY },
     { attribute: 'Setting Type', value: form.settingType || '' },
     { attribute: 'Occasion', value: (form.occasions || []).join(', ') || form.occasion || '' },
     { attribute: 'SKU', value: form.sku || `${form.styleCode}-SKU` },
@@ -785,7 +786,8 @@ function ProductEditor({
         <Field label="Metal"><input className={textInput} value={form.metal} onChange={(event) => setForm((current) => ({ ...current, metal: event.target.value }))} /></Field>
         <Field label="Diamond Weight (ct)"><input type="number" step="0.01" className={textInput} value={form.diamondWeight} onChange={(event) => setForm((current) => ({ ...current, diamondWeight: Number(event.target.value) }))} /></Field>
         <Field label="Gold Weight (g)"><input type="number" step="0.01" className={textInput} value={form.goldWeight} onChange={(event) => setForm((current) => ({ ...current, goldWeight: Number(event.target.value) }))} /></Field>
-        <Field label="Diamond Quality"><input className={textInput} value={form.diamondQuality} onChange={(event) => setForm((current) => ({ ...current, diamondQuality: event.target.value }))} /></Field>
+        {/* The house makes one diamond quality, so it is shown, not edited. */}
+        <Field label="Diamond Quality"><input className={textInput} value={DIAMOND_QUALITY} readOnly disabled /></Field>
         <Field label="Setting Type"><input className={textInput} value={form.settingType} onChange={(event) => setForm((current) => ({ ...current, settingType: event.target.value }))} /></Field>
         <Field label="Occasions">
           {/* The storefront's "Shop by Occasion" menu and the product filters read
@@ -1692,7 +1694,7 @@ export function AdminProductsPage() {
           ]),
         ],
         goldCarats: ['9K', '14K', '18K'],
-        diamondQualities: ['SI-IJ', 'VS-GH', 'VVS-EF'],
+        diamondQualities: [DIAMOND_QUALITY],
       },
       specifications: normalizeEditedSpecifications(form),
     };
@@ -1755,7 +1757,7 @@ export function AdminProductsPage() {
                     metal: product.metal,
                     diamondWeight: product.diamondWeight,
                     goldWeight: product.goldWeight,
-                    diamondQuality: product.diamondQuality,
+                    diamondQuality: DIAMOND_QUALITY,
                     settingType: product.settingType,
                     occasion: product.occasion,
                     occasions: product.occasions || [],

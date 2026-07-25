@@ -1,11 +1,12 @@
 import { Copy, Minus, Plus, Ruler, Trash2 } from 'lucide-react';
 import { Select } from '../ui/Select';
 import { goldColorSwatch } from '../../utils/productVariants';
+import { DIAMOND_QUALITY } from '../../utils/constants';
 
 /**
  * The combinations queued for a single add-to-cart.
  *
- * Every row carries its own colour, karat, quality and — for a sized style —
+ * Every row carries its own colour, karat and — for a sized style —
  * size, because each row becomes its own cart line. A buyer ordering Rose Gold
  * 14K in one size and White Gold 9K in another does it here, in one place,
  * rather than adding, re-selecting and adding again.
@@ -21,7 +22,6 @@ export function CombinationSelector({
 }) {
   const goldColors = options?.goldColors || [];
   const goldCarats = options?.goldCarats || [];
-  const diamondQualities = options?.diamondQualities || [];
 
   const updateLine = (index, patch) => {
     onActivate?.(index);
@@ -148,14 +148,10 @@ export function CombinationSelector({
                   placeholder="Choose karat"
                   onChange={(goldCarat) => updateLine(index, { goldCarat })}
                 />
-                <Select
-                  label="Diamond Quality"
-                  buttonClassName="min-h-10 bg-[var(--color-surface)] py-2 text-sm"
-                  options={diamondQualities}
-                  value={line.diamondQuality}
-                  placeholder="Choose quality"
-                  onChange={(diamondQuality) => updateLine(index, { diamondQuality })}
-                />
+                <div className="min-h-10 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+                  <p className="lux-label text-[10px]">Diamond Quality</p>
+                  <p className="text-sm text-[var(--color-text)]">{DIAMOND_QUALITY}</p>
+                </div>
                 {chart ? (
                   <Select
                     label={chart.noun}

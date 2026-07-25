@@ -11,6 +11,7 @@ import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } f
 import { notifyWhatsappOrderPlaced } from '../services/orderWhatsappNotifications.js';
 import { notifyEmailOrderPlaced, notifyEmailOrderChangeRequest } from '../services/orderEmailNotifications.js';
 import { defaultSizeFor, isValidSize, resolveSizeChart } from '../data/sizeMaster.js';
+import { DIAMOND_QUALITY } from '../data/taxonomy.js';
 import { asString, isObjectId } from '../utils/validation.js';
 
 const router = express.Router();
@@ -210,10 +211,8 @@ router.post('/cart/add', async (req, res) => {
       asString(customization.goldCarat, { maxLength: 120 }) ||
       product.customizationOptions?.goldCarats?.[0] ||
       '',
-    diamondQuality:
-      asString(customization.diamondQuality, { maxLength: 120 }) ||
-      product.customizationOptions?.diamondQualities?.[0] ||
-      '',
+    // One house quality; whatever the client sends is ignored.
+    diamondQuality: DIAMOND_QUALITY,
     note: asString(customization.note, { maxLength: 2000 }),
   };
 
@@ -244,7 +243,7 @@ router.post('/cart/add', async (req, res) => {
       customization: {
         goldColor: axisFor(line, 'goldColor'),
         goldCarat: axisFor(line, 'goldCarat'),
-        diamondQuality: axisFor(line, 'diamondQuality'),
+        diamondQuality: DIAMOND_QUALITY,
         note: axisFor(line, 'note', 2000),
         size,
       },
@@ -327,7 +326,7 @@ router.put('/cart/:itemId', async (req, res) => {
     const next = {
       goldColor: carryOver('goldColor'),
       goldCarat: carryOver('goldCarat'),
-      diamondQuality: carryOver('diamondQuality'),
+      diamondQuality: DIAMOND_QUALITY,
       // `note` is part of the line's identity, so dropping it here would both
       // lose the buyer's custom request and let the line merge into an
       // unrelated one on the duplicate check below.

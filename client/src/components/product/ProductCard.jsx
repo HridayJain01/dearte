@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
 import { formatWeight } from '../../utils/formatters';
+import { DIAMOND_QUALITY } from '../../utils/constants';
 import { resolveSizeChart } from '../../data/sizeMaster';
 import { goldColorSwatch, sameCustomization, variantImages } from '../../utils/productVariants';
 
@@ -23,7 +24,7 @@ export function ProductCard({ product }) {
   const quickAddCustomization = {
     goldColor: options.goldColors?.[0] || '',
     goldCarat: options.goldCarats?.[1] || options.goldCarats?.[0] || '',
-    diamondQuality: options.diamondQualities?.[1] || options.diamondQualities?.[0] || '',
+    diamondQuality: DIAMOND_QUALITY,
   };
 
   const productLines = cart?.items?.filter((i) => i.product?.id === product.id) || [];

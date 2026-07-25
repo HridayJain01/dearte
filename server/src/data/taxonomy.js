@@ -161,6 +161,13 @@ export const OCCASIONS = [
   'Traditional',
 ];
 
+/**
+ * The house makes a single diamond quality, so this is not a choice the
+ * customer (or the admin) gets to make anywhere in the app.
+ */
+export const DIAMOND_QUALITY = 'VVS-VS EF';
+export const DIAMOND_QUALITIES = [DIAMOND_QUALITY];
+
 export const CATEGORIES = CATEGORY_TREE.map((entry) => entry.name);
 
 export const SUB_CATEGORIES = CATEGORY_TREE.flatMap((entry) =>

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { DIAMOND_QUALITIES, DIAMOND_QUALITY } from '../data/taxonomy.js';
 
 export const assetSchema = new mongoose.Schema(
   {
@@ -54,7 +55,7 @@ export const customizationOptionsSchema = new mongoose.Schema(
   {
     goldColors: { type: [String], default: ['Yellow Gold', 'Rose Gold', 'White Gold'] },
     goldCarats: { type: [String], default: ['9K', '14K', '18K'] },
-    diamondQualities: { type: [String], default: ['SI-IJ', 'VS-GH', 'VVS-EF'] },
+    diamondQualities: { type: [String], default: [...DIAMOND_QUALITIES] },
   },
   { _id: false },
 );
@@ -84,7 +85,7 @@ export const orderItemSchema = new mongoose.Schema(
     customization: {
       goldColor: { type: String, default: '' },
       goldCarat: { type: String, default: '' },
-      diamondQuality: { type: String, default: '' },
+      diamondQuality: { type: String, default: DIAMOND_QUALITY },
       note: { type: String, default: '' },
       // Canonical India sizing from the size master; '' for unsized styles.
       size: { type: String, default: '' },
@@ -111,7 +112,7 @@ export const cartItemSchema = new mongoose.Schema(
     customization: {
       goldColor: { type: String, default: '' },
       goldCarat: { type: String, default: '' },
-      diamondQuality: { type: String, default: '' },
+      diamondQuality: { type: String, default: DIAMOND_QUALITY },
       note: { type: String, default: '' },
       // Canonical India sizing from the size master; '' for unsized styles.
       // Part of the cart line identity: one style in two sizes is two lines.
