@@ -1,4 +1,4 @@
-import { ChevronDown, Download, Share2, Trash2 } from 'lucide-react';
+import { ChevronDown, Download, Search, Share2, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -207,10 +207,12 @@ export function ProductListPage() {
   const activeCategory = category ? decodeURIComponent(category) : searchParams.get('category') || '';
   const activeCollection = searchParams.get('collection') || '';
   const activeOccasion = searchParams.get('occasion') || '';
-  const pageScope = `${activeCategory}::${activeCollection}::${activeOccasion}`;
+  const activeSearch = searchParams.get('search') || '';
+  const pageScope = `${activeCategory}::${activeCollection}::${activeOccasion}::${activeSearch}`;
   const [paging, setPaging] = useState({ scope: pageScope, page: 1 });
   const { filters, sort, setSort, setFilter, resetFilters } = useFilters();
   const page = paging.scope === pageScope ? paging.page : 1;
+  const [searchDraft, setSearchDraft] = useState(activeSearch);
 
   useEffect(() => {
     const urlSort = searchParams.get('sort');
@@ -219,6 +221,29 @@ export function ProductListPage() {
     }
   }, [searchParams, setSort, sort]);
 
+  // Keep the box in sync when the URL changes from outside (header search,
+  // back button, a shared link).
+  useEffect(() => {
+    setSearchDraft(activeSearch);
+  }, [activeSearch]);
+
+  // Debounced so typing doesn't fire a request per keystroke.
+  useEffect(() => {
+    if (searchDraft === activeSearch) return undefined;
+    const timer = setTimeout(() => {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          if (searchDraft.trim()) next.set('search', searchDraft.trim());
+          else next.delete('search');
+          return next;
+        },
+        { replace: true },
+      );
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchDraft, activeSearch, setSearchParams]);
+
   const params = useMemo(
     () => ({
       page,
@@ -226,6 +251,7 @@ export function ProductListPage() {
       category: activeCategory || filters.category.join(','),
       collection: activeCollection || filters.collection.join(','),
       occasion: activeOccasion || filters.occasion.join(','),
+      search: activeSearch,
       sort,
       subCategory: filters.subCategory.join(','),
       metalColor: filters.metalColor.join(','),
@@ -235,7 +261,7 @@ export function ProductListPage() {
       goldMax: filters.goldMax,
       stockType: filters.stockType,
     }),
-    [activeCategory, activeCollection, activeOccasion, filters, page, sort],
+    [activeCategory, activeCollection, activeOccasion, activeSearch, filters, page, sort],
   );
 
   const { data, isLoading, isFetching, isPlaceholderData } = useProducts(params);
@@ -281,6 +307,28 @@ export function ProductListPage() {
             ))}
           </div>
         )}
+        <div className="relative w-full">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <input
+            id="product-search"
+            type="search"
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            placeholder="Search by style code, name or description"
+            aria-label="Search products"
+            className="min-h-12 w-full border border-[var(--color-border)] bg-[var(--color-surface)] py-3 pl-11 pr-11 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)]"
+          />
+          {searchDraft ? (
+            <button
+              type="button"
+              onClick={() => setSearchDraft('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
         <ProductFilters
           filters={data.filters}
           activeFilters={filters}

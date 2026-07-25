@@ -122,7 +122,15 @@ export function AppLayout() {
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-3">
-            <button className="hidden min-h-11 min-w-11 p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)] md:inline-flex">
+            <button
+              onClick={() => {
+                navigate('/products');
+                // The products page owns the search box; focus it once it mounts.
+                setTimeout(() => document.getElementById('product-search')?.focus(), 150);
+              }}
+              aria-label="Search products"
+              className="min-h-11 min-w-11 p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)]"
+            >
               <Search className="h-5 w-5" />
             </button>
             <button onClick={() => navigate('/wishlist')} className="relative min-h-11 min-w-11 p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)]">
