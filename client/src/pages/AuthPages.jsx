@@ -14,12 +14,12 @@ function AuthShell({ title, description, children }) {
   return (
     <section className="page-shell section-gap">
       <div className="grid overflow-hidden border border-[var(--color-border)] lg:grid-cols-2">
-        <div className="relative min-h-[280px] bg-[var(--color-primary)] p-5 sm:min-h-[520px] sm:p-10">
-          <img src={brandLogoUrl} alt={brandLogoAlt} className="mb-5 h-12 w-auto bg-white/95 p-2" />
-          <h1 className="lux-heading max-w-md text-3xl !text-white sm:text-6xl">{title}</h1>
-          <p className="mt-4 max-w-md text-sm text-white/60 sm:mt-6 sm:text-base">{description}</p>
+        <div className="relative bg-[var(--color-primary)] p-4 sm:min-h-[520px] sm:p-10">
+          <img src={brandLogoUrl} alt={brandLogoAlt} className="mb-3 h-9 w-auto bg-white/95 p-1.5 sm:mb-5 sm:h-12 sm:p-2" />
+          <h1 className="lux-heading max-w-md text-xl !text-white sm:text-6xl">{title}</h1>
+          <p className="mt-2 max-w-md text-[12px] leading-relaxed text-white/60 sm:mt-6 sm:text-base">{description}</p>
         </div>
-        <div className="bg-[var(--color-surface)] p-5 sm:p-8 md:p-12">{children}</div>
+        <div className="bg-[var(--color-surface)] p-4 sm:p-8 md:p-12">{children}</div>
       </div>
     </section>
   );
@@ -47,11 +47,11 @@ export function LoginPage() {
 
   return (
     <AuthShell title="Sign in to your buyer account." description="Registered retailers can browse collections, save catalogues, and submit order requests.">
-      <form className="space-y-5" onSubmit={onSubmit}>
+      <form className="space-y-3.5 sm:space-y-5" onSubmit={onSubmit}>
         <SectionHeading eyebrow="Login" title="Welcome back" />
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
         <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center justify-between text-[12px] sm:text-sm">
           <Link to="/forgot-password" className="text-[var(--color-primary)] hover:underline">Forgot Password?</Link>
           <Link to="/register" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Create account</Link>
         </div>
@@ -90,7 +90,7 @@ export function RegisterPage() {
 
   return (
     <AuthShell title="Apply for a De Arté trade account." description="Buyer registrations stay inactive until reviewed and approved by the admin team.">
-      <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+      <form className="grid gap-2.5 sm:gap-4 md:grid-cols-2" onSubmit={onSubmit}>
         <Input label="Customer Name" error={form.formState.errors.customerName?.message} {...form.register('customerName')} />
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
         <Input label="Mobile" error={form.formState.errors.mobile?.message} {...form.register('mobile')} />
@@ -103,11 +103,11 @@ export function RegisterPage() {
         <Input label="GST Number" {...form.register('gstNumber')} />
         <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <PasswordInput label="Confirm Password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
-        <label className="md:col-span-2 flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
+        <label className="flex items-center gap-2 text-[12px] text-[var(--color-text-muted)] sm:gap-3 sm:text-sm md:col-span-2">
           <input type="checkbox" {...form.register('acceptedTerms')} />
           I accept the terms and conditions.
         </label>
-        <Button className="md:col-span-2" type="submit">Submit Registration</Button>
+        <Button className="mt-1 md:col-span-2" type="submit">Submit Registration</Button>
       </form>
     </AuthShell>
   );
@@ -146,22 +146,22 @@ export function ForgotPasswordPage() {
   return (
     <AuthShell title="Reset your password." description="Enter your email to receive a one-time code, then set a new password.">
       {step === 'request' ? (
-        <form className="space-y-5" onSubmit={onRequestOtp}>
+        <form className="space-y-3.5 sm:space-y-5" onSubmit={onRequestOtp}>
           <SectionHeading eyebrow="Forgot password" title="Request a reset code" />
           <Input label="Email" type="email" error={emailForm.formState.errors.email?.message} {...emailForm.register('email', { required: 'Email is required' })} />
           <Button className="w-full" type="submit">Send OTP</Button>
-          <p className="text-center text-sm text-[var(--color-text-muted)]">
+          <p className="text-center text-[12px] text-[var(--color-text-muted)] sm:text-sm">
             <Link to="/login" className="text-[var(--color-primary)] hover:underline">Back to login</Link>
           </p>
         </form>
       ) : (
-        <form className="space-y-5" onSubmit={onResetPassword}>
+        <form className="space-y-3.5 sm:space-y-5" onSubmit={onResetPassword}>
           <SectionHeading eyebrow="Forgot password" title="Enter your new password" />
-          <p className="text-sm text-[var(--color-text-muted)]">A code was sent to <strong>{sentEmail}</strong>.</p>
+          <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">A code was sent to <strong>{sentEmail}</strong>.</p>
           <Input label="OTP" error={resetForm.formState.errors.otp?.message} {...resetForm.register('otp', { required: 'OTP is required' })} />
           <PasswordInput label="New Password" error={resetForm.formState.errors.newPassword?.message} {...resetForm.register('newPassword', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })} />
           <Button className="w-full" type="submit">Reset Password</Button>
-          <p className="text-center text-sm text-[var(--color-text-muted)]">
+          <p className="text-center text-[12px] text-[var(--color-text-muted)] sm:text-sm">
             <button type="button" className="text-[var(--color-primary)] hover:underline" onClick={() => setStep('request')}>Resend code</button>
           </p>
         </form>

@@ -47,22 +47,22 @@ export function CombinationSelector({
   const noSizesLeft = Boolean(chart) && lines.length >= chart.rows.length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5 sm:space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="lux-label">Your combinations</p>
+        <p className="lux-label text-[10px] sm:text-xs">Your combinations</p>
         {chart ? (
           <button
             type="button"
             onClick={onOpenChart}
-            className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--color-primary)] transition hover:underline"
+            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:gap-2 sm:text-xs sm:tracking-[0.14em]"
           >
-            <Ruler className="h-3.5 w-3.5" />
+            <Ruler className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             Size Guide
           </button>
         ) : null}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {lines.map((line, index) => {
           const sizeOptions = (chart?.rows || []).map((row) => ({
             value: row.size,
@@ -89,21 +89,21 @@ export function CombinationSelector({
               // remount the row on every change and steal keyboard focus.
               key={index}
               onFocusCapture={() => onActivate?.(index)}
-              className={`space-y-3 border p-3 transition ${
+              className={`space-y-2 border p-2 transition sm:space-y-3 sm:p-3 ${
                 index === activeIndex
                   ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]'
                   : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]'
               }`}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-[11px] sm:tracking-[0.14em]">
                   <span
-                    className="h-3.5 w-3.5 border border-[var(--color-border)]"
+                    className="h-3 w-3 border border-[var(--color-border)] sm:h-3.5 sm:w-3.5"
                     style={{ backgroundColor: goldColorSwatch(line.goldColor) }}
                   />
                   Combination {index + 1}
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 sm:gap-1.5">
                   <button
                     type="button"
                     aria-label="Duplicate this combination"
@@ -115,7 +115,7 @@ export function CombinationSelector({
                       ]);
                       onActivate?.(index + 1);
                     }}
-                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:p-2"
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </button>
@@ -124,17 +124,19 @@ export function CombinationSelector({
                     aria-label="Remove this combination"
                     disabled={lines.length <= 1}
                     onClick={() => removeLine(index)}
-                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:border-[var(--color-border)] disabled:hover:text-[var(--color-text)]"
+                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:border-[var(--color-border)] disabled:hover:text-[var(--color-text)] sm:p-2"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-2">
+              {/* Two up from the smallest screen — these four controls stacked
+                  full width made a single combination taller than a phone. */}
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                 <Select
                   label="Gold Colour"
-                  buttonClassName="min-h-10 bg-[var(--color-surface)] py-2 text-sm"
+                  buttonClassName="bg-[var(--color-surface)]"
                   options={goldColors}
                   value={line.goldColor}
                   placeholder="Choose colour"
@@ -142,20 +144,22 @@ export function CombinationSelector({
                 />
                 <Select
                   label="Gold Carat"
-                  buttonClassName="min-h-10 bg-[var(--color-surface)] py-2 text-sm"
+                  buttonClassName="bg-[var(--color-surface)]"
                   options={goldCarats}
                   value={line.goldCarat}
                   placeholder="Choose karat"
                   onChange={(goldCarat) => updateLine(index, { goldCarat })}
                 />
-                <div className="min-h-10 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
-                  <p className="lux-label text-[10px]">Diamond Quality</p>
-                  <p className="text-sm text-[var(--color-text)]">{DIAMOND_QUALITY}</p>
+                <div>
+                  <p className="mb-1 text-[11px] text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">Diamond Quality</p>
+                  <div className="flex min-h-9 items-center border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 sm:min-h-12 sm:px-4 sm:py-3">
+                    <p className="text-[13px] text-[var(--color-text)] sm:text-sm">{DIAMOND_QUALITY}</p>
+                  </div>
                 </div>
                 {chart ? (
                   <Select
                     label={chart.noun}
-                    buttonClassName="min-h-10 bg-[var(--color-surface)] py-2 text-sm"
+                    buttonClassName="bg-[var(--color-surface)]"
                     options={sizeOptions}
                     value={line.size}
                     placeholder={`Choose ${chart.noun.toLowerCase()}`}
@@ -165,25 +169,25 @@ export function CombinationSelector({
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-[var(--color-text-muted)]">Quantity</span>
+                <span className="text-[11px] text-[var(--color-text-muted)] sm:text-xs">Quantity</span>
                 <div className="flex items-center border border-[var(--color-border)] bg-[var(--color-surface)]">
                   <button
                     type="button"
                     aria-label="Decrease quantity"
                     disabled={quantity <= 1}
                     onClick={() => updateLine(index, { quantity: Math.max(1, quantity - 1) })}
-                    className="p-3 text-[var(--color-text)] transition hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:text-[var(--color-text)]"
+                    className="p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:text-[var(--color-text)] sm:p-3"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="min-w-10 text-center text-sm tabular-nums text-[var(--color-text)]">
+                  <span className="min-w-8 text-center text-[13px] tabular-nums text-[var(--color-text)] sm:min-w-10 sm:text-sm">
                     {quantity}
                   </span>
                   <button
                     type="button"
                     aria-label="Increase quantity"
                     onClick={() => updateLine(index, { quantity: quantity + 1 })}
-                    className="p-3 text-[var(--color-text)] transition hover:text-[var(--color-primary)]"
+                    className="p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)] sm:p-3"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -194,18 +198,18 @@ export function CombinationSelector({
         })}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <button
           type="button"
           onClick={addLine}
           disabled={noSizesLeft}
-          className="inline-flex items-center gap-2 border border-dashed border-[var(--color-border-active)] px-4 py-2.5 text-xs uppercase tracking-[0.14em] text-[var(--color-primary)] transition hover:bg-[var(--color-surface-alt)] disabled:cursor-not-allowed disabled:border-[var(--color-border)] disabled:text-[var(--color-text-muted)] disabled:hover:bg-transparent"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap border border-dashed border-[var(--color-border-active)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--color-primary)] transition hover:bg-[var(--color-surface-alt)] disabled:cursor-not-allowed disabled:border-[var(--color-border)] disabled:text-[var(--color-text-muted)] disabled:hover:bg-transparent sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           Add another combination
         </button>
 
-        <p className="text-xs text-[var(--color-text-muted)]">
+        <p className="text-[10px] text-[var(--color-text-muted)] sm:text-xs">
           {lines.length} {lines.length === 1 ? 'combination' : 'combinations'} · {totalUnits}{' '}
           {totalUnits === 1 ? 'piece' : 'pieces'}
         </p>

@@ -84,11 +84,16 @@ a {
   text-decoration: none;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* In @layer base so `text-*` / `font-*` utilities still win. Unlayered, this
+   shorthand beat every Tailwind font utility, and form controls silently
+   rendered at the inherited 16px/400 regardless of the classes on them. */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 #root {
@@ -120,13 +125,17 @@ textarea {
   box-shadow: var(--shadow-soft);
 }
 
-.lux-label {
-  font-family: var(--font-sans);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
+/* Layered so a caller can retune the size per breakpoint (`lux-label
+   text-[10px]`) without needing an `!` override. */
+@layer components {
+  .lux-label {
+    font-family: var(--font-sans);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
 }
 
 .lux-heading {

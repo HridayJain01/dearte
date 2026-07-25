@@ -17,18 +17,18 @@ function SectionIntro({ eyebrow, title, description, action, align = 'left', cla
   const centered = align === 'center';
 
   return (
-    <Reveal className={`mb-6 sm:mb-14 ${centered ? 'text-center' : ''} ${className}`}>
-      <div className={`flex flex-col gap-3 sm:gap-4 ${centered ? 'items-center' : 'md:flex-row md:items-end md:justify-between'}`}>
+    <Reveal className={`mb-4 sm:mb-14 ${centered ? 'text-center' : ''} ${className}`}>
+      <div className={`flex flex-col gap-2.5 sm:gap-4 ${centered ? 'items-center' : 'md:flex-row md:items-end md:justify-between'}`}>
         <div className={`max-w-2xl ${centered ? 'mx-auto' : ''}`}>
           {eyebrow ? (
-            <div className={`mb-3 flex items-center gap-3 sm:mb-4 ${centered ? 'justify-center' : ''}`}>
-              <span className="gold-hairline w-8" aria-hidden />
-              <p className="lux-label">{eyebrow}</p>
+            <div className={`mb-2 flex items-center gap-2 sm:mb-4 sm:gap-3 ${centered ? 'justify-center' : ''}`}>
+              <span className="gold-hairline w-6 sm:w-8" aria-hidden />
+              <p className="lux-label text-[10px] sm:text-xs">{eyebrow}</p>
             </div>
           ) : null}
-          <h2 className="lux-heading text-2xl sm:text-4xl md:text-6xl">{title}</h2>
+          <h2 className="lux-heading text-xl sm:text-4xl md:text-6xl">{title}</h2>
           {description ? (
-            <p className="mt-2 text-sm text-[var(--color-text-muted)] sm:mt-4 md:text-base">{description}</p>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-4 sm:text-sm md:text-base">{description}</p>
           ) : null}
         </div>
         {action}
@@ -41,9 +41,9 @@ function RailLink({ to, children }) {
   return (
     <Link
       to={to}
-      className="hairline-draw inline-flex items-center gap-2 pb-1.5 text-[13px] font-medium uppercase tracking-[0.14em] text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+      className="hairline-draw inline-flex items-center gap-1.5 whitespace-nowrap pb-1 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] sm:gap-2 sm:pb-1.5 sm:text-[13px] sm:tracking-[0.14em]"
     >
-      {children} <ArrowRight className="h-4 w-4" />
+      {children} <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
     </Link>
   );
 }
@@ -257,14 +257,14 @@ export function HeroSlider({ banners }) {
                 {slide.subtitle}
               </p>
               <div
-                className="animate-hero-line mt-1 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+                className="animate-hero-line mt-1 flex flex-wrap gap-2 sm:gap-3"
                 style={{ '--line-delay': '540ms' }}
               >
                 <Link to={slide.ctaLink}>
-                  <Button variant="primary" className="w-full sm:w-auto">{slide.ctaLabel}</Button>
+                  <Button variant="primary">{slide.ctaLabel}</Button>
                 </Link>
                 <Link to="/contact">
-                  <Button variant="ghost" className="w-full border-white/30! text-white! hover:bg-white/10! sm:w-auto">Talk to Sales</Button>
+                  <Button variant="ghost" className="border-white/30! text-white! hover:bg-white/10!">Talk to Sales</Button>
                 </Link>
               </div>
             </div>
@@ -312,7 +312,7 @@ export function ProductRail({ title, description, products, link, bgClass = 'bg-
             <Reveal
               key={product.id}
               delay={Math.min(index, 4) * 80}
-              className="min-w-[200px] max-w-[200px] flex-none snap-start sm:min-w-[320px] sm:max-w-[320px]"
+              className="min-w-[160px] max-w-[160px] flex-none snap-start sm:min-w-[320px] sm:max-w-[320px]"
             >
               <ProductCard product={product} />
             </Reveal>
@@ -325,29 +325,29 @@ export function ProductRail({ title, description, products, link, bgClass = 'bg-
 
 export function CompanyStrip({ companyInfo }) {
   return (
-    <section className="border-t border-border bg-surface-alt py-12 sm:py-20">
+    <section className="border-t border-border bg-surface-alt py-8 sm:py-20">
       <div className="page-shell editorial-grid items-center">
         <div className="pr-0 md:pr-10">
-          <p className="lux-label mb-3">{companyInfo.founded}</p>
-          <h3 className="lux-heading mb-6 text-4xl sm:text-5xl">{companyInfo.tagline}</h3>
+          <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">{companyInfo.founded}</p>
+          <h3 className="lux-heading mb-4 text-2xl sm:mb-6 sm:text-5xl">{companyInfo.tagline}</h3>
           <Link to="/about">
             <Button variant="ghost">Read our story &rarr;</Button>
           </Link>
         </div>
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
           <div>
-            <p className="lux-label mb-3">Certifications</p>
-            <div className="flex flex-wrap gap-2">
+            <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">Certifications</p>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {companyInfo.certifications.map((item) => (
-                <span key={item} className="border border-border px-3 py-2 text-sm text-text-muted bg-surface">
+                <span key={item} className="border border-border bg-surface px-2 py-1 text-[11px] text-text-muted sm:px-3 sm:py-2 sm:text-sm">
                   {item}
                 </span>
               ))}
             </div>
           </div>
           <div>
-            <p className="lux-label mb-3">Mission</p>
-            <p className="text-sm leading-7 text-text">{companyInfo.mission}</p>
+            <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">Mission</p>
+            <p className="text-[12px] leading-relaxed text-text sm:text-sm sm:leading-7">{companyInfo.mission}</p>
           </div>
         </div>
       </div>
@@ -369,53 +369,53 @@ export function TestimonialRail({ testimonials }) {
         description="Words from the retailers who build their collections with us."
       />
       <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
-        <Reveal className="relative overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-soft)] sm:p-10">
+        <Reveal className="relative overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-10">
           <span
-            className="pointer-events-none absolute -top-8 right-4 select-none font-serif text-[10rem] leading-none text-[var(--color-primary)]/8 sm:text-[13rem]"
+            className="pointer-events-none absolute -top-8 right-4 select-none font-serif text-[7rem] leading-none text-[var(--color-primary)]/8 sm:text-[13rem]"
             aria-hidden
           >
             &ldquo;
           </span>
-          <p className="lux-label mb-6">Featured testimony</p>
-          <div className="mb-6 flex gap-1.5 text-[var(--color-accent)]">
+          <p className="lux-label mb-3 text-[10px] sm:mb-6 sm:text-xs">Featured testimony</p>
+          <div className="mb-3 flex gap-1 text-[var(--color-accent)] sm:mb-6 sm:gap-1.5">
             {Array.from({ length: featured.rating }).map((_, index) => (
-              <Star key={`${featured.id}-${index}`} className="h-4 w-4 fill-current" />
+              <Star key={`${featured.id}-${index}`} className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
             ))}
           </div>
-          <blockquote className="max-w-2xl font-serif text-2xl leading-[1.5] text-[var(--color-text)] sm:text-[1.85rem]">
+          <blockquote className="max-w-2xl font-serif text-base leading-[1.5] text-[var(--color-text)] sm:text-[1.85rem]">
             &ldquo;{featured.review}&rdquo;
           </blockquote>
-          <span className="gold-hairline mt-8 w-14" aria-hidden />
-          <div className="mt-6 flex items-center gap-4">
+          <span className="gold-hairline mt-4 w-12 sm:mt-8 sm:w-14" aria-hidden />
+          <div className="mt-3 flex items-center gap-3 sm:mt-6 sm:gap-4">
             <img
               src={featured.avatar}
               alt={featured.name}
-              className="h-14 w-14 border border-[var(--color-border)] object-cover sm:h-16 sm:w-16"
+              className="h-10 w-10 border border-[var(--color-border)] object-cover sm:h-16 sm:w-16"
             />
             <div>
-              <p className="font-semibold text-[var(--color-text)]">{featured.name}</p>
-              <p className="text-sm text-[var(--color-text-muted)]">{featured.company}</p>
+              <p className="text-[13px] font-semibold text-[var(--color-text)] sm:text-base">{featured.name}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] sm:text-sm">{featured.company}</p>
             </div>
           </div>
         </Reveal>
 
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {supporting.map((testimonial, index) => (
-            <Reveal key={testimonial.id} delay={index * 90} className="lux-panel flex items-start gap-4 p-5 sm:p-6">
+            <Reveal key={testimonial.id} delay={index * 90} className="lux-panel flex items-start gap-3 p-3 sm:gap-4 sm:p-6">
               <img
                 src={testimonial.avatar}
                 alt={testimonial.name}
-                className="h-12 w-12 flex-none border border-[var(--color-border)] object-cover sm:h-14 sm:w-14"
+                className="h-10 w-10 flex-none border border-[var(--color-border)] object-cover sm:h-14 sm:w-14"
               />
               <div className="min-w-0">
-                <div className="mb-3 flex gap-1 text-[var(--color-accent)]">
+                <div className="mb-1.5 flex gap-1 text-[var(--color-accent)] sm:mb-3">
                   {Array.from({ length: testimonial.rating }).map((_, starIndex) => (
-                    <Star key={`${testimonial.id}-${starIndex}`} className="h-3.5 w-3.5 fill-current" />
+                    <Star key={`${testimonial.id}-${starIndex}`} className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
                   ))}
                 </div>
-                <p className="text-sm leading-7 text-[var(--color-text-muted)]">{testimonial.review}</p>
-                <p className="mt-4 font-semibold text-[var(--color-text)]">{testimonial.name}</p>
-                <p className="text-sm text-[var(--color-text-muted)]">{testimonial.company}</p>
+                <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-sm sm:leading-7">{testimonial.review}</p>
+                <p className="mt-2 text-[13px] font-semibold text-[var(--color-text)] sm:mt-4 sm:text-base">{testimonial.name}</p>
+                <p className="text-[11px] text-[var(--color-text-muted)] sm:text-sm">{testimonial.company}</p>
               </div>
             </Reveal>
           ))}
@@ -441,25 +441,25 @@ export function EventsRail({ events }) {
           const status = getEventStatus(event.date);
 
           return (
-            <Reveal key={event.id} delay={Math.min(index, 3) * 90} className="min-w-[240px] flex-none snap-start sm:min-w-[360px]">
+            <Reveal key={event.id} delay={Math.min(index, 3) * 90} className="min-w-[210px] flex-none snap-start sm:min-w-[360px]">
               <article className="group h-full border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)]">
                 <div className="relative overflow-hidden">
                   <img
                     src={event.image}
                     alt={event.title}
-                    className="h-40 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-64"
+                    className="h-28 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-64"
                   />
-                  <span className="absolute left-4 top-4 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-primary)]">
+                  <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-xs sm:tracking-[0.16em]">
                     {status}
                   </span>
                 </div>
-                <div className="space-y-3 p-4 sm:space-y-4 sm:p-6">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                    <CalendarDays className="h-4 w-4 text-[var(--color-accent)]" />
+                <div className="space-y-1.5 p-2.5 sm:space-y-4 sm:p-6">
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-xs sm:tracking-[0.14em]">
+                    <CalendarDays className="h-3.5 w-3.5 text-[var(--color-accent)] sm:h-4 sm:w-4" />
                     <span>{new Date(event.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
-                  <h3 className="font-serif text-xl leading-tight text-[var(--color-text)] sm:text-[1.7rem]">{event.title}</h3>
-                  <p className="text-sm leading-7 text-[var(--color-text-muted)]">{event.description}</p>
+                  <h3 className="font-serif text-base leading-tight text-[var(--color-text)] sm:text-[1.7rem]">{event.title}</h3>
+                  <p className="line-clamp-3 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:line-clamp-none sm:text-sm sm:leading-7">{event.description}</p>
                 </div>
               </article>
             </Reveal>
@@ -474,7 +474,7 @@ export function TrustedBrandGrid({ brands }) {
   if (!brands?.length) return null;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-6">
       {brands.map((brand, index) => {
         const Card = brand.websiteUrl ? 'a' : 'div';
         const cardProps = brand.websiteUrl
@@ -485,29 +485,29 @@ export function TrustedBrandGrid({ brands }) {
           <Reveal key={brand.id} delay={Math.min(index, 5) * 60}>
             <Card
               {...cardProps}
-              className="group flex min-h-[132px] h-full flex-col justify-between border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)]"
+              className="group flex h-full min-h-[96px] flex-col justify-between border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)] sm:min-h-[132px] sm:p-4"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {brand.logo ? (
                   <img
                     src={brand.logo?.secureUrl || brand.logo}
                     alt={brand.name}
-                    className="h-12 w-12 border border-[var(--color-border)] object-cover"
+                    className="h-9 w-9 border border-[var(--color-border)] object-cover sm:h-12 sm:w-12"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center border border-[var(--color-border)] bg-[var(--color-primary-bg)] font-serif text-base text-[var(--color-primary)]">
+                  <div className="flex h-9 w-9 items-center justify-center border border-[var(--color-border)] bg-[var(--color-primary-bg)] font-serif text-[13px] text-[var(--color-primary)] sm:h-12 sm:w-12 sm:text-base">
                     {brand.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="hairline-draw inline-block max-w-full truncate pb-0.5 text-sm font-semibold text-[var(--color-text)]">{brand.name}</p>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{brand.sector || 'Trusted partner'}</p>
+                  <p className="hairline-draw inline-block max-w-full truncate pb-0.5 text-[12px] font-semibold text-[var(--color-text)] sm:text-sm">{brand.name}</p>
+                  <p className="text-[9px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.16em]">{brand.sector || 'Trusted partner'}</p>
                 </div>
               </div>
               {brand.websiteUrl ? (
-                <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--color-primary)] transition-colors group-hover:text-[var(--color-accent)]">Visit website</p>
+                <p className="mt-2.5 text-[9px] uppercase tracking-[0.12em] text-[var(--color-primary)] transition-colors group-hover:text-[var(--color-accent)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Visit website</p>
               ) : (
-                <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Brand profile</p>
+                <p className="mt-2.5 text-[9px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Brand profile</p>
               )}
             </Card>
           </Reveal>
@@ -532,7 +532,7 @@ export function CollectionsRail({ collections }) {
           <Reveal
             key={collection.id}
             delay={Math.min(index, 4) * 80}
-            className="min-w-[240px] max-w-[240px] flex-none snap-start sm:min-w-[300px] sm:max-w-[300px]"
+            className="min-w-[190px] max-w-[190px] flex-none snap-start sm:min-w-[300px] sm:max-w-[300px]"
           >
             <Link to={`/products?collection=${collection.name}`} className="block h-full">
               <Panel className="group h-full overflow-hidden p-0">
@@ -549,9 +549,9 @@ export function CollectionsRail({ collections }) {
                     </div>
                   )}
                 </div>
-                <div className="p-4 sm:p-6">
-                  <h3 className="font-serif text-xl text-[var(--color-text)]">{collection.name}</h3>
-                  <p className="hairline-draw mt-2 inline-block pb-1 text-xs uppercase tracking-[0.12em] text-[var(--color-primary)]">View Collection &rarr;</p>
+                <div className="p-2.5 sm:p-6">
+                  <h3 className="font-serif text-base text-[var(--color-text)] sm:text-xl">{collection.name}</h3>
+                  <p className="hairline-draw mt-1 inline-block pb-1 text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] sm:mt-2 sm:text-xs sm:tracking-[0.12em]">View Collection &rarr;</p>
                 </div>
               </Panel>
             </Link>
@@ -571,12 +571,12 @@ export function CTABanner() {
         <span className="gold-hairline mx-auto w-16" aria-hidden />
         <p className="lux-label mt-5 text-[var(--color-accent)]! sm:mt-6">The atelier awaits</p>
         <h2 className="lux-heading mb-6 mt-3 text-2xl text-white! sm:mb-8 sm:mt-4 sm:text-4xl md:text-6xl">Ready to curate your collection?</h2>
-        <div className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
           <Link to="/products">
-            <Button variant="secondary" className="w-full sm:w-auto">Explore Products</Button>
+            <Button variant="secondary">Explore Products</Button>
           </Link>
           <Link to="/checkout">
-            <Button variant="ghost" className="w-full border-white/30! text-white! hover:bg-white/10! sm:w-auto">Shop Now</Button>
+            <Button variant="ghost" className="border-white/30! text-white! hover:bg-white/10!">Shop Now</Button>
           </Link>
         </div>
       </Reveal>

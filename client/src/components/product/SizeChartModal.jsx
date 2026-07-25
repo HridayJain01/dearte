@@ -71,13 +71,13 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
         aria-label={`${chart.label} size chart`}
         className="flex max-h-[92vh] w-full max-w-3xl flex-col border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_40px_80px_-32px_rgba(58,26,40,0.6)] sm:max-h-[85vh]"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4 sm:px-7 sm:py-5">
-          <div className="flex items-start gap-3">
-            <Ruler className="mt-1 h-5 w-5 shrink-0 text-[var(--color-primary)]" />
+        <header className="flex items-start justify-between gap-3 border-b border-[var(--color-border)] px-3 py-2.5 sm:gap-4 sm:px-7 sm:py-5">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <Ruler className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-primary)] sm:mt-1 sm:h-5 sm:w-5" />
             <div>
-              <p className="lux-label">Size Guide</p>
-              <h2 className="lux-heading mt-1 text-2xl sm:text-3xl">{chart.label} Sizes</h2>
-              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              <p className="lux-label text-[10px] sm:text-xs">Size Guide</p>
+              <h2 className="lux-heading mt-0.5 text-lg sm:mt-1 sm:text-3xl">{chart.label} Sizes</h2>
+              <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] sm:mt-1 sm:text-xs">
                 {chart.rows.length} sizes · international conversions included
               </p>
             </div>
@@ -87,7 +87,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
             type="button"
             onClick={onClose}
             aria-label="Close size guide"
-            className="border border-[var(--color-border)] p-2 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+            className="border border-[var(--color-border)] p-1.5 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:p-2"
           >
             <X className="h-4 w-4" />
           </button>
@@ -95,14 +95,14 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] border-collapse text-sm">
+            <table className="w-full min-w-[420px] border-collapse text-[13px] sm:min-w-[520px] sm:text-sm">
               <thead className="sticky top-0 z-10 bg-[var(--color-surface-alt)]">
                 <tr>
                   {chart.columns.map((column, index) => (
                     <th
                       key={column}
                       scope="col"
-                      className={`px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] ${
+                      className={`px-2.5 py-2 text-left text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-[0.14em] ${
                         index === 0 ? 'text-[var(--color-primary)]' : ''
                       }`}
                     >
@@ -128,7 +128,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
                       {row.cells.map((cell, index) => (
                         <td
                           key={chart.columns[index]}
-                          className={`px-4 py-3 ${
+                          className={`px-2.5 py-2 sm:px-4 sm:py-3 ${
                             index === 0
                               ? `font-medium ${isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`
                               : 'text-[var(--color-text-muted)]'
@@ -145,12 +145,12 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
           </div>
 
           {tips.length ? (
-            <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-alt)] px-5 py-5 sm:px-7">
-              <p className="lux-label mb-3">How to measure</p>
-              <ul className="space-y-2">
+            <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-3 sm:px-7 sm:py-5">
+              <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">How to measure</p>
+              <ul className="space-y-1.5 sm:space-y-2">
                 {tips.map((tip) => (
-                  <li key={tip} className="flex gap-3 text-sm text-[var(--color-text-muted)]">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />
+                  <li key={tip} className="flex gap-2 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)] sm:mt-2" />
                     <span>{tip}</span>
                   </li>
                 ))}
@@ -159,14 +159,14 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
           ) : null}
         </div>
 
-        <footer className="flex items-center justify-between gap-4 border-t border-[var(--color-border)] px-5 py-4 sm:px-7">
-          <p className="text-xs text-[var(--color-text-muted)]">
+        <footer className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] px-3 py-2.5 sm:gap-4 sm:px-7 sm:py-4">
+          <p className="text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-xs">
             Tap any row to apply that size. Unsure? Your sales representative can confirm before production.
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 text-xs uppercase tracking-[0.14em] text-[var(--color-primary)] transition hover:underline"
+            className="shrink-0 text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:text-xs sm:tracking-[0.14em]"
           >
             Done
           </button>

@@ -132,10 +132,10 @@ export function CollectionsPage() {
               ) : null}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
             </div>
-            <div className="space-y-2 p-4 sm:p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Collection</p>
-              <h2 className="lux-heading text-lg text-[var(--color-text)] sm:text-2xl">{collection.name}</h2>
-              <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces curated under this collection story.</p>
+            <div className="space-y-1 p-2.5 sm:space-y-2 sm:p-5">
+              <p className="text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Collection</p>
+              <h2 className="lux-heading text-[15px] text-[var(--color-text)] sm:text-2xl">{collection.name}</h2>
+              <p className="text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces curated under this collection story.</p>
             </div>
           </Link>
         ))}
@@ -194,10 +194,10 @@ export function OccasionsPage() {
                 <ShopCategoryDiamondIcon className="h-14 w-14 opacity-60 transition duration-500 group-hover:scale-[1.08] group-hover:opacity-90 sm:h-16 sm:w-16" />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/25 via-black/5 to-transparent" />
               </div>
-              <div className="space-y-2 p-4 sm:p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Occasion</p>
-                <h2 className="lux-heading text-lg text-[var(--color-text)] sm:text-2xl">{occasion.name}</h2>
-                <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces styled for {occasion.name.toLowerCase()}.</p>
+              <div className="space-y-1 p-2.5 sm:space-y-2 sm:p-5">
+                <p className="text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Occasion</p>
+                <h2 className="lux-heading text-[15px] text-[var(--color-text)] sm:text-2xl">{occasion.name}</h2>
+                <p className="text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces styled for {occasion.name.toLowerCase()}.</p>
               </div>
             </Link>
           ))}
@@ -369,8 +369,8 @@ export function ProductListPage() {
         description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
       />
       {!isAuthenticated ? (
-        <Panel className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[var(--color-text-muted)]">
+        <Panel className="mb-4 flex flex-col gap-2.5 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <p className="text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:text-sm">
             You're viewing a small preview of our catalogue. Sign in to your buyer account to browse the full collection.
           </p>
           <Link to="/login" className="shrink-0">
@@ -378,7 +378,7 @@ export function ProductListPage() {
           </Link>
         </Panel>
       ) : null}
-      <div className="space-y-6">
+      <div className="space-y-3.5 sm:space-y-6">
         {!activeCategory && !activeSubCategory && !activeCollection && !activeOccasion && (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
             {PRODUCT_CATEGORY_TILES.map((tile) => (
@@ -393,22 +393,22 @@ export function ProductListPage() {
           </div>
         )}
         <div className="relative w-full">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-muted)] sm:left-4 sm:h-4 sm:w-4" />
           <input
             id="product-search"
             type="search"
             value={searchDraft}
             onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder="Search style code, name, category, collection, occasion, metal"
+            placeholder="Search style, category, collection, metal"
             aria-label="Search products"
-            className="min-h-12 w-full border border-[var(--color-border)] bg-[var(--color-surface)] py-3 pl-11 pr-11 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)]"
+            className="min-h-10 w-full border border-[var(--color-border)] bg-[var(--color-surface)] py-2 pl-9 pr-9 text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:min-h-12 sm:py-3 sm:pl-11 sm:pr-11 sm:text-sm"
           />
           {searchDraft ? (
             <button
               type="button"
               onClick={() => setSearchDraft('')}
               aria-label="Clear search"
-              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+              className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:right-2 sm:h-9 sm:w-9"
             >
               <X className="h-4 w-4" />
             </button>
@@ -419,23 +419,23 @@ export function ProductListPage() {
           activeFilters={filters}
           setFilter={setFilter}
         />
-        <div className="lux-panel flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+        <div className="lux-panel flex flex-col gap-2.5 p-3 sm:gap-4 sm:p-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm text-[var(--color-text-muted)]">{data.total} items found</p>
+            <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">{data.total} items found</p>
             {activeChips.length ? (
-              <div className="mt-2 space-y-3">
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-1.5 space-y-2 sm:mt-2 sm:space-y-3">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {activeChips.map((chip) => (
                     <span
                       key={chip.key}
-                      className="flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-1 pl-3 pr-1 text-xs uppercase tracking-[0.08em] text-[var(--color-text-muted)]"
+                      className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-0.5 pl-2 pr-0.5 text-[10px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:gap-2 sm:py-1 sm:pl-3 sm:pr-1 sm:text-xs sm:tracking-[0.08em]"
                     >
                       {chip.label}
                       <button
                         type="button"
                         onClick={chip.onRemove}
                         aria-label={`Remove filter ${chip.label}`}
-                        className="flex h-5 w-5 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                        className="flex h-4 w-4 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:h-5 sm:w-5"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -445,7 +445,7 @@ export function ProductListPage() {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="text-xs uppercase tracking-[0.12em] text-[var(--color-primary)] underline"
+                  className="text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
                 >
                   Clear All
                 </button>
@@ -481,11 +481,13 @@ export function ProductListPage() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* One row at every width — stacked full-width pagers wasted three
+            screens' worth of height on a phone. */}
+        <div className="flex items-center justify-between gap-3">
           <Button variant="secondary" onClick={() => setPaging((current) => ({ scope: pageScope, page: Math.max(1, current.scope === pageScope ? current.page - 1 : 1) }))} disabled={page === 1}>
             Previous
           </Button>
-          <p className="text-sm text-[var(--color-text-muted)]">
+          <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
             Page {data.page} of {data.totalPages}
           </p>
           <Button variant="secondary" onClick={() => setPaging((current) => ({ scope: pageScope, page: Math.min(data.totalPages, current.scope === pageScope ? current.page + 1 : 2) }))} disabled={page >= data.totalPages}>
@@ -591,39 +593,39 @@ export function ProductDetailPage() {
 
   return (
     <section className="page-shell section-gap">
-      <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-4">
+      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="space-y-2.5 sm:space-y-4">
           <Panel className="overflow-hidden p-0">
             <TransformWrapper>
               <TransformComponent wrapperClass="h-full w-full">
-                <img src={activeImages[safeActiveImage] || data.images[0]} alt={data.name} className="h-[280px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
+                <img src={activeImages[safeActiveImage] || data.images[0]} alt={data.name} className="h-[240px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
               </TransformComponent>
             </TransformWrapper>
           </Panel>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
             {activeImages.map((image, index) => (
               <button key={image} className={`overflow-hidden border ${index === safeActiveImage ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`} onClick={() => setActiveImage(index)}>
-                <img src={image} alt="" className="h-16 w-full object-cover sm:h-24" />
+                <img src={image} alt="" className="h-14 w-full object-cover sm:h-24" />
               </button>
             ))}
           </div>
         </div>
 
-        <div className="space-y-5 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-6">
           <div>
-            <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">{data.styleCode}</p>
-            <h1 className="lux-heading mt-2 text-3xl sm:mt-3 sm:text-5xl">{data.name}</h1>
-            <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+            <p className="font-[var(--font-accent)] text-[10px] tracking-[0.25em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">{data.styleCode}</p>
+            <h1 className="lux-heading mt-1 text-2xl sm:mt-3 sm:text-5xl">{data.name}</h1>
+            <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">
               {data.category} &gt; {data.subCategory} &gt; {data.collection}
             </p>
             {data.occasions?.length ? (
-              <div className="mt-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Perfect for</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2.5 sm:mt-4">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Perfect for</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-2 sm:gap-2">
                   {data.occasions.map((occasion) => (
                     <span
                       key={occasion}
-                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-1.5 text-xs text-[var(--color-text)]"
+                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-[10px] text-[var(--color-text)] sm:px-3 sm:py-1.5 sm:text-xs"
                     >
                       {occasion}
                     </span>
@@ -634,20 +636,22 @@ export function ProductDetailPage() {
           </div>
 
           <Panel>
-            <div className="grid gap-3 sm:grid-cols-2">
+            {/* Two up even on the narrowest screen: one spec per row turned a
+                short weight table into a full page of scrolling. */}
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
               {data.specifications.map((spec, specIndex) => (
-                <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">{spec.attribute}</p>
+                <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-2 sm:p-4">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-[9px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{spec.attribute}</p>
                     {spec.attribute?.toLowerCase().includes('weight') && (
                       <WeightDisclaimerTrigger />
                     )}
                   </div>
-                  <p className="mt-2 text-sm text-[var(--color-text)]">{spec.value}</p>
+                  <p className="mt-0.5 text-[13px] leading-tight text-[var(--color-text)] sm:mt-2 sm:text-sm">{spec.value}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-4 text-xs text-[var(--color-text-muted)]">
+            <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[10px] text-[var(--color-text-muted)] sm:mt-4 sm:pt-4 sm:text-xs">
               <span>* All weights mentioned are approximate.</span>
               <WeightDisclaimerTrigger />
             </div>
@@ -669,20 +673,20 @@ export function ProductDetailPage() {
               }}
               onOpenChart={() => setIsSizeChartOpen(true)}
             />
-            <label className="mt-5 block text-sm">
-              <span className="mb-2 block text-[var(--color-text-muted)]">
+            <label className="mt-3.5 block text-[12px] sm:mt-5 sm:text-sm">
+              <span className="mb-1.5 block text-[var(--color-text-muted)] sm:mb-2">
                 Custom request (optional) — applies to every combination above
               </span>
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="e.g. engrave initials, alter chain length, special finishing..."
-                className="min-h-[96px] w-full border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                className="min-h-[68px] w-full border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:min-h-[96px] sm:p-3 sm:text-base"
               />
             </label>
           </Panel>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 sm:gap-3">
             <Button
               className="w-full"
               disabled={Boolean(sizeChart) && !orderLines.every((line) => line.size)}
@@ -699,7 +703,7 @@ export function ProductDetailPage() {
               {orderLines.length > 1 ? `Add ${orderLines.length} Combinations to Cart` : 'Add to Cart'}
             </Button>
             {existingCartLines.length ? (
-              <Link to="/cart" className="text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+              <Link to="/cart" className="text-center text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:text-xs">
                 Already in your cart: {existingCartLines.reduce((sum, line) => sum + line.quantity, 0)} pieces across{' '}
                 {existingCartLines.length} {existingCartLines.length === 1 ? 'combination' : 'combinations'}
               </Link>
@@ -707,7 +711,7 @@ export function ProductDetailPage() {
             <div className="flex items-stretch gap-2">
               {(wishlist?.collections?.length ?? 0) > 1 && (
                 <select
-                  className="flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                  className="flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:px-3 sm:py-2 sm:text-sm"
                   value={effectiveWishlistCollectionId}
                   onChange={(e) => setWishlistCollectionId(e.target.value)}
                 >
@@ -726,7 +730,7 @@ export function ProductDetailPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)]">
+          <div className="flex flex-wrap items-center gap-3 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
             <button
               className="inline-flex items-center gap-2 transition hover:text-[var(--color-primary)]"
               onClick={async () => {
@@ -742,9 +746,9 @@ export function ProductDetailPage() {
         </div>
       </div>
 
-      <section className="pt-10 sm:pt-16">
+      <section className="pt-6 sm:pt-16">
         <SectionHeading eyebrow="Related Products" title="More from this design story" />
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
           {data.relatedProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -784,34 +788,36 @@ function CartLine({ item, onUpdate, onRemove }) {
   const editSelection = (patch) => onUpdate(item.id, { customization: patch });
 
   return (
-    <Panel className="flex flex-col gap-4 sm:flex-row sm:items-start">
-      <div className="flex-shrink-0 sm:w-28">
+    // Mobile keeps the thumbnail beside the copy rather than above it: a
+    // full-width photo per line turned a five-item cart into a long scroll.
+    <Panel className="flex flex-row gap-3 sm:items-start sm:gap-4">
+      <div className="flex-shrink-0">
         <div className="relative">
           <img
             src={image}
             alt={`${product.name}${customization.goldColor ? ` in ${customization.goldColor}` : ''}`}
-            className="h-40 w-full object-cover sm:h-28 sm:w-28"
+            className="h-20 w-20 object-cover sm:h-28 sm:w-28"
           />
           {customization.goldColor ? (
             <span
               title={customization.goldColor}
-              className="absolute bottom-1.5 right-1.5 h-4 w-4 border border-white shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
+              className="absolute bottom-1.5 right-1.5 h-3 w-3 border border-white shadow-[0_1px_3px_rgba(0,0,0,0.35)] sm:h-4 sm:w-4"
               style={{ backgroundColor: swatch }}
             />
           ) : null}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div className="min-w-0 flex-1">
-          <p className="font-[var(--font-accent)] text-xs tracking-[0.2em] text-[var(--color-text-muted)]">{product.styleCode}</p>
-          <h3 className="mt-1.5 text-lg font-semibold leading-tight text-[var(--color-text)]">{product.name}</h3>
+          <p className="font-[var(--font-accent)] text-[10px] tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{product.styleCode}</p>
+          <h3 className="mt-1 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-lg">{product.name}</h3>
 
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-1 sm:mt-2.5 sm:gap-1.5">
             {customizationChips(customization, { sizeNoun: chart?.noun || 'Size' }).map((chip) => (
               <span
                 key={chip.label}
-                className="inline-flex items-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2.5 py-1 text-xs text-[var(--color-text)]"
+                className="inline-flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[10px] text-[var(--color-text)] sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs"
               >
                 {chip.swatch ? (
                   <span
@@ -825,7 +831,7 @@ function CartLine({ item, onUpdate, onRemove }) {
             ))}
           </div>
 
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+          <p className="mt-1.5 flex items-center gap-1.5 text-[10px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-xs">
             <span>
               Gold {formatWeight(goldWeight, 'g')}
               {customization.goldCarat ? ` (${customization.goldCarat})` : ''} · Diamond {formatWeight(diamondWeight, 'ct')}
@@ -834,17 +840,16 @@ function CartLine({ item, onUpdate, onRemove }) {
           </p>
 
           {customization.note ? (
-            <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+            <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)] sm:mt-2 sm:text-sm">
               <span className="text-[var(--color-text)]">Custom request:</span> {customization.note}
             </p>
           ) : null}
 
-          <div className="mt-3 border-t border-[var(--color-border)] pt-3">
-            <p className="lux-label mb-2 text-[10px]">Edit this piece</p>
-            <div className="grid gap-2 sm:grid-cols-2">
+          <div className="mt-2.5 border-t border-[var(--color-border)] pt-2.5 sm:mt-3 sm:pt-3">
+            <p className="lux-label mb-1.5 text-[9px] sm:mb-2 sm:text-[10px]">Edit this piece</p>
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {options.goldColors?.length ? (
                 <Select
-                  buttonClassName="min-h-9 py-1.5 text-xs"
                   options={options.goldColors}
                   value={customization.goldColor}
                   placeholder="Gold colour"
@@ -853,7 +858,6 @@ function CartLine({ item, onUpdate, onRemove }) {
               ) : null}
               {options.goldCarats?.length ? (
                 <Select
-                  buttonClassName="min-h-9 py-1.5 text-xs"
                   options={options.goldCarats}
                   value={customization.goldCarat}
                   placeholder="Gold karat"
@@ -862,7 +866,6 @@ function CartLine({ item, onUpdate, onRemove }) {
               ) : null}
               {chart ? (
                 <Select
-                  buttonClassName="min-h-9 py-1.5 text-xs"
                   options={chart.rows.map((row) => ({ value: row.size, label: row.size, hint: row.hint }))}
                   value={customization.size}
                   placeholder={chart.noun}
@@ -870,7 +873,7 @@ function CartLine({ item, onUpdate, onRemove }) {
                 />
               ) : null}
             </div>
-            <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">
+            <p className="mt-1.5 text-[10px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px]">
               Changing an option here updates this line only. If it matches another line in your cart, the two are combined.
             </p>
           </div>
@@ -879,16 +882,16 @@ function CartLine({ item, onUpdate, onRemove }) {
         <div className="flex items-center gap-2">
           <div className="flex items-center border border-[var(--color-border)]">
             <button
-              className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+              className="flex h-8 w-8 items-center justify-center text-base text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-9 sm:w-9 sm:text-lg"
               onClick={() => onUpdate(item.id, { quantity: Math.max(1, item.quantity - 1) })}
             >
               −
             </button>
-            <span className="w-8 border-x border-[var(--color-border)] text-center text-sm font-medium text-[var(--color-text)]">
+            <span className="w-7 border-x border-[var(--color-border)] text-center text-[13px] font-medium text-[var(--color-text)] sm:w-8 sm:text-sm">
               {item.quantity}
             </span>
             <button
-              className="flex h-9 w-9 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
+              className="flex h-8 w-8 items-center justify-center text-base text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-9 sm:w-9 sm:text-lg"
               onClick={() => onUpdate(item.id, { quantity: item.quantity + 1 })}
             >
               +
@@ -897,9 +900,9 @@ function CartLine({ item, onUpdate, onRemove }) {
           <button
             onClick={() => onRemove(item.id)}
             aria-label="Remove from cart"
-            className="flex h-9 w-9 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500"
+            className="flex h-8 w-8 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500 sm:h-9 sm:w-9"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </div>
       </div>
@@ -957,36 +960,36 @@ export function CartPage() {
           ))}
         </div>
 
-        <Panel className="h-fit space-y-5">
-          <p className="lux-label">Order Summary</p>
-          <div className="border-t border-[var(--color-border)] pt-5 space-y-3">
+        <Panel className="h-fit space-y-3 sm:space-y-5">
+          <p className="lux-label text-[10px] sm:text-xs">Order Summary</p>
+          <div className="space-y-2 border-t border-[var(--color-border)] pt-3 sm:space-y-3 sm:pt-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[var(--color-text-muted)]">
+              <span className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
                 Total Pieces
-                <span className="mt-0.5 block text-xs">
+                <span className="mt-0.5 block text-[10px] sm:text-xs">
                   across {cart.items.length} {cart.items.length === 1 ? 'variant' : 'variants'}
                 </span>
               </span>
-              <span className="text-3xl font-light text-[var(--color-primary)]">{totalPieces}</span>
+              <span className="text-2xl font-light text-[var(--color-primary)] sm:text-3xl">{totalPieces}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]">
+              <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-sm">
                 Total Diamond Weight
                 <WeightDisclaimerTrigger />
               </span>
-              <span className="text-xl font-light text-[var(--color-primary)]">{totalDiamondWeight.toFixed(2)} ct</span>
+              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{totalDiamondWeight.toFixed(2)} ct</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]">
+              <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-sm">
                 Total Gold Weight
                 <WeightDisclaimerTrigger />
               </span>
-              <span className="text-xl font-light text-[var(--color-primary)]">{totalGoldWeight.toFixed(2)} g</span>
+              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{totalGoldWeight.toFixed(2)} g</span>
             </div>
           </div>
-          <div className="space-y-1.5 border-t border-[var(--color-border)] pt-4 text-sm text-[var(--color-text-muted)]">
+          <div className="space-y-1.5 border-t border-[var(--color-border)] pt-3 text-[12px] text-[var(--color-text-muted)] sm:pt-4 sm:text-sm">
             <p>Pricing confirmed by your sales representative after review.</p>
-            <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] mt-1.5">
+            <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] sm:text-xs">
               <span>* All weights are approximate and for reference only.</span>
               <WeightDisclaimerTrigger />
             </p>
@@ -994,7 +997,7 @@ export function CartPage() {
               <p className="mt-2">Note: {cart.specialInstructions}</p>
             ) : null}
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 sm:gap-3">
             <Button variant="secondary" className="w-full" icon={Download} loading={isDownloadingPdf} onClick={handleDownloadPdf}>
               Download Catalogue PDF
             </Button>
@@ -1002,7 +1005,7 @@ export function CartPage() {
               <Button className="w-full">Proceed to Checkout</Button>
             </Link>
           </div>
-          <Link to="/products" className="inline-flex text-sm text-[var(--color-primary)] hover:underline">
+          <Link to="/products" className="inline-flex text-[12px] text-[var(--color-primary)] hover:underline sm:text-sm">
             Continue Shopping
           </Link>
         </Panel>
@@ -1010,6 +1013,9 @@ export function CartPage() {
     </section>
   );
 }
+
+const WISHLIST_TAB =
+  'whitespace-nowrap border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
 
 export function WishlistPage() {
   const { wishlist, removeFromWishlist, createWishlistCollection } = useWishlist();
@@ -1034,10 +1040,10 @@ export function WishlistPage() {
       />
 
       {/* Collection tabs */}
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-1.5 sm:mb-6 sm:gap-2">
         <button
           onClick={() => setActiveTab('all')}
-          className={`px-4 py-2 text-[11px] font-medium uppercase tracking-[0.12em] border transition ${
+          className={`${WISHLIST_TAB} ${
             activeTab === 'all'
               ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
               : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-active)]'
@@ -1051,7 +1057,7 @@ export function WishlistPage() {
             <button
               key={col.id}
               onClick={() => setActiveTab(col.id)}
-              className={`px-4 py-2 text-[11px] font-medium uppercase tracking-[0.12em] border transition ${
+              className={`${WISHLIST_TAB} ${
                 activeTab === col.id
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                   : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-active)]'
@@ -1064,11 +1070,11 @@ export function WishlistPage() {
       </div>
 
       {/* Create collection */}
-      <Panel className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
+      <Panel className="mb-4 flex flex-col gap-2.5 sm:mb-6 sm:gap-4 md:flex-row md:items-center">
         <input
           value={collectionName}
           onChange={(event) => setCollectionName(event.target.value)}
-          className="flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]"
+          className="flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:px-4 sm:py-3 sm:text-base"
           placeholder="New collection name (e.g. Wedding Season)"
         />
         <Button
@@ -1092,7 +1098,7 @@ export function WishlistPage() {
           }
         />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
           {visibleItems.map((item) => {
             // Sized styles need a deliberate size choice, so send the buyer to
             // the product page rather than guessing one on their behalf.
@@ -1104,19 +1110,19 @@ export function WishlistPage() {
                 <img
                   src={item.product.images[0]}
                   alt={item.product.name}
-                  className="mb-4 h-56 w-full object-cover transition duration-300 hover:opacity-90 sm:h-72"
+                  className="mb-2.5 h-36 w-full object-cover transition duration-300 hover:opacity-90 sm:mb-4 sm:h-72"
                 />
               </Link>
-              <span className="mb-3 inline-block border border-[var(--color-border)] px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-[var(--color-primary)]">
+              <span className="mb-2 inline-block border border-[var(--color-border)] px-1.5 py-px text-[9px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:px-2 sm:py-0.5 sm:text-[10px] sm:tracking-[0.2em]">
                 {getCollectionName(item.collectionId)}
               </span>
-              <p className="font-[var(--font-accent)] text-xs tracking-[0.3em] text-[var(--color-text-muted)]">
+              <p className="font-[var(--font-accent)] text-[9px] tracking-[0.22em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">
                 {item.product.styleCode}
               </p>
-              <h3 className="mt-1.5 text-xl font-semibold text-[var(--color-text)]">
+              <h3 className="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-xl">
                 {item.product.name}
               </h3>
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-2.5 flex flex-col gap-1.5 sm:mt-5 sm:flex-row sm:gap-3">
                 {needsSize ? (
                   <Link to={`/products/${item.product.styleCode}`} className="w-full sm:flex-1">
                     <Button className="w-full">Choose Size</Button>
@@ -1194,35 +1200,35 @@ export function CheckoutPage() {
   return (
     <section className="page-shell section-gap">
       <SectionHeading eyebrow="Checkout" title="Multi-step approval-ready checkout" />
-      <div className="mb-8 flex gap-4">
+      <div className="mb-5 flex gap-3 sm:mb-8 sm:gap-4">
         {steps.map((label, index) => (
           <div key={label} className="flex-1">
             <div
-              className={`mb-2.5 h-0.5 w-full transition-colors ${index <= step ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
+              className={`mb-2 h-0.5 w-full transition-colors sm:mb-2.5 ${index <= step ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
             />
-            <div className={`text-xs transition-colors ${index <= step ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`}>
+            <div className={`text-[10px] transition-colors sm:text-xs ${index <= step ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`}>
               <span className="block font-semibold">{String(index + 1).padStart(2, '0')}</span>
               <span className="uppercase tracking-[0.08em]">{label}</span>
             </div>
           </div>
         ))}
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <Panel>
           {/* The order is placed from the Place Order button only. Native form
               submission stays disabled so no stray submit (Enter key, or a
               button React re-typed mid-click) can skip the review step. */}
-          <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
+          <form className="space-y-4 sm:space-y-5" onSubmit={(event) => event.preventDefault()}>
             {step === 0 ? (
-              <textarea {...form.register('notes')} placeholder="Special instructions and delivery preferences" className="min-h-[160px] w-full border border-[var(--color-border)] bg-transparent p-4 outline-none focus:border-[var(--color-border-active)] text-[var(--color-text)]" />
+              <textarea {...form.register('notes')} placeholder="Special instructions and delivery preferences" className="min-h-[110px] w-full border border-[var(--color-border)] bg-transparent p-3 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:min-h-[160px] sm:p-4 sm:text-base" />
             ) : null}
             {step === 1 ? (
               <div className="space-y-4">
-                <p className="text-sm text-[var(--color-text-muted)]">Notes: {reviewValues.notes || 'No notes added'}</p>
+                <p className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">Notes: {reviewValues.notes || 'No notes added'}</p>
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+            <div className="flex justify-between gap-3">
               <Button type="button" variant="secondary" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))}>
                 Back
               </Button>
@@ -1242,18 +1248,18 @@ export function CheckoutPage() {
           </form>
         </Panel>
         <Panel>
-          <p className="lux-label mb-4">Review Summary</p>
-          <div className="space-y-4">
+          <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">Review Summary</p>
+          <div className="space-y-2.5 sm:space-y-4">
             {cart.items.map((item) => (
-              <div key={item.id} className="flex items-center gap-4 border-b border-[var(--color-border)] pb-4">
+              <div key={item.id} className="flex items-center gap-3 border-b border-[var(--color-border)] pb-2.5 sm:gap-4 sm:pb-4">
                 <img
                   src={variantImage(item.product, item.customization)}
                   alt={item.product.name}
-                  className="h-16 w-16 flex-shrink-0 object-cover"
+                  className="h-12 w-12 flex-shrink-0 object-cover sm:h-16 sm:w-16"
                 />
                 <div className="min-w-0">
-                  <p className="text-[var(--color-text)]">{item.product.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
+                  <p className="text-[13px] text-[var(--color-text)] sm:text-base">{item.product.name}</p>
+                  <p className="text-[10px] text-[var(--color-text-muted)] sm:text-xs">
                     Qty {item.quantity} •{' '}
                     {customizationSummary(item.customization, {
                       sizeNoun: resolveSizeChart(item.product)?.noun || 'Size',
@@ -1337,15 +1343,14 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
   return (
     <>
       <tr className="border-t border-[var(--color-border)] text-[var(--color-text)]">
-        <td className="py-4">{order.orderId}</td>
-        <td className="py-4">{formatDate(order.date)}</td>
-        <td className="py-4">{order.items.length}</td>
-        <td className="py-4"><StatusBadge status={order.status} /></td>
-        <td className="py-4 text-right">
+        <td className="whitespace-nowrap py-2.5 pr-3 sm:py-4">{order.orderId}</td>
+        <td className="whitespace-nowrap py-2.5 pr-3 sm:py-4">{formatDate(order.date)}</td>
+        <td className="py-2.5 pr-3 sm:py-4">{order.items.length}</td>
+        <td className="py-2.5 pr-3 sm:py-4"><StatusBadge status={order.status} /></td>
+        <td className="py-2.5 text-right sm:py-4">
           <div className="flex items-center justify-end gap-1">
             <Button
               variant="ghost"
-              className="px-3 py-2 text-[11px]"
               icon={ChevronDown}
               onClick={() => setExpanded((value) => !value)}
             >
@@ -1353,7 +1358,6 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
             </Button>
             <Button
               variant="ghost"
-              className="px-3 py-2 text-[11px]"
               icon={Download}
               loading={downloading}
               onClick={() => onDownload(order)}
@@ -1437,11 +1441,11 @@ export function ProfilePage() {
   return (
     <section className="page-shell section-gap">
       <SectionHeading eyebrow="Profile" title="Buyer account and order history" />
-      <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
-          <p className="lux-label mb-4">My Profile</p>
+          <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">My Profile</p>
           {profile ? (
-            <div className="space-y-4 text-sm text-[var(--color-text-muted)]">
+            <div className="space-y-2 text-[13px] text-[var(--color-text-muted)] sm:space-y-4 sm:text-sm">
               <p><span className="text-[var(--color-text)] font-medium">Name:</span> {profile.name}</p>
               <p><span className="text-[var(--color-text)] font-medium">Email:</span> {profile.email}</p>
               <p><span className="text-[var(--color-text)] font-medium">Company:</span> {profile.companyName}</p>
@@ -1451,16 +1455,16 @@ export function ProfilePage() {
           ) : <LoadingBlock label="Loading profile..." />}
         </Panel>
         <Panel>
-          <p className="lux-label mb-4">Order History</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">Order History</p>
+          <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[520px] text-left text-[12px] sm:min-w-0 sm:text-sm">
               <thead className="text-[var(--color-text-muted)]">
                 <tr>
-                  <th className="pb-4">Order ID</th>
-                  <th className="pb-4">Date</th>
-                  <th className="pb-4">Items</th>
-                  <th className="pb-4">Status</th>
-                  <th className="pb-4 text-right">Actions</th>
+                  <th className="whitespace-nowrap pb-2.5 pr-3 sm:pb-4">Order ID</th>
+                  <th className="whitespace-nowrap pb-2.5 pr-3 sm:pb-4">Date</th>
+                  <th className="pb-2.5 pr-3 sm:pb-4">Items</th>
+                  <th className="pb-2.5 pr-3 sm:pb-4">Status</th>
+                  <th className="pb-2.5 text-right sm:pb-4">Actions</th>
                 </tr>
               </thead>
               <tbody>

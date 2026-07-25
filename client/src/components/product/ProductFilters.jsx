@@ -11,10 +11,13 @@ function FilterDropdown({ label, name, openFilter, onToggle, children }) {
   const isOpen = openFilter === name;
 
   return (
-    <div className="relative">
+    // Mobile widens the open filter to the full row and drops the panel in
+    // flow beneath it: a 220px flyout anchored to a chip near the right edge
+    // would otherwise hang off the screen.
+    <div className={`relative ${isOpen ? 'max-sm:w-full' : ''}`}>
       <button
         onClick={() => onToggle(name)}
-        className={`border px-4 py-2.5 text-[12px] uppercase tracking-[0.12em] bg-[var(--color-surface)] ${
+        className={`whitespace-nowrap border bg-[var(--color-surface)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em] ${
           isOpen
             ? 'border-[var(--color-border-active)] text-[var(--color-primary)]'
             : 'border-[var(--color-border)] text-[var(--color-text)]'
@@ -23,7 +26,7 @@ function FilterDropdown({ label, name, openFilter, onToggle, children }) {
         {label}
       </button>
       {isOpen && (
-        <div className="absolute left-0 top-full z-30 mt-2 border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg">
+        <div className="z-30 border border-[var(--color-border)] bg-[var(--color-surface)] max-sm:mt-1.5 max-sm:w-full sm:absolute sm:left-0 sm:top-full sm:mt-2 sm:shadow-lg">
           {children}
         </div>
       )}
@@ -70,14 +73,14 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
 
   return (
     <div ref={panelRef}>
-    <Panel className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <Panel className="space-y-2.5 sm:space-y-4">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-3">
         <FilterDropdown label="Category" name="category" openFilter={openFilter} onToggle={toggle} onClose={close}>
-          <div className="max-h-64 min-w-[220px] overflow-auto p-4">
-            <div className="space-y-2 text-sm">
+          <div className="max-h-56 min-w-[220px] overflow-auto p-2.5 sm:max-h-64 sm:p-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px] sm:block sm:space-y-2 sm:text-sm">
               {categories.length ? (
                 categories.map((category) => (
-                  <label key={category.name} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
+                  <label key={category.name} className="flex cursor-pointer items-center gap-2 text-[var(--color-text)] sm:gap-3">
                     <input
                       type="checkbox"
                       checked={activeFilters.category.includes(category.name)}
@@ -97,11 +100,11 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
         </FilterDropdown>
 
         <FilterDropdown label="Sub Category" name="subCategory" openFilter={openFilter} onToggle={toggle} onClose={close}>
-          <div className="max-h-64 min-w-[220px] overflow-auto p-4">
-            <div className="space-y-2 text-sm">
+          <div className="max-h-56 min-w-[220px] overflow-auto p-2.5 sm:max-h-64 sm:p-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px] sm:block sm:space-y-2 sm:text-sm">
               {subCategories.length ? (
                 subCategories.map((subCategory) => (
-                <label key={subCategory} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
+                <label key={subCategory} className="flex cursor-pointer items-center gap-2 text-[var(--color-text)] sm:gap-3">
                   <input
                     type="checkbox"
                     checked={activeFilters.subCategory.includes(subCategory)}
@@ -121,11 +124,11 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
         </FilterDropdown>
 
         <FilterDropdown label="Collection" name="collection" openFilter={openFilter} onToggle={toggle} onClose={close}>
-          <div className="max-h-64 min-w-[220px] overflow-auto p-4">
-            <div className="space-y-2 text-sm">
+          <div className="max-h-56 min-w-[220px] overflow-auto p-2.5 sm:max-h-64 sm:p-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px] sm:block sm:space-y-2 sm:text-sm">
               {collections.length ? (
                 collections.map((collection) => (
-                <label key={collection.name} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
+                <label key={collection.name} className="flex cursor-pointer items-center gap-2 text-[var(--color-text)] sm:gap-3">
                   <input
                     type="checkbox"
                     checked={activeFilters.collection.includes(collection.name)}
@@ -145,11 +148,11 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
         </FilterDropdown>
 
         <FilterDropdown label="Occasion" name="occasion" openFilter={openFilter} onToggle={toggle} onClose={close}>
-          <div className="max-h-64 min-w-[220px] overflow-auto p-4">
-            <div className="space-y-2 text-sm">
+          <div className="max-h-56 min-w-[220px] overflow-auto p-2.5 sm:max-h-64 sm:p-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px] sm:block sm:space-y-2 sm:text-sm">
               {occasions.length ? (
                 occasions.map((occasion) => (
-                  <label key={occasion} className="flex cursor-pointer items-center gap-3 text-[var(--color-text)]">
+                  <label key={occasion} className="flex cursor-pointer items-center gap-2 text-[var(--color-text)] sm:gap-3">
                     <input
                       type="checkbox"
                       checked={activeFilters.occasion.includes(occasion)}
@@ -169,8 +172,8 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
         </FilterDropdown>
 
         <FilterDropdown label="Metal Color" name="metalColor" openFilter={openFilter} onToggle={toggle} onClose={close}>
-          <div className="min-w-[220px] p-4">
-            <div className="flex flex-wrap gap-2">
+          <div className="min-w-[220px] p-2.5 sm:p-4">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {metalColors.length ? (
                 metalColors.map((metalColor) => (
                 <button
@@ -179,7 +182,7 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
                     setFilter('metalColor', toggleArrayValue(activeFilters.metalColor, metalColor));
                     close();
                   }}
-                  className={`border px-3 py-2 text-xs uppercase tracking-[0.08em] ${
+                  className={`border px-2 py-1 text-[10px] uppercase tracking-[0.06em] sm:px-3 sm:py-2 sm:text-xs sm:tracking-[0.08em] ${
                     activeFilters.metalColor.includes(metalColor)
                       ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)] text-[var(--color-primary)]'
                       : 'border-[var(--color-border)] text-[var(--color-text-muted)]'
@@ -196,42 +199,42 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
         </FilterDropdown>
 
         <FilterDropdown label="Weight Range" name="weightRange" openFilter={openFilter} onToggle={toggle} onClose={close}>
-          <div className="min-w-[260px] p-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-sm">
-                <span className="mb-2 block text-[var(--color-text-muted)]">Diamond Min</span>
+          <div className="min-w-[240px] p-2.5 sm:min-w-[260px] sm:p-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <label className="text-[12px] sm:text-sm">
+                <span className="mb-1 block text-[var(--color-text-muted)] sm:mb-2">Diamond Min</span>
                 <input
                   type="number"
                   value={activeFilters.diamondMin}
                   onChange={(event) => setFilter('diamondMin', event.target.value)}
-                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:px-3 sm:py-2"
                 />
               </label>
-              <label className="text-sm">
-                <span className="mb-2 block text-[var(--color-text-muted)]">Diamond Max</span>
+              <label className="text-[12px] sm:text-sm">
+                <span className="mb-1 block text-[var(--color-text-muted)] sm:mb-2">Diamond Max</span>
                 <input
                   type="number"
                   value={activeFilters.diamondMax}
                   onChange={(event) => setFilter('diamondMax', event.target.value)}
-                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:px-3 sm:py-2"
                 />
               </label>
-              <label className="text-sm">
-                <span className="mb-2 block text-[var(--color-text-muted)]">Gold Min</span>
+              <label className="text-[12px] sm:text-sm">
+                <span className="mb-1 block text-[var(--color-text-muted)] sm:mb-2">Gold Min</span>
                 <input
                   type="number"
                   value={activeFilters.goldMin}
                   onChange={(event) => setFilter('goldMin', event.target.value)}
-                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:px-3 sm:py-2"
                 />
               </label>
-              <label className="text-sm">
-                <span className="mb-2 block text-[var(--color-text-muted)]">Gold Max</span>
+              <label className="text-[12px] sm:text-sm">
+                <span className="mb-1 block text-[var(--color-text-muted)] sm:mb-2">Gold Max</span>
                 <input
                   type="number"
                   value={activeFilters.goldMax}
                   onChange={(event) => setFilter('goldMax', event.target.value)}
-                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)]"
+                  className="w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:px-3 sm:py-2"
                 />
               </label>
             </div>
@@ -246,7 +249,7 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
 
       </div>
 
-      <div className="text-xs text-[var(--color-text-muted)]">
+      <div className="text-[10px] text-[var(--color-text-muted)] sm:text-xs">
         Use the dropdowns above to refine by style, material, and weight.
       </div>
     </Panel>

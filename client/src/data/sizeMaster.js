@@ -21,7 +21,7 @@ export const SIZE_CHARTS = {
     ],
     "rows": [
       {
-        "size": "4",
+        "size": "IND 4",
         "hint": "US 3 \u00b7 UK F \u00b7 14.1 mm",
         "cells": [
           "4",
@@ -33,7 +33,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "5",
+        "size": "IND 5",
         "hint": "US 3.5 \u00b7 UK G \u00b7 14.5 mm",
         "cells": [
           "5",
@@ -45,7 +45,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "6",
+        "size": "IND 6",
         "hint": "US 4 \u00b7 UK H \u00b7 14.9 mm",
         "cells": [
           "6",
@@ -57,7 +57,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "7",
+        "size": "IND 7",
         "hint": "US 4.5 \u00b7 UK I \u00b7 15.3 mm",
         "cells": [
           "7",
@@ -69,7 +69,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "8",
+        "size": "IND 8",
         "hint": "US 5 \u00b7 UK J \u00b7 15.7 mm",
         "cells": [
           "8",
@@ -81,7 +81,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "9",
+        "size": "IND 9",
         "hint": "US 5.5 \u00b7 UK K \u00b7 16.1 mm",
         "cells": [
           "9",
@@ -93,7 +93,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "10",
+        "size": "IND 10",
         "hint": "US 6 \u00b7 UK L \u00b7 16.5 mm",
         "cells": [
           "10",
@@ -105,7 +105,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "11",
+        "size": "IND 11",
         "hint": "US 6.5 \u00b7 UK M \u00b7 16.9 mm",
         "cells": [
           "11",
@@ -117,7 +117,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "12",
+        "size": "IND 12",
         "hint": "US 7 \u00b7 UK N \u00b7 17.3 mm",
         "cells": [
           "12",
@@ -129,7 +129,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "13",
+        "size": "IND 13",
         "hint": "US 7.5 \u00b7 UK O \u00b7 17.7 mm",
         "cells": [
           "13",
@@ -141,7 +141,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "14",
+        "size": "IND 14",
         "hint": "US 8 \u00b7 UK P \u00b7 18.1 mm",
         "cells": [
           "14",
@@ -153,7 +153,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "15",
+        "size": "IND 15",
         "hint": "US 8.5 \u00b7 UK Q \u00b7 18.5 mm",
         "cells": [
           "15",
@@ -165,7 +165,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "16",
+        "size": "IND 16",
         "hint": "US 9 \u00b7 UK R \u00b7 18.9 mm",
         "cells": [
           "16",
@@ -177,7 +177,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "17",
+        "size": "IND 17",
         "hint": "US 9.5 \u00b7 UK S \u00b7 19.3 mm",
         "cells": [
           "17",
@@ -189,7 +189,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "18",
+        "size": "IND 18",
         "hint": "US 10 \u00b7 UK T \u00b7 19.7 mm",
         "cells": [
           "18",
@@ -201,7 +201,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "19",
+        "size": "IND 19",
         "hint": "US 10.5 \u00b7 UK U \u00b7 20.1 mm",
         "cells": [
           "19",
@@ -213,7 +213,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "20",
+        "size": "IND 20",
         "hint": "US 11 \u00b7 UK V \u00b7 20.6 mm",
         "cells": [
           "20",
@@ -225,7 +225,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "21",
+        "size": "IND 21",
         "hint": "US 11.5 \u00b7 UK W \u00b7 21 mm",
         "cells": [
           "21",
@@ -237,7 +237,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "22",
+        "size": "IND 22",
         "hint": "US 12 \u00b7 UK X \u00b7 21.4 mm",
         "cells": [
           "22",
@@ -249,7 +249,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "23",
+        "size": "IND 23",
         "hint": "US 12.5 \u00b7 UK Y \u00b7 21.8 mm",
         "cells": [
           "23",
@@ -261,7 +261,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "24",
+        "size": "IND 24",
         "hint": "US 13 \u00b7 UK Z \u00b7 22.2 mm",
         "cells": [
           "24",
@@ -273,7 +273,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "25",
+        "size": "IND 25",
         "hint": "US 13.5 \u00b7 UK Z+1 \u00b7 22.6 mm",
         "cells": [
           "25",
@@ -285,7 +285,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "26",
+        "size": "IND 26",
         "hint": "US 14 \u00b7 UK Z+2 \u00b7 23 mm",
         "cells": [
           "26",
@@ -297,7 +297,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "27",
+        "size": "IND 27",
         "hint": "US 14.5 \u00b7 UK Z+3 \u00b7 23.4 mm",
         "cells": [
           "27",
@@ -309,7 +309,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "28",
+        "size": "IND 28",
         "hint": "US 15 \u00b7 UK Z+4 \u00b7 23.8 mm",
         "cells": [
           "28",
@@ -332,7 +332,7 @@ export const SIZE_CHARTS = {
     ],
     "rows": [
       {
-        "size": "1 inch 12 ani",
+        "size": "IND 1 inch 12 ani",
         "hint": "44.5mm",
         "cells": [
           "1 inch 12 ani",
@@ -340,7 +340,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "1 inch 13 ani",
+        "size": "IND 1 inch 13 ani",
         "hint": "45.3mm",
         "cells": [
           "1 inch 13 ani",
@@ -348,7 +348,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "1 inch 14 ani",
+        "size": "IND 1 inch 14 ani",
         "hint": "46.0mm",
         "cells": [
           "1 inch 14 ani",
@@ -356,7 +356,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "1 inch 15 ani",
+        "size": "IND 1 inch 15 ani",
         "hint": "46.8mm",
         "cells": [
           "1 inch 15 ani",
@@ -364,7 +364,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 00 ani",
+        "size": "IND 2 inch 00 ani",
         "hint": "47.6mm",
         "cells": [
           "2 inch 00 ani",
@@ -372,7 +372,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 01 ani",
+        "size": "IND 2 inch 01 ani",
         "hint": "48.4mm",
         "cells": [
           "2 inch 01 ani",
@@ -380,7 +380,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 02 ani",
+        "size": "IND 2 inch 02 ani",
         "hint": "49.2mm",
         "cells": [
           "2 inch 02 ani",
@@ -388,7 +388,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 03 ani",
+        "size": "IND 2 inch 03 ani",
         "hint": "50.0mm",
         "cells": [
           "2 inch 03 ani",
@@ -396,7 +396,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 04 ani",
+        "size": "IND 2 inch 04 ani",
         "hint": "50.8mm",
         "cells": [
           "2 inch 04 ani",
@@ -404,7 +404,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 05 ani",
+        "size": "IND 2 inch 05 ani",
         "hint": "51.6mm",
         "cells": [
           "2 inch 05 ani",
@@ -412,7 +412,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 06 ani",
+        "size": "IND 2 inch 06 ani",
         "hint": "52.4mm",
         "cells": [
           "2 inch 06 ani",
@@ -420,7 +420,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 07 ani",
+        "size": "IND 2 inch 07 ani",
         "hint": "53.2mm",
         "cells": [
           "2 inch 07 ani",
@@ -428,7 +428,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 08 ani",
+        "size": "IND 2 inch 08 ani",
         "hint": "54.0mm",
         "cells": [
           "2 inch 08 ani",
@@ -436,7 +436,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 09 ani",
+        "size": "IND 2 inch 09 ani",
         "hint": "54.8mm",
         "cells": [
           "2 inch 09 ani",
@@ -444,7 +444,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 10 ani",
+        "size": "IND 2 inch 10 ani",
         "hint": "55.6mm",
         "cells": [
           "2 inch 10 ani",
@@ -452,7 +452,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 11 ani",
+        "size": "IND 2 inch 11 ani",
         "hint": "56.4mm",
         "cells": [
           "2 inch 11 ani",
@@ -460,7 +460,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 12 ani",
+        "size": "IND 2 inch 12 ani",
         "hint": "57.2mm",
         "cells": [
           "2 inch 12 ani",
@@ -468,7 +468,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 13 ani",
+        "size": "IND 2 inch 13 ani",
         "hint": "58.0mm",
         "cells": [
           "2 inch 13 ani",
@@ -476,7 +476,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 14 ani",
+        "size": "IND 2 inch 14 ani",
         "hint": "58.8mm",
         "cells": [
           "2 inch 14 ani",
@@ -484,7 +484,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 15 ani",
+        "size": "IND 2 inch 15 ani",
         "hint": "59.6mm",
         "cells": [
           "2 inch 15 ani",
@@ -492,7 +492,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 00 ani",
+        "size": "IND 3 inch 00 ani",
         "hint": "60.4mm",
         "cells": [
           "3 inch 00 ani",
@@ -500,7 +500,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 01 ani",
+        "size": "IND 3 inch 01 ani",
         "hint": "61.2mm",
         "cells": [
           "3 inch 01 ani",
@@ -508,7 +508,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 02 ani",
+        "size": "IND 3 inch 02 ani",
         "hint": "62.0mm",
         "cells": [
           "3 inch 02 ani",
@@ -516,7 +516,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 03 ani",
+        "size": "IND 3 inch 03 ani",
         "hint": "62.8mm",
         "cells": [
           "3 inch 03 ani",
@@ -524,7 +524,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 04 ani",
+        "size": "IND 3 inch 04 ani",
         "hint": "63.6mm",
         "cells": [
           "3 inch 04 ani",
@@ -532,7 +532,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 05 ani",
+        "size": "IND 3 inch 05 ani",
         "hint": "64.4mm",
         "cells": [
           "3 inch 05 ani",
@@ -540,7 +540,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 06 ani",
+        "size": "IND 3 inch 06 ani",
         "hint": "65.2mm",
         "cells": [
           "3 inch 06 ani",
@@ -548,7 +548,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 07 ani",
+        "size": "IND 3 inch 07 ani",
         "hint": "66.0mm",
         "cells": [
           "3 inch 07 ani",
@@ -556,7 +556,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 08 ani",
+        "size": "IND 3 inch 08 ani",
         "hint": "66.8mm",
         "cells": [
           "3 inch 08 ani",
@@ -575,7 +575,7 @@ export const SIZE_CHARTS = {
     ],
     "rows": [
       {
-        "size": "1 inch 12 ani",
+        "size": "IND 1 inch 12 ani",
         "hint": "44.5mm",
         "cells": [
           "1 inch 12 ani",
@@ -583,7 +583,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "1 inch 13 ani",
+        "size": "IND 1 inch 13 ani",
         "hint": "45.3mm",
         "cells": [
           "1 inch 13 ani",
@@ -591,7 +591,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "1 inch 14 ani",
+        "size": "IND 1 inch 14 ani",
         "hint": "46.0mm",
         "cells": [
           "1 inch 14 ani",
@@ -599,7 +599,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "1 inch 15 ani",
+        "size": "IND 1 inch 15 ani",
         "hint": "46.8mm",
         "cells": [
           "1 inch 15 ani",
@@ -607,7 +607,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 00 ani",
+        "size": "IND 2 inch 00 ani",
         "hint": "47.6mm",
         "cells": [
           "2 inch 00 ani",
@@ -615,7 +615,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 01 ani",
+        "size": "IND 2 inch 01 ani",
         "hint": "48.4mm",
         "cells": [
           "2 inch 01 ani",
@@ -623,7 +623,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 02 ani",
+        "size": "IND 2 inch 02 ani",
         "hint": "49.2mm",
         "cells": [
           "2 inch 02 ani",
@@ -631,7 +631,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 03 ani",
+        "size": "IND 2 inch 03 ani",
         "hint": "50.0mm",
         "cells": [
           "2 inch 03 ani",
@@ -639,7 +639,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 04 ani",
+        "size": "IND 2 inch 04 ani",
         "hint": "50.8mm",
         "cells": [
           "2 inch 04 ani",
@@ -647,7 +647,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 05 ani",
+        "size": "IND 2 inch 05 ani",
         "hint": "51.6mm",
         "cells": [
           "2 inch 05 ani",
@@ -655,7 +655,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 06 ani",
+        "size": "IND 2 inch 06 ani",
         "hint": "52.4mm",
         "cells": [
           "2 inch 06 ani",
@@ -663,7 +663,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 07 ani",
+        "size": "IND 2 inch 07 ani",
         "hint": "53.2mm",
         "cells": [
           "2 inch 07 ani",
@@ -671,7 +671,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 08 ani",
+        "size": "IND 2 inch 08 ani",
         "hint": "54.0mm",
         "cells": [
           "2 inch 08 ani",
@@ -679,7 +679,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 09 ani",
+        "size": "IND 2 inch 09 ani",
         "hint": "54.8mm",
         "cells": [
           "2 inch 09 ani",
@@ -687,7 +687,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 10 ani",
+        "size": "IND 2 inch 10 ani",
         "hint": "55.6mm",
         "cells": [
           "2 inch 10 ani",
@@ -695,7 +695,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 11 ani",
+        "size": "IND 2 inch 11 ani",
         "hint": "56.4mm",
         "cells": [
           "2 inch 11 ani",
@@ -703,7 +703,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 12 ani",
+        "size": "IND 2 inch 12 ani",
         "hint": "57.2mm",
         "cells": [
           "2 inch 12 ani",
@@ -711,7 +711,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 13 ani",
+        "size": "IND 2 inch 13 ani",
         "hint": "58.0mm",
         "cells": [
           "2 inch 13 ani",
@@ -719,7 +719,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 14 ani",
+        "size": "IND 2 inch 14 ani",
         "hint": "58.8mm",
         "cells": [
           "2 inch 14 ani",
@@ -727,7 +727,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "2 inch 15 ani",
+        "size": "IND 2 inch 15 ani",
         "hint": "59.6mm",
         "cells": [
           "2 inch 15 ani",
@@ -735,7 +735,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 00 ani",
+        "size": "IND 3 inch 00 ani",
         "hint": "60.4mm",
         "cells": [
           "3 inch 00 ani",
@@ -743,7 +743,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 01 ani",
+        "size": "IND 3 inch 01 ani",
         "hint": "61.2mm",
         "cells": [
           "3 inch 01 ani",
@@ -751,7 +751,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 02 ani",
+        "size": "IND 3 inch 02 ani",
         "hint": "62.0mm",
         "cells": [
           "3 inch 02 ani",
@@ -759,7 +759,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 03 ani",
+        "size": "IND 3 inch 03 ani",
         "hint": "62.8mm",
         "cells": [
           "3 inch 03 ani",
@@ -767,7 +767,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 04 ani",
+        "size": "IND 3 inch 04 ani",
         "hint": "63.6mm",
         "cells": [
           "3 inch 04 ani",
@@ -775,7 +775,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 05 ani",
+        "size": "IND 3 inch 05 ani",
         "hint": "64.4mm",
         "cells": [
           "3 inch 05 ani",
@@ -783,7 +783,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 06 ani",
+        "size": "IND 3 inch 06 ani",
         "hint": "65.2mm",
         "cells": [
           "3 inch 06 ani",
@@ -791,7 +791,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 07 ani",
+        "size": "IND 3 inch 07 ani",
         "hint": "66.0mm",
         "cells": [
           "3 inch 07 ani",
@@ -799,7 +799,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "3 inch 08 ani",
+        "size": "IND 3 inch 08 ani",
         "hint": "66.8mm",
         "cells": [
           "3 inch 08 ani",
@@ -818,7 +818,7 @@ export const SIZE_CHARTS = {
     ],
     "rows": [
       {
-        "size": "5.5 inch",
+        "size": "IND 5.5 inch",
         "hint": "14 cm",
         "cells": [
           "5.5 inch",
@@ -826,7 +826,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "6.0 inch",
+        "size": "IND 6.0 inch",
         "hint": "15 cm",
         "cells": [
           "6.0 inch",
@@ -834,7 +834,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "6.5 inch",
+        "size": "IND 6.5 inch",
         "hint": "16.5 cm",
         "cells": [
           "6.5 inch",
@@ -842,7 +842,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "7.0 inch",
+        "size": "IND 7.0 inch",
         "hint": "18 cm",
         "cells": [
           "7.0 inch",
@@ -850,7 +850,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "7.5 inch",
+        "size": "IND 7.5 inch",
         "hint": "19 cm",
         "cells": [
           "7.5 inch",
@@ -858,7 +858,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "8.0 inch",
+        "size": "IND 8.0 inch",
         "hint": "20.5 cm",
         "cells": [
           "8.0 inch",
@@ -866,7 +866,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "8.5 inch",
+        "size": "IND 8.5 inch",
         "hint": "21.5 cm",
         "cells": [
           "8.5 inch",
@@ -874,7 +874,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "9.0 inch",
+        "size": "IND 9.0 inch",
         "hint": "23 cm",
         "cells": [
           "9.0 inch",
@@ -882,7 +882,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "9.5 inch",
+        "size": "IND 9.5 inch",
         "hint": "24 cm",
         "cells": [
           "9.5 inch",
@@ -890,7 +890,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "10.0 inch",
+        "size": "IND 10.0 inch",
         "hint": "25.5 cm",
         "cells": [
           "10.0 inch",
@@ -898,7 +898,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "10.5 inch",
+        "size": "IND 10.5 inch",
         "hint": "26.5 cm",
         "cells": [
           "10.5 inch",
@@ -906,7 +906,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "11.0 inch",
+        "size": "IND 11.0 inch",
         "hint": "28 cm",
         "cells": [
           "11.0 inch",
@@ -925,7 +925,7 @@ export const SIZE_CHARTS = {
     ],
     "rows": [
       {
-        "size": "14 inch",
+        "size": "IND 14 inch",
         "hint": "35 cm",
         "cells": [
           "14 inch",
@@ -933,7 +933,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "15 inch",
+        "size": "IND 15 inch",
         "hint": "38 cm",
         "cells": [
           "15 inch",
@@ -941,7 +941,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "16 inch",
+        "size": "IND 16 inch",
         "hint": "40 cm",
         "cells": [
           "16 inch",
@@ -949,7 +949,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "17 inch",
+        "size": "IND 17 inch",
         "hint": "43 cm",
         "cells": [
           "17 inch",
@@ -957,7 +957,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "18 inch",
+        "size": "IND 18 inch",
         "hint": "45 cm",
         "cells": [
           "18 inch",
@@ -965,7 +965,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "19 inch",
+        "size": "IND 19 inch",
         "hint": "48 cm",
         "cells": [
           "19 inch",
@@ -973,7 +973,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "20 inch",
+        "size": "IND 20 inch",
         "hint": "50 cm",
         "cells": [
           "20 inch",
@@ -981,7 +981,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "22 inch",
+        "size": "IND 22 inch",
         "hint": "55 cm",
         "cells": [
           "22 inch",
@@ -989,7 +989,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "24 inch",
+        "size": "IND 24 inch",
         "hint": "60 cm",
         "cells": [
           "24 inch",
@@ -997,7 +997,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "26 inch",
+        "size": "IND 26 inch",
         "hint": "65 cm",
         "cells": [
           "26 inch",
@@ -1005,7 +1005,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "28 inch",
+        "size": "IND 28 inch",
         "hint": "70 cm",
         "cells": [
           "28 inch",
@@ -1013,7 +1013,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "30 inch",
+        "size": "IND 30 inch",
         "hint": "75 cm",
         "cells": [
           "30 inch",
@@ -1021,7 +1021,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "32 inch",
+        "size": "IND 32 inch",
         "hint": "80 cm",
         "cells": [
           "32 inch",
@@ -1029,7 +1029,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "34 inch",
+        "size": "IND 34 inch",
         "hint": "85 cm",
         "cells": [
           "34 inch",
@@ -1037,7 +1037,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "36 inch",
+        "size": "IND 36 inch",
         "hint": "90 cm",
         "cells": [
           "36 inch",
@@ -1056,7 +1056,7 @@ export const SIZE_CHARTS = {
     ],
     "rows": [
       {
-        "size": "4.0 inch",
+        "size": "IND 4.0 inch",
         "hint": "10 cm",
         "cells": [
           "4.0 inch",
@@ -1064,7 +1064,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "4.5 inch",
+        "size": "IND 4.5 inch",
         "hint": "11.5 cm",
         "cells": [
           "4.5 inch",
@@ -1072,7 +1072,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "5.0 inch",
+        "size": "IND 5.0 inch",
         "hint": "13 cm",
         "cells": [
           "5.0 inch",
@@ -1080,7 +1080,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "5.5 inch",
+        "size": "IND 5.5 inch",
         "hint": "14 cm",
         "cells": [
           "5.5 inch",
@@ -1088,7 +1088,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "6.0 inch",
+        "size": "IND 6.0 inch",
         "hint": "15 cm",
         "cells": [
           "6.0 inch",
@@ -1096,7 +1096,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "6.5 inch",
+        "size": "IND 6.5 inch",
         "hint": "16.5 cm",
         "cells": [
           "6.5 inch",
@@ -1104,7 +1104,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "7.0 inch",
+        "size": "IND 7.0 inch",
         "hint": "18 cm",
         "cells": [
           "7.0 inch",
@@ -1112,7 +1112,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "7.5 inch",
+        "size": "IND 7.5 inch",
         "hint": "19 cm",
         "cells": [
           "7.5 inch",
@@ -1120,7 +1120,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "8.0 inch",
+        "size": "IND 8.0 inch",
         "hint": "20 cm",
         "cells": [
           "8.0 inch",
@@ -1128,7 +1128,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "8.5 inch",
+        "size": "IND 8.5 inch",
         "hint": "21.5 cm",
         "cells": [
           "8.5 inch",
@@ -1136,7 +1136,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "9.0 inch",
+        "size": "IND 9.0 inch",
         "hint": "23 cm",
         "cells": [
           "9.0 inch",
@@ -1144,7 +1144,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "9.5 inch",
+        "size": "IND 9.5 inch",
         "hint": "24 cm",
         "cells": [
           "9.5 inch",
@@ -1152,7 +1152,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "10.0 inch",
+        "size": "IND 10.0 inch",
         "hint": "25 cm",
         "cells": [
           "10.0 inch",
@@ -1160,7 +1160,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "10.5 inch",
+        "size": "IND 10.5 inch",
         "hint": "26.5 cm",
         "cells": [
           "10.5 inch",
@@ -1168,7 +1168,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "11.0 inch",
+        "size": "IND 11.0 inch",
         "hint": "28 cm",
         "cells": [
           "11.0 inch",
@@ -1176,7 +1176,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "11.5 inch",
+        "size": "IND 11.5 inch",
         "hint": "29 cm",
         "cells": [
           "11.5 inch",
@@ -1184,7 +1184,7 @@ export const SIZE_CHARTS = {
         ]
       },
       {
-        "size": "12.0 inch",
+        "size": "IND 12.0 inch",
         "hint": "30 cm",
         "cells": [
           "12.0 inch",
