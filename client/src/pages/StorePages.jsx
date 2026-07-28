@@ -597,7 +597,17 @@ export function ProductDetailPage() {
         <div className="space-y-2.5 sm:space-y-4">
           <Panel className="overflow-hidden p-0">
             <TransformWrapper>
-              <TransformComponent wrapperClass="h-full w-full">
+              {/* The zoom library sizes its own wrapper and content to
+                  `fit-content`, so the image — a flex item asking for `w-full`
+                  against an indefinite width — falls back to its aspect ratio at
+                  the fixed height and hangs on the left of the frame. Only shows
+                  on mobile, where that height is narrower than the column. The
+                  `!` is needed because the library injects its CSS at runtime,
+                  after the Tailwind sheet. */}
+              <TransformComponent
+                wrapperClass="!h-full !w-full"
+                contentClass="!h-full !w-full items-center justify-center"
+              >
                 <img src={activeImages[safeActiveImage] || data.images[0]} alt={data.name} className="h-[240px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
               </TransformComponent>
             </TransformWrapper>
