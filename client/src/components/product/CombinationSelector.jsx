@@ -1,5 +1,6 @@
 import { Copy, Minus, Plus, Ruler, Trash2 } from 'lucide-react';
 import { Select } from '../ui/Select';
+import { sizeLabel } from '../../data/sizeMaster';
 import { goldColorSwatch } from '../../utils/productVariants';
 import { DIAMOND_QUALITY } from '../../utils/constants';
 
@@ -66,7 +67,7 @@ export function CombinationSelector({
         {lines.map((line, index) => {
           const sizeOptions = (chart?.rows || []).map((row) => ({
             value: row.size,
-            label: row.size,
+            label: sizeLabel(row.size),
             hint: row.hint,
             // The same size in a different colour or karat is a legitimate
             // combination, so only block a size already taken by a row that is

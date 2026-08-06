@@ -18,7 +18,7 @@ import { ProductCard } from '../components/product/ProductCard';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
-import { defaultSizeFor, resolveSizeChart } from '../data/sizeMaster';
+import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
 import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
@@ -876,7 +876,7 @@ function CartLine({ item, onUpdate, onRemove }) {
               ) : null}
               {chart ? (
                 <Select
-                  options={chart.rows.map((row) => ({ value: row.size, label: row.size, hint: row.hint }))}
+                  options={chart.rows.map((row) => ({ value: row.size, label: sizeLabel(row.size), hint: row.hint }))}
                   value={customization.size}
                   placeholder={chart.noun}
                   onChange={(size) => editSelection({ size })}

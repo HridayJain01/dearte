@@ -104,8 +104,14 @@ export function Select({
       state.query = '';
     }, 600);
 
+    // Value as well as label, because a label may carry a shared prefix the
+    // buyer would never type — every size reads "IND 12", so matching on the
+    // label alone would make typing "12" useless.
     const match = normalized.findIndex(
-      (option) => !option.disabled && option.label.toLowerCase().startsWith(state.query),
+      (option) =>
+        !option.disabled &&
+        (option.label.toLowerCase().startsWith(state.query) ||
+          option.value.toLowerCase().startsWith(state.query)),
     );
 
     if (match >= 0) {

@@ -1256,3 +1256,15 @@ export function defaultSizeFor(product) {
   // Mid-range sizes are the most commonly ordered, so open on one.
   return rows[Math.floor(rows.length / 2)].size;
 }
+
+/**
+ * How a size reads in a picker. Every chart's first column is the Indian
+ * standard, so the number alone is ambiguous to a buyer who thinks in US or EU
+ * sizes — the prefix says which scale they are choosing on.
+ *
+ * Display only. The stored value stays the bare size so that it keeps matching
+ * `isValidSize` and the sizes already recorded on past orders.
+ */
+export function sizeLabel(size) {
+  return size ? `IND ${size}` : '';
+}
