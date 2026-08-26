@@ -1,6 +1,7 @@
 import { ChevronDown, Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { EDUCATION_ROUTES, NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
 import { useNavCategories, useOccasions } from '../../hooks/useProducts';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
@@ -8,6 +9,21 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
 import { Button } from '../ui/Primitives';
+import { productService } from '../../services/productService';
+
+// Admin-managed site settings. Same query key as ContactPage so the two share
+// one cached fetch. Falls back to the shipped defaults for any blank field.
+function useSiteSettings() {
+  const { data } = useQuery({ queryKey: ['contact'], queryFn: productService.contact, staleTime: 5 * 60 * 1000 });
+  return data || {};
+}
+
+// Admin may store the WhatsApp number as digits or as a full link.
+function whatsappHref(value) {
+  if (!value) return 'https://wa.me/919876543210';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://wa.me/${value.replace(/\D/g, '')}`;
+}
 
 // Single source of truth for nav typography so the desktop links, the Occasions
 // button, its dropdown items and the mobile menu all render identically.
@@ -320,6 +336,7 @@ export function AppLayout() {
   const { wishlist } = useWishlist();
   const { data: occasions } = useOccasions();
   const { data: navCategories } = useNavCategories();
+  const settings = useSiteSettings();
   const occasionList = occasions || [];
   const categoryList = navCategories || [];
   const location = useLocation();
@@ -573,20 +590,20 @@ export function AppLayout() {
           <div>
             <p className="lux-label mb-2 !text-[var(--color-accent)] text-[10px] sm:mb-4 sm:text-xs">Connect</p>
             <div className="space-y-1.5 text-[11px] text-white/60 sm:space-y-3 sm:text-sm">
-              <p className="break-words">concierge@deartejewels.com</p>
-              <p>+91 98765 43210</p>
-              <p>Opera House, Mumbai</p>
+              <p className="break-words">{settings.email || 'concierge@deartejewels.com'}</p>
+              <p>{settings.phone || '+91 98765 43210'}</p>
+              <p>{settings.address || 'Opera House, Mumbai'}</p>
               <div className="flex gap-3 pt-1 text-white/80 sm:pt-2">
-                <a href="https://instagram.com" className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">IG</a>
-                <a href="https://linkedin.com" className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">IN</a>
-                <a href="https://facebook.com" className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">FB</a>
+                <a href={settings.instagram || 'https://instagram.com'} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">IG</a>
+                <a href={settings.linkedin || 'https://linkedin.com'} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">IN</a>
+                <a href={settings.facebook || 'https://facebook.com'} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">FB</a>
               </div>
             </div>
           </div>
 
           <div className="col-span-2 border border-white/15 bg-white/5 p-3 sm:p-6 lg:col-span-1">
             <p className="lux-label mb-1.5 !text-[var(--color-accent)] text-[10px] sm:mb-3 sm:text-xs">Newsletter</p>
-            <p className="text-[11px] text-white/60 sm:text-sm">Sign up for early access to our exclusive collections.</p>
+            <p className="text-[11px] text-white/60 sm:text-sm">{settings.newsletterBlurb || 'Sign up for early access to our exclusive collections.'}</p>
             <div className="mt-2.5 flex gap-2 sm:mt-4 sm:flex-col sm:gap-3">
               <input className="min-w-0 flex-1 border border-white/20 bg-transparent px-2.5 py-1.5 text-[12px] text-white placeholder:text-white/40 focus:border-[var(--color-accent)] focus:outline-none sm:px-4 sm:py-3 sm:text-base" placeholder="Email address" />
               <Button variant="secondary" className="shrink-0">Subscribe</Button>
@@ -596,7 +613,7 @@ export function AppLayout() {
       </footer>
 
       <a
-        href="https://wa.me/919876543210"
+        href={whatsappHref(settings.whatsapp)}
         target="_blank"
         rel="noreferrer"
         aria-label="Chat on WhatsApp"
