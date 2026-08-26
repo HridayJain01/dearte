@@ -2,22 +2,24 @@
 
 ## Target
 
-- Frontend: Vercel
-- API: Render
+- Frontend: Vercel (`client/`)
+- API: Vercel (`server/` — separate Vercel project, Root Directory = `server`)
 - Database: MongoDB Atlas
 - Media: Cloudinary
 
 ## Domain strategy
 
-- frontend: `app.<your-domain>`
-- API: `api.<your-domain>`
+- frontend: `app.<your-domain>` (or the existing `*.vercel.app` client URL)
+- API: `api.<your-domain>` (or the API project's `*.vercel.app` URL)
 
 Use custom domains early so cookie and CORS behavior matches production.
 
 ## Required environment variables
 
-- `PORT`
-- `CLIENT_ORIGIN`
+### API project (Vercel → Project → Settings → Environment Variables)
+
+- `NODE_ENV=production`
+- `CLIENT_ORIGIN` — exact frontend origin (scheme + host, no trailing slash)
 - `MONGODB_URI`
 - `JWT_SECRET`
 - `JWT_REFRESH_SECRET`
@@ -25,22 +27,42 @@ Use custom domains early so cookie and CORS behavior matches production.
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
 
+Also set WhatsApp / email vars if you use those features. Optionally
+`ADDITIONAL_CLIENT_ORIGINS` for preview frontends.
+
+### Frontend project
+
+- `VITE_API_PROXY_TARGET` — full API base including `/api`
+  (e.g. `https://your-api.vercel.app/api`). Overrides `client/.env.production` at build time.
+- `VITE_SITE_URL` — canonical storefront origin for SEO (optional but recommended)
+
+## First-time API seed (Vercel does not seed on cold start)
+
+Locally, with production Atlas credentials in the environment:
+
+```bash
+npm run seed --workspace server
+```
+
+Only needed when the target database is empty (or you intentionally want seed backfills).
+
 ## Shipping checklist
 
-- Atlas IP/network access configured for Render
-- Render environment variables set
-- Vercel environment variables set
-- `CLIENT_ORIGIN` matches the frontend domain
-- HTTPS enabled on both origins
-- auth cookies tested across origins
-- first admin seed account verified
-- Cloudinary uploads and deletions verified
-- storefront and admin smoke-tested
+- Atlas Network Access allows Vercel egress (use `0.0.0.0/0` if you cannot pin IPs)
+- API Vercel project Root Directory = `server`
+- API env vars set; `CLIENT_ORIGIN` matches the live frontend origin
+- `GET https://<api-host>/api/health` returns ok
+- Frontend `VITE_API_PROXY_TARGET` updated and client redeployed
+- Auth cookies tested (login → reload → still logged in)
+- WhatsApp webhook URL updated in Meta to `https://<api-host>/api/whatsapp/webhook`
+- Cloudinary uploads verified
+- Storefront and admin smoke-tested
+- Render API service turned off only after the above passes
 
 ## Documentation checklist
 
 If any deployment setting changes, update:
 
-- `/Users/hridayjain/Documents/Projects/dearte/.env.example`
+- `.env.example`
 - this file
-- `/Users/hridayjain/Documents/Projects/dearte/README.md`
+- `README.md`

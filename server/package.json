@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "build": "node -e \"console.log('Server build step not required for this mock Express deployment.')\""
+    "seed": "node scripts/seed.js",
+    "build": "node -e \"console.log('Server build step not required for Express on Vercel.')\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

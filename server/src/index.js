@@ -18,6 +18,7 @@ import { isProduction, validateEnvironment } from './config/env.js';
 const app = express();
 const PORT = Number(process.env.PORT || 5001);
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5180';
+const IS_VERCEL = Boolean(process.env.VERCEL);
 
 // Extra production origins can be supplied without a code change.
 const extraOrigins = (process.env.ADDITIONAL_CLIENT_ORIGINS || '')
@@ -93,6 +94,23 @@ app.use('/api/admin/products/bulk-import', express.json({ limit: '25mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
+// On Vercel the process does not run start(); connect (and validate) once per
+// warm isolate before handling traffic. Local/Render still boot eagerly below.
+let readyPromise;
+function ensureReady() {
+  if (!readyPromise) {
+    readyPromise = (async () => {
+      validateEnvironment();
+      await connectDatabase();
+    })();
+  }
+  return readyPromise;
+}
+
+app.use((req, res, next) => {
+  ensureReady().then(() => next()).catch(next);
+});
+
 // CSRF hardening. Session cookies are SameSite=None in production (the client and
 // API live on different sites), so the browser attaches them to cross-site
 // requests. A forged <form>/<img> can only issue "simple" requests, which cannot
@@ -145,8 +163,10 @@ app.use((err, _req, res, _next) => {
 });
 
 async function start() {
-  validateEnvironment();
-  await connectDatabase();
+  await ensureReady();
+  // Seeding is a boot-time concern for long-lived hosts only. On Vercel cold
+  // starts it would add latency and side effects on every new isolate — run
+  // `npm run seed` once against the target database instead.
   await seedDatabase();
 
   app.listen(PORT, () => {
@@ -154,7 +174,13 @@ async function start() {
   });
 }
 
-start().catch((error) => {
-  console.error('Failed to start API', error);
-  process.exit(1);
-});
+// Vercel imports this module and invokes the exported app. Calling listen()
+// there would fight the platform runtime.
+if (!IS_VERCEL) {
+  start().catch((error) => {
+    console.error('Failed to start API', error);
+    process.exit(1);
+  });
+}
+
+export default app;

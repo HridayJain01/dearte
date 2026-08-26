@@ -10,7 +10,9 @@ export async function connectDatabase() {
     throw new Error('MONGODB_URI is required to start the API.');
   }
 
-  if (isConnected) {
+  // readyState 1 = connected. Reuse across warm Vercel isolates; reconnect if
+  // the cached flag is stale after a dropped connection.
+  if (isConnected && mongoose.connection.readyState === 1) {
     return mongoose.connection;
   }
 

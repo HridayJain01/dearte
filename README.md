@@ -6,7 +6,7 @@ DeArte is a B2B jewellery commerce platform with a buyer-facing storefront, a ba
 
 - Frontend: React, Vite, React Router, TanStack Query, React Hook Form, Zod, Recharts
 - Backend: Express, Mongoose, Cloudinary SDK, bcryptjs, JWT cookies, helmet, express-rate-limit
-- Infrastructure target: Vercel frontend, Render API, MongoDB Atlas, Cloudinary
+- Infrastructure target: Vercel frontend + Vercel API, MongoDB Atlas, Cloudinary
 
 ## Local setup
 

@@ -43,11 +43,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <!-- The API is on a different origin, so the first catalogue request pays a
-         DNS + TLS handshake before it can even start. Warming it here overlaps
-         that with the JS parse and pulls the largest-contentful paint forward. -->
-    <link rel="preconnect" href="https://dearte.onrender.com" crossorigin />
-    <link rel="dns-prefetch" href="https://dearte.onrender.com" />
+    <!-- After the API moves off Render, add preconnect/dns-prefetch to the live
+         API origin here (scheme+host only) to warm DNS+TLS for the first XHR. -->
 
     <!-- Fonts used to be an @import at the top of index.css, which made them a
          third-level request: HTML -> app CSS -> Google CSS -> font files, all of
