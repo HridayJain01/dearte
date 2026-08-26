@@ -8,8 +8,17 @@ import { formatWeight } from '../../utils/formatters';
 import { DIAMOND_QUALITY } from '../../utils/constants';
 import { resolveSizeChart } from '../../data/sizeMaster';
 import { goldColorSwatch, sameCustomization, variantImages } from '../../utils/productVariants';
+import { productDisplayName } from '../../utils/productTitle';
 
-export function ProductCard({ product }) {
+/*
+ * `priority` marks the handful of cards that render above the fold. Native
+ * lazy-loading defers an image until layout has run, which is exactly the wrong
+ * thing to do to the image that will end up being the page's LCP element — so
+ * the first row opts out of it and asks for high fetch priority instead.
+ */
+export function ProductCard({ product, priority = false }) {
+  // The import leaves `name` set to the style code; show something a buyer can read.
+  const displayName = productDisplayName(product);
   const { isAuthenticated } = useAuth();
   const { cart, addToCart, updateCart, removeFromCart } = useCart();
   const { addToWishlist } = useWishlist();
@@ -53,7 +62,12 @@ export function ProductCard({ product }) {
         <div className="relative h-40 overflow-hidden bg-[var(--color-surface)] sm:h-72">
           <img
             src={variantImages(product, quickAddCustomization.goldColor)[0]}
-            alt={product.name}
+            alt={`${displayName} — style ${product.styleCode}`}
+            width="320"
+            height="288"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
             className="h-full w-full object-contain p-3 transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06] sm:p-5"
           />
           <p className="absolute left-2.5 top-2.5 text-[9px] font-medium uppercase tracking-[0.18em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:text-[11px]">
@@ -75,7 +89,7 @@ export function ProductCard({ product }) {
           <div className="grid grid-cols-[1fr_auto] items-start gap-3">
             <div>
               <p className="line-clamp-2 font-serif text-[13px] leading-[1.25] text-[var(--color-text)] sm:text-[1.35rem]">
-                {product.name}
+                {displayName}
               </p>
               <p className="mt-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[11px]">
                 {product.styleCode}
@@ -130,11 +144,14 @@ export function ProductCard({ product }) {
                   if (needsSize) return;
                   e.preventDefault();
                   ensureAuth(() =>
-                    addToCart({
-                      productId: product.id,
-                      quantity: 1,
-                      customization: quickAddCustomization,
-                    }),
+                    addToCart(
+                      {
+                        productId: product.id,
+                        quantity: 1,
+                        customization: quickAddCustomization,
+                      },
+                      { product, customization: quickAddCustomization },
+                    ),
                   );
                 }}
               >

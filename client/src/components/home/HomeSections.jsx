@@ -73,6 +73,8 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, delay = 0 
         src={imageSrc}
         alt=""
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06]"
+        loading="lazy"
+        decoding="async"
       />
       <div className="scrim-photo pointer-events-none absolute inset-x-0 bottom-0 h-[54%]" aria-hidden />
       <span
@@ -220,6 +222,12 @@ export function HeroSlider({ banners }) {
             <img
               src={banner.image}
               alt={banner.title}
+              // The first slide is the home page's LCP element. Lazy-loading it
+              // would push the largest paint behind layout for no benefit; the
+              // slides behind it are off-screen and can wait.
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'low'}
+              decoding="async"
               className={`h-full w-full object-cover ${index === active ? 'animate-ken-burns' : ''}`}
             />
           </div>
@@ -391,6 +399,8 @@ export function TestimonialRail({ testimonials }) {
               src={featured.avatar}
               alt={featured.name}
               className="h-10 w-10 border border-[var(--color-border)] object-cover sm:h-16 sm:w-16"
+              loading="lazy"
+              decoding="async"
             />
             <div>
               <p className="text-[13px] font-semibold text-[var(--color-text)] sm:text-base">{featured.name}</p>
@@ -406,6 +416,8 @@ export function TestimonialRail({ testimonials }) {
                 src={testimonial.avatar}
                 alt={testimonial.name}
                 className="h-10 w-10 flex-none border border-[var(--color-border)] object-cover sm:h-14 sm:w-14"
+                loading="lazy"
+                decoding="async"
               />
               <div className="min-w-0">
                 <div className="mb-1.5 flex gap-1 text-[var(--color-accent)] sm:mb-3">
@@ -448,6 +460,8 @@ export function EventsRail({ events }) {
                     src={event.image}
                     alt={event.title}
                     className="h-28 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-64"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-xs sm:tracking-[0.16em]">
                     {status}
@@ -493,6 +507,8 @@ export function TrustedBrandGrid({ brands }) {
                     src={brand.logo?.secureUrl || brand.logo}
                     alt={brand.name}
                     className="h-9 w-9 border border-[var(--color-border)] object-cover sm:h-12 sm:w-12"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="flex h-9 w-9 items-center justify-center border border-[var(--color-border)] bg-[var(--color-primary-bg)] font-serif text-[13px] text-[var(--color-primary)] sm:h-12 sm:w-12 sm:text-base">
@@ -542,6 +558,8 @@ export function CollectionsRail({ collections }) {
                       src={collection.image}
                       alt={collection.name}
                       className="h-40 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-48"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-[var(--color-primary-bg)] to-[var(--color-surface)] sm:h-48">

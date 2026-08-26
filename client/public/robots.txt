@@ -1,0 +1,25 @@
+# DeArte Jewellery — https://dearte-client.vercel.app
+# Public catalogue and marketing pages are open to every crawler.
+# Transactional and account areas are excluded: they need a session, so a
+# crawler only ever reaches an empty shell or a login redirect.
+
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /admin/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /wishlist
+Disallow: /profile
+Disallow: /catalogue
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+
+# Session and tracking params never change the page's content, so they only
+# create duplicate URLs for the crawler to chew through.
+Disallow: /*?*utm_
+Disallow: /*?*ref=
+
+Sitemap: https://dearte-client.vercel.app/sitemap.xml

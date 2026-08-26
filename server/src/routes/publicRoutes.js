@@ -456,11 +456,21 @@ router.get('/categories', requireAuth, async (req, res) => {
 // public on the products page tiles, and /products still scopes the results
 // themselves. A logged-in restricted buyer only sees their granted categories.
 router.get('/nav/categories', async (req, res) => {
-  const [categories, subCategories, collections] = await Promise.all([
+  // Only offer taxonomy the visitor can actually land on: a category or sub
+  // category with no live product behind it opens an empty results page.
+  const access = productAccessFilter(req.user, req.guestCatalogue);
+  const stockedFilter = withAccess({ status: 'Active' }, access);
+
+  const [categories, subCategories, collections, stockedCategoryIds, stockedSubCategoryIds] = await Promise.all([
     Category.find({ active: true }).sort({ name: 1 }),
     SubCategory.find({ active: true }).populate('category').sort({ name: 1 }),
     Collection.find({ active: true }).select('category'),
+    Product.distinct('category', stockedFilter),
+    Product.distinct('subCategory', stockedFilter),
   ]);
+
+  const stockedCategories = new Set(stockedCategoryIds.filter(Boolean).map(String));
+  const stockedSubCategories = new Set(stockedSubCategoryIds.filter(Boolean).map(String));
 
   // A buyer granted only a collection can still reach that collection's parent
   // category, so keep those parents in the menu (same rule as /categories).
@@ -469,16 +479,20 @@ router.get('/nav/categories', async (req, res) => {
     .filter((col) => grantedCollectionIds.has(String(col._id)))
     .map((col) => String(col.category?._id || col.category || ''));
 
-  const visible = req.user
+  const granted = req.user
     ? filterCategoriesForUser(req.user, categories, extraCategoryIds)
     : categories;
+  const visible = granted.filter((cat) => stockedCategories.has(String(cat._id)));
 
   return sendSuccess(
     res,
     visible.map((cat) => ({
       ...serializeTaxonomy(cat),
       subCategories: subCategories
-        .filter((sub) => String(sub.category?._id) === String(cat._id))
+        .filter(
+          (sub) =>
+            String(sub.category?._id) === String(cat._id) && stockedSubCategories.has(String(sub._id)),
+        )
         .map((sub) => sub.name),
     })),
   );

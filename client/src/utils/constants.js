@@ -53,13 +53,15 @@ export const ADMIN_LINKS = [
 ];
 
 export const TRUST_LINKS = [
+  { label: 'Contact Us', to: '/contact' },
+  { label: 'FAQs', to: '/faq' },
+  { label: 'Events', to: '/events' },
+  { label: 'Testimonials', to: '/testimonials' },
+  { label: 'Trusted By', to: '/trusted-by' },
+  { label: 'Career', to: '/careers' },
   { label: 'Privacy Policy', to: '/privacy-policy' },
   { label: 'Terms & Conditions', to: '/terms' },
   { label: 'Return Policy', to: '/return-policy' },
-  { label: 'FAQs', to: '/faq' },
-  { label: 'Career', to: '/careers' },
-  { label: 'Events', to: '/events' },
-  { label: 'Trusted By', to: '/trusted-by' },
 ];
 
 export const SUPPORT_PAGES = [

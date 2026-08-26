@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Jost:wght@300;400;500&display=swap');
+/* Google Fonts are linked from index.html instead of imported here: an @import
+   inside the app stylesheet serialises HTML -> CSS -> font CSS -> font files and
+   blocks first paint on the whole chain. */
 @import "tailwindcss";
 
 :root {

@@ -46,7 +46,7 @@ export function PopupPromo({ ads }) {
         >
           <X className="h-5 w-5" />
         </button>
-        <img src={ad.image} alt="" className="max-h-[80vh] w-full object-contain" />
+        <img src={ad.image} alt="" className="max-h-[80vh] w-full object-contain" loading="lazy" decoding="async" />
       </div>
     </div>
   );

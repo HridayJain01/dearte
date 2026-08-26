@@ -1,7 +1,7 @@
 import { ChevronDown, Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import { NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
+import { EDUCATION_ROUTES, NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
 import { useNavCategories, useOccasions } from '../../hooks/useProducts';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
@@ -345,7 +345,8 @@ export function AppLayout() {
       >
         <div className="page-shell flex items-center justify-between gap-2 py-2 sm:gap-4 sm:py-5">
           <Link to="/" className="flex items-center gap-3">
-            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-8 w-auto sm:h-12" />
+            {/* Site header: always above the fold, so never deferred. */}
+            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-8 w-auto sm:h-12" loading="eager" decoding="async" />
           </Link>
 
           <nav className="hidden items-center gap-6 lg:flex">
@@ -534,9 +535,9 @@ export function AppLayout() {
         {/* The trailing padding sits on the grid, not the footer: .safe-bottom-pad
             is unlayered CSS and would win over a padding utility here. It keeps
             the last row clear of the fixed WhatsApp button at the end of the page. */}
-        <div className="page-shell grid grid-cols-2 gap-x-4 gap-y-5 pb-10 sm:gap-10 sm:pb-0 lg:grid-cols-[1.1fr_0.7fr_0.7fr_1fr]">
+        <div className="page-shell grid grid-cols-2 gap-x-4 gap-y-5 pb-10 sm:gap-10 sm:pb-0 lg:grid-cols-[1fr_0.65fr_0.65fr_0.8fr_1fr]">
           <div className="col-span-2 lg:col-span-1">
-            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-8 w-auto bg-white/95 p-1.5 sm:h-10 sm:p-2" />
+            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-8 w-auto bg-white/95 p-1.5 sm:h-10 sm:p-2" loading="lazy" decoding="async" />
             <h3 className="lux-heading mt-2 text-lg !text-white sm:mt-0 sm:text-4xl">Fine jewellery, consciously crafted.</h3>
             <p className="mt-2 max-w-md text-[11px] leading-relaxed text-white/60 sm:mt-4 sm:text-sm">
               Discover pieces meant to be lived in, combining modern values with timeless aesthetics.
@@ -549,6 +550,21 @@ export function AppLayout() {
               {TRUST_LINKS.map((item) => (
                 <Link key={item.to} to={item.to} className="block hover:text-white">
                   {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* The education guides answer the questions buyers actually type into
+              a search box, but nothing linked to them — they were reachable only
+              by typing the URL. A crawler treats a page with no inbound links as
+              barely worth ranking, however good it is. */}
+          <div>
+            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[10px] sm:mb-4 sm:text-xs">Guides</p>
+            <div className="space-y-1.5 text-[11px] text-white/60 sm:space-y-3 sm:text-sm">
+              {EDUCATION_ROUTES.map((item) => (
+                <Link key={item.slug} to={`/education/${item.slug}`} className="block hover:text-white">
+                  {item.title}
                 </Link>
               ))}
             </div>

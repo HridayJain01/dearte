@@ -8,11 +8,15 @@ import { markSessionEnded } from '../services/api';
 import { userService } from '../services/userService';
 import { brandLogoAlt, brandLogoUrl } from '../utils/brandLogo';
 import { Button, Input, PasswordInput, Panel, SectionHeading } from '../components/ui/Primitives';
+import { Seo } from '../components/seo/Seo';
 import { loginSchema, registerSchema } from '../utils/validators';
 
-function AuthShell({ title, description, children }) {
+function AuthShell({ title, description, seoTitle, children }) {
   return (
     <section className="page-shell section-gap">
+      {/* Sign-in walls have no standalone search value and every one of them
+          looks the same to a crawler, so they stay out of the index. */}
+      <Seo title={seoTitle || title} description={description} noindex />
       <div className="grid overflow-hidden border border-[var(--color-border)] lg:grid-cols-2">
         <div className="relative bg-[var(--color-primary)] p-4 sm:min-h-[520px] sm:p-10">
           <img src={brandLogoUrl} alt={brandLogoAlt} className="mb-3 h-9 w-auto bg-white/95 p-1.5 sm:mb-5 sm:h-12 sm:p-2" />
@@ -46,7 +50,7 @@ export function LoginPage() {
   });
 
   return (
-    <AuthShell title="Sign in to your buyer account." description="Registered retailers can browse collections, save catalogues, and submit order requests.">
+    <AuthShell seoTitle="Buyer Sign In" title="Sign in to your buyer account." description="Registered retailers can browse collections, save catalogues, and submit order requests.">
       <form className="space-y-3.5 sm:space-y-5" onSubmit={onSubmit}>
         <SectionHeading eyebrow="Login" title="Welcome back" />
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
@@ -89,7 +93,7 @@ export function RegisterPage() {
   });
 
   return (
-    <AuthShell title="Apply for a De Arté trade account." description="Buyer registrations stay inactive until reviewed and approved by the admin team.">
+    <AuthShell seoTitle="Apply for a Trade Account" title="Apply for a De Arté trade account." description="Buyer registrations stay inactive until reviewed and approved by the admin team.">
       <form className="grid gap-2.5 sm:gap-4 md:grid-cols-2" onSubmit={onSubmit}>
         <Input label="Customer Name" error={form.formState.errors.customerName?.message} {...form.register('customerName')} />
         <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
@@ -144,7 +148,7 @@ export function ForgotPasswordPage() {
   });
 
   return (
-    <AuthShell title="Reset your password." description="Enter your email to receive a one-time code, then set a new password.">
+    <AuthShell seoTitle="Reset Your Password" title="Reset your password." description="Enter your email to receive a one-time code, then set a new password.">
       {step === 'request' ? (
         <form className="space-y-3.5 sm:space-y-5" onSubmit={onRequestOtp}>
           <SectionHeading eyebrow="Forgot password" title="Request a reset code" />

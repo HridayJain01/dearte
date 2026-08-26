@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { Seo } from './components/seo/Seo';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
@@ -80,14 +80,6 @@ function GuestAccessRoute({ children, accessKey }) {
   return children;
 }
 
-function Meta({ title }) {
-  return (
-    <Helmet>
-      <title>{title} | DeArte Jewellery</title>
-    </Helmet>
-  );
-}
-
 function LegacyCollectionRedirect() {
   const { category } = useParams();
   return <Navigate to={category ? `/products?category=${encodeURIComponent(category)}` : '/products'} replace />;
@@ -99,10 +91,10 @@ function App() {
       <Routes>
         <Route
           element={
-            <>
-              <Meta title="Luxury B2B Jewellery Platform" />
-              <AppLayout />
-            </>
+            /* No layout-level <Seo>: it would be the last effect to run and
+               would overwrite the page's own head. Pages declare their own, and
+               anything that does not keeps the served shell's tags. */
+            <AppLayout />
           }
         >
           <Route index element={<HomePage />} />
@@ -139,6 +131,8 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute adminOnly>
+              {/* The whole admin tree is session-only; keep it out of the index. */}
+              <Seo title="Admin" noindex />
               <AdminLayout />
             </ProtectedRoute>
           }

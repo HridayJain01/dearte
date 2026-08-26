@@ -38,12 +38,17 @@ export function Button({
   );
 }
 
-export function SectionHeading({ eyebrow, title, description, action }) {
+// `as` exists so a page can promote its own heading to the single <h1> a
+// document is supposed to have, without changing how it looks — the size lives
+// in the class, not in the tag.
+export function SectionHeading({ eyebrow, title, description, action, as = 'h2' }) {
+  const Heading = as;
+
   return (
     <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:gap-4 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
         {eyebrow ? <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">{eyebrow}</p> : null}
-        <h2 className="lux-heading text-2xl sm:text-4xl md:text-6xl">{title}</h2>
+        <Heading className="lux-heading text-2xl sm:text-4xl md:text-6xl">{title}</Heading>
         {description ? (
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-sm md:text-base">
             {description}

@@ -7,6 +7,9 @@ import { EDUCATION_ROUTES } from '../utils/constants';
 import { Button, EmptyState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Select';
 import { TrustedBrandGrid } from '../components/home/HomeSections';
+import { Seo } from '../components/seo/Seo';
+import { routeSeo } from '../utils/seoRoutes';
+import { breadcrumbSchema, faqSchema, itemListSchema } from '../utils/seo';
 import brandExpressionImage from '../assets/Cormorant Garamond.png';
 import processImage from '../assets/process.png';
 
@@ -48,7 +51,15 @@ export function ContactPage() {
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="Contact" title="Help desk and trade support" description="Reach De Arté for catalogue assignments, account activation, and event planning." />
+      <Seo
+        {...routeSeo('/contact')}
+        path="/contact"
+        schema={breadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'Contact', path: '/contact' },
+        ])}
+      />
+      <SectionHeading as="h1" eyebrow="Contact" title="Help desk and trade support" description="Reach De Arté for catalogue assignments, account activation, and event planning." />
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <Panel>
           <div className="grid gap-2.5 sm:gap-4">
@@ -86,6 +97,14 @@ export function ContactPage() {
 export function AboutPage() {
   return (
     <div className="pb-10 sm:pb-16">
+      <Seo
+        {...routeSeo('/about')}
+        path="/about"
+        schema={breadcrumbSchema([
+          { name: 'Home', path: '/' },
+          { name: 'About', path: '/about' },
+        ])}
+      />
       <section className="relative overflow-hidden border-b border-[var(--color-border)] bg-[radial-gradient(circle_at_15%_20%,rgba(212,168,42,0.18),transparent_35%),radial-gradient(circle_at_82%_12%,rgba(107,15,46,0.14),transparent_38%),linear-gradient(180deg,#fff9f6,#f9eef1)] py-12 sm:py-20">
         <div className="page-shell grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
@@ -169,8 +188,35 @@ export function EducationPage() {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
   }
 
+  const educationPath = `/education/${slug}`;
+  const educationSeo = routeSeo(educationPath);
+
   return (
     <section className="section-gap">
+      {/* The education guides are the only pages here that answer a question a
+          buyer types into a search box rather than a brand they already know,
+          so they carry Article markup and a full breadcrumb trail. */}
+      <Seo
+        title={educationSeo.title || data.title}
+        description={educationSeo.description || data.intro}
+        path={educationPath}
+        type="article"
+        schema={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: data.title,
+            description: data.intro,
+            author: { '@type': 'Organization', name: 'DeArte Jewellery' },
+            publisher: { '@type': 'Organization', name: 'DeArte Jewellery' },
+          },
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Education', path: '/education/diamond' },
+            { name: data.title, path: educationPath },
+          ]),
+        ]}
+      />
       <div className="page-shell">
         <div className="overflow-hidden border border-[var(--color-border)] bg-[linear-gradient(145deg,#fff8f4_0%,#f8ebef_52%,#fff_100%)]">
           <div className="grid gap-4 p-3 sm:gap-8 sm:p-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:p-10">
@@ -261,7 +307,8 @@ export function StaticPage({ slug: slugOverride }) {
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="Policy" title={data.title} />
+      <Seo {...routeSeo(`/${slug}`)} title={routeSeo(`/${slug}`).title || data.title} path={`/${slug}`} />
+      <SectionHeading as="h1" eyebrow="Policy" title={data.title} />
       <Panel>
         <div className="space-y-3 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:space-y-4 sm:text-sm sm:leading-7">
           {data.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
@@ -280,7 +327,20 @@ export function FAQPage() {
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="FAQ" title="Answers for wholesale buyers" />
+      {/* The one rich result this catalogue can win outright: an FAQ block
+          expands straight into the SERP, so the Q&A is marked up verbatim. */}
+      <Seo
+        {...routeSeo('/faq')}
+        path="/faq"
+        schema={[
+          faqSchema(data),
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'FAQ', path: '/faq' },
+          ]),
+        ]}
+      />
+      <SectionHeading as="h1" eyebrow="FAQ" title="Answers for wholesale buyers" />
       <div className="space-y-2.5 sm:space-y-4">
         {data.map((faq) => (
           <Panel key={faq.id}>
@@ -299,11 +359,12 @@ export function EventsPage() {
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="Events" title="Upcoming showcases and private previews" />
+      <Seo {...routeSeo('/events')} path="/events" />
+      <SectionHeading as="h1" eyebrow="Events" title="Upcoming showcases and private previews" />
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
         {data.map((event) => (
           <Panel key={event.id}>
-            <img src={event.image} alt={event.title} className="h-40 w-full object-cover sm:h-72" />
+            <img src={event.image} alt={event.title} className="h-40 w-full object-cover sm:h-72" loading="lazy" decoding="async" />
             <h3 className="mt-2.5 text-base font-semibold text-[var(--color-text)] sm:mt-5 sm:text-2xl">{event.title}</h3>
             <p className="mt-1 text-[11px] text-[var(--color-accent)] sm:mt-2 sm:text-sm">{event.date}</p>
             <p className="mt-1.5 text-[12px] leading-relaxed text-text-muted sm:mt-3 sm:text-sm">{event.description}</p>
@@ -320,12 +381,13 @@ export function TestimonialsPage() {
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="Testimonials" title="Approved retailer feedback" />
+      <Seo {...routeSeo('/testimonials')} path="/testimonials" />
+      <SectionHeading as="h1" eyebrow="Testimonials" title="Approved retailer feedback" />
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
         {data.map((item) => (
           <Panel key={item.id}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <img src={item.avatar} alt={item.name} className="h-10 w-10 object-cover sm:h-16 sm:w-16" />
+              <img src={item.avatar} alt={item.name} className="h-10 w-10 object-cover sm:h-16 sm:w-16" loading="lazy" decoding="async" />
               <div>
                 <h3 className="text-[14px] font-semibold text-[var(--color-text)] sm:text-xl">{item.name}</h3>
                 <p className="text-[11px] text-[var(--color-text-muted)] sm:text-sm">{item.company}</p>
@@ -346,15 +408,18 @@ export function TrustedByPage() {
 
   return (
     <section className="page-shell section-gap">
+      <Seo {...routeSeo('/trusted-by')} path="/trusted-by" />
       <SectionHeading
+        as="h1"
         eyebrow="Trusted By"
         title="Brands and retailers that work with us"
-        description="This page is powered by the database, so you can maintain the live brand roster from the admin configuration screen."
+        description="The jewellery houses, retail chains and independent boutiques that source their lab-grown diamond ranges from the De Arté atelier."
       />
       <TrustedBrandGrid brands={data} />
       <Panel className="mt-6 bg-[var(--color-surface-alt)]">
         <p className="text-sm leading-7 text-[var(--color-text-muted)]">
-          To add or update brands, go to Admin Configuration and manage the Trusted By section.
+          Interested in stocking De Arté? <Link to="/contact" className="text-[var(--color-primary)] underline underline-offset-4">Talk to the trade desk</Link> about
+          wholesale terms, private-label manufacturing and catalogue access.
         </p>
       </Panel>
     </section>
@@ -367,7 +432,15 @@ export function CareersPage() {
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="Careers" title="Join the De Arté team" />
+      <Seo
+        {...routeSeo('/careers')}
+        path="/careers"
+        schema={itemListSchema(
+          data.map((job) => ({ name: job.title, path: '/careers' })),
+          { name: 'Open roles at DeArte Jewellery' },
+        )}
+      />
+      <SectionHeading as="h1" eyebrow="Careers" title="Join the De Arté team" />
       <div className="space-y-2.5 sm:space-y-4">
         {data.map((job) => (
           <Panel key={job.id} className="flex flex-col gap-2.5 sm:gap-4 md:flex-row md:items-center md:justify-between">
@@ -389,6 +462,10 @@ export function CareersPage() {
 export function NotFoundPage() {
   return (
     <section className="page-shell section-gap">
+      {/* A SPA cannot return a real 404 status from a static host, so the miss
+          is signalled the only other way a crawler understands: noindex. Without
+          it every mistyped URL becomes an indexable soft 404. */}
+      <Seo title="Page not found" noindex />
       <EmptyState
         title="This route isn't part of the De Arté collection."
         description="Try heading back to the home page or explore the main product library."

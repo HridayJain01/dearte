@@ -13,6 +13,8 @@ import {
   TrustedBrandGrid,
 } from '../components/home/HomeSections';
 import { PopupPromo } from '../components/home/PopupPromo';
+import { Seo } from '../components/seo/Seo';
+import { routeSeo } from '../utils/seoRoutes';
 
 export function HomePage() {
   const { user } = useAuth();
@@ -31,6 +33,10 @@ export function HomePage() {
 
   return (
     <>
+      {/* Organization and WebSite JSON-LD are baked into index.html so they are
+          in the served HTML before React boots; only the page-level tags are
+          rendered here. */}
+      <Seo {...routeSeo('/')} path="/" />
       {show('showPopupPromo') && <PopupPromo ads={data.popupAds} />}
       {show('showHeroSlider') && <HeroSlider banners={data.banners} />}
       {show('showBrandExpression') && <BrandExpressionFrame />}

@@ -1,6 +1,5 @@
 import { ChevronDown, Download, Search, Share2, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -15,13 +14,16 @@ import { userService } from '../services/userService';
 import { Button, EmptyState, LoadingBlock, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Select';
 import { ProductCard } from '../components/product/ProductCard';
+import { Seo } from '../components/seo/Seo';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
 import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
-import { downloadDeArteCartPdf, downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
+import { routeSeo } from '../utils/seoRoutes';
+import { breadcrumbSchema, clampDescription, itemListSchema, productSchema } from '../utils/seo';
+import { productDescription, productDisplayName, productTitle } from '../utils/productTitle';
 import {
   customizationChips,
   customizationSummary,
@@ -57,6 +59,11 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, to }) {
       <img
         src={imageSrc}
         alt=""
+        // This tile grid is the top block of /products, so it holds the page's
+        // LCP element whenever no filter is applied.
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         className="absolute inset-0 h-full w-full object-cover transition duration-[480ms] ease-out group-hover:scale-[1.03]"
       />
       <div
@@ -91,13 +98,23 @@ export function CollectionsPage() {
 
   return (
     <section className="page-shell animate-page-enter pb-10 pt-6 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20">
-      <Helmet>
-        <title>Collections | DeArte Jewellery</title>
-        <meta
-          name="description"
-          content="Discover curated jewellery collections like Ocean Collection, Lunar Collection, and more."
-        />
-      </Helmet>
+      <Seo
+        {...routeSeo('/collections')}
+        path="/collections"
+        schema={[
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Collections', path: '/collections' },
+          ]),
+          itemListSchema(
+            data.map((collection) => ({
+              name: collection.name,
+              path: `/products?collection=${encodeURIComponent(collection.name)}`,
+            })),
+            { name: 'DeArte jewellery collections' },
+          ),
+        ]}
+      />
 
       <header className="mb-6 text-center sm:mb-12 md:mb-14">
         <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
@@ -128,6 +145,8 @@ export function CollectionsPage() {
                   src={collection.image}
                   alt={collection.name}
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : null}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
@@ -158,13 +177,23 @@ export function OccasionsPage() {
 
   return (
     <section className="page-shell animate-page-enter pb-10 pt-6 sm:pb-20 sm:pt-16 md:pb-28 md:pt-20">
-      <Helmet>
-        <title>Occasions | DeArte Jewellery</title>
-        <meta
-          name="description"
-          content="Shop lab-grown diamond jewellery by occasion — bridal, everyday, gifting, and more."
-        />
-      </Helmet>
+      <Seo
+        {...routeSeo('/occasions')}
+        path="/occasions"
+        schema={[
+          breadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Occasions', path: '/occasions' },
+          ]),
+          itemListSchema(
+            occasions.map((occasion) => ({
+              name: occasion.name,
+              path: `/products?occasion=${encodeURIComponent(occasion.name)}`,
+            })),
+            { name: 'Shop jewellery by occasion' },
+          ),
+        ]}
+      />
 
       <header className="mb-6 text-center sm:mb-12 md:mb-14">
         <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
@@ -361,9 +390,53 @@ export function ProductListPage() {
 
   const isRefreshing = isFetching && isPlaceholderData;
 
+  // A facet view is a landing page in its own right ("diamond stud earrings"),
+  // so it gets its own title, description and canonical rather than being
+  // folded into /products. Sort and page are left out of the canonical: they
+  // reorder the same set, they do not make a different page.
+  const facetLabel = [activeSubCategory, activeCategory, activeCollection, activeOccasion].filter(Boolean).join(' ');
+  const canonicalParams = new URLSearchParams();
+  if (activeCategory) canonicalParams.set('category', activeCategory);
+  if (activeSubCategory) canonicalParams.set('subCategory', activeSubCategory);
+  if (activeCollection) canonicalParams.set('collection', activeCollection);
+  if (activeOccasion) canonicalParams.set('occasion', activeOccasion);
+  const canonicalQuery = canonicalParams.toString();
+  const canonicalPath = canonicalQuery ? `/products?${canonicalQuery}` : '/products';
+
+  const listSeo = facetLabel
+    ? {
+        title: `${facetLabel} — Wholesale Jewellery`,
+        description: clampDescription(
+          `Browse DeArte's ${facetLabel.toLowerCase()} range: lab-grown diamond pieces in 9K, 14K and 18K gold, filterable by metal colour, gold weight and diamond weight for trade buyers.`,
+        ),
+      }
+    : routeSeo('/products');
+
+  // Search results and pages 2+ are kept out of the index: they are permutations
+  // of pages that are already indexed, and letting a crawler enumerate them is
+  // how a modest catalogue turns into thousands of near-duplicate URLs.
+  const listNoindex = Boolean(activeSearch) || page > 1;
+
   return (
     <section className="page-shell section-gap">
+      <Seo
+        {...listSeo}
+        path={canonicalPath}
+        noindex={listNoindex}
+        schema={
+          listNoindex
+            ? null
+            : breadcrumbSchema(
+                [
+                  { name: 'Home', path: '/' },
+                  { name: 'Products', path: '/products' },
+                  facetLabel ? { name: facetLabel, path: canonicalPath } : null,
+                ].filter(Boolean),
+              )
+        }
+      />
       <SectionHeading
+        as="h1"
         eyebrow="Products"
         title={activeSubCategory || activeCategory || activeCollection || activeOccasion || 'Shop by Product'}
         description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
@@ -476,8 +549,10 @@ export function ProductListPage() {
             isRefreshing ? 'pointer-events-none opacity-60' : 'opacity-100'
           }`}
         >
-          {data.items.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {data.items.map((product, index) => (
+            // Four across at the widest breakpoint, so the first four are the
+            // ones that can be the LCP element.
+            <ProductCard key={product.id} product={product} priority={index < 4} />
           ))}
         </div>
 
@@ -563,6 +638,9 @@ export function ProductDetailPage() {
   if (!data) {
     return (
       <section className="page-shell section-gap">
+        {/* Either the style does not exist or it is outside this buyer's
+            catalogue. Both are dead ends for a crawler, so do not index them. */}
+        <Seo title="Product not available" noindex />
         <EmptyState
           title="Product not available"
           description={
@@ -591,8 +669,32 @@ export function ProductDetailPage() {
     await callback();
   };
 
+  const detailPath = `/products/${data.styleCode}`;
+  // The bulk import leaves `name` equal to the style code and `description`
+  // empty, so both are derived from the specification data instead.
+  const displayName = productDisplayName(data);
+
   return (
     <section className="page-shell section-gap">
+      <Seo
+        title={productTitle(data)}
+        description={productDescription(data)}
+        path={detailPath}
+        type="product"
+        image={data.images?.[0]}
+        imageAlt={displayName}
+        schema={[
+          productSchema(data, { path: detailPath }),
+          breadcrumbSchema(
+            [
+              { name: 'Home', path: '/' },
+              { name: 'Products', path: '/products' },
+              data.category ? { name: data.category, path: `/products?category=${encodeURIComponent(data.category)}` } : null,
+              { name: displayName, path: detailPath },
+            ].filter(Boolean),
+          ),
+        ]}
+      />
       <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-2.5 sm:space-y-4">
           <Panel className="overflow-hidden p-0">
@@ -608,14 +710,30 @@ export function ProductDetailPage() {
                 wrapperClass="!h-full !w-full"
                 contentClass="!h-full !w-full items-center justify-center"
               >
-                <img src={activeImages[safeActiveImage] || data.images[0]} alt={data.name} className="h-[240px] w-full object-cover sm:h-[500px] lg:h-[620px]" />
+                {/* The product page's LCP element. */}
+                <img
+                  src={activeImages[safeActiveImage] || data.images[0]}
+                  alt={`${displayName} — style ${data.styleCode} in ${activeLine.goldColor || data.metalColor || 'gold'}`}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  className="h-[240px] w-full object-cover sm:h-[500px] lg:h-[620px]"
+                />
               </TransformComponent>
             </TransformWrapper>
           </Panel>
           <div className="grid grid-cols-4 gap-2 sm:gap-3">
             {activeImages.map((image, index) => (
               <button key={image} className={`overflow-hidden border ${index === safeActiveImage ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`} onClick={() => setActiveImage(index)}>
-                <img src={image} alt="" className="h-14 w-full object-cover sm:h-24" />
+                {/* The thumbnail is the button's only content, so an empty alt
+                    would leave the control with no accessible name at all. */}
+                <img
+                  src={image}
+                  alt={`${displayName} view ${index + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-14 w-full object-cover sm:h-24"
+                />
               </button>
             ))}
           </div>
@@ -624,10 +742,41 @@ export function ProductDetailPage() {
         <div className="space-y-3 sm:space-y-6">
           <div>
             <p className="font-[var(--font-accent)] text-[10px] tracking-[0.25em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">{data.styleCode}</p>
-            <h1 className="lux-heading mt-1 text-2xl sm:mt-3 sm:text-5xl">{data.name}</h1>
-            <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">
-              {data.category} &gt; {data.subCategory} &gt; {data.collection}
-            </p>
+            {/* The style code already sits directly above this as the eyebrow,
+                so nothing is lost by giving the heading a readable name. */}
+            <h1 className="lux-heading mt-1 text-2xl sm:mt-3 sm:text-5xl">{displayName}</h1>
+            {/* A real breadcrumb rather than a static string: it mirrors the
+                BreadcrumbList in the head, it stops rendering a dangling "&gt;"
+                for the styles that have no collection, and every crumb is a link
+                back to a facet page that wants the internal link. */}
+            <nav aria-label="Breadcrumb" className="mt-1.5 text-[11px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">
+              <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                {[
+                  { label: 'Products', to: '/products' },
+                  data.category
+                    ? { label: data.category, to: `/products?category=${encodeURIComponent(data.category)}` }
+                    : null,
+                  data.subCategory
+                    ? {
+                        label: data.subCategory,
+                        to: `/products?category=${encodeURIComponent(data.category)}&subCategory=${encodeURIComponent(data.subCategory)}`,
+                      }
+                    : null,
+                  data.collection
+                    ? { label: data.collection, to: `/products?collection=${encodeURIComponent(data.collection)}` }
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .map((crumb, index) => (
+                    <li key={crumb.to} className="flex items-center gap-1.5">
+                      {index > 0 ? <span aria-hidden>&gt;</span> : null}
+                      <Link to={crumb.to} className="transition hover:text-[var(--color-primary)]">
+                        {crumb.label}
+                      </Link>
+                    </li>
+                  ))}
+              </ol>
+            </nav>
             {data.occasions?.length ? (
               <div className="mt-2.5 sm:mt-4">
                 <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Perfect for</p>
@@ -702,11 +851,21 @@ export function ProductDetailPage() {
               disabled={Boolean(sizeChart) && !orderLines.every((line) => line.size)}
               onClick={() =>
                 requireAuth(() =>
-                  addToCart({
-                    productId: data.id,
-                    customization: { note },
-                    lines: orderLines,
-                  }),
+                  addToCart(
+                    {
+                      productId: data.id,
+                      customization: { note },
+                      lines: orderLines,
+                    },
+                    {
+                      product: data,
+                      // The active row is the one the buyer was last touching,
+                      // so its photo is the one they expect to see back.
+                      customization: activeLine,
+                      lineCount: orderLines.length,
+                      pieceCount: orderLines.reduce((sum, line) => sum + Number(line.quantity || 1), 0),
+                    },
+                  ),
                 )
               }
             >
@@ -939,6 +1098,9 @@ export function CartPage() {
   const handleDownloadPdf = async () => {
     try {
       setIsDownloadingPdf(true);
+      // Loaded on click: see the note on the orderPdf chunk — the PDF stack
+      // is far too heavy to sit in the product pages' critical path.
+      const { downloadDeArteCartPdf } = await import('../utils/orderPdf');
       await downloadDeArteCartPdf({ cart, user: profile || {} });
       toast.success('Cart PDF downloaded');
     } catch (error) {
@@ -962,10 +1124,15 @@ export function CartPage() {
 
   return (
     <section className="page-shell section-gap">
-      <SectionHeading eyebrow="Cart" title="Order review without visible pricing." description="Pricing will be confirmed by your sales representative." />
+      {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
+      <Seo title="Cart" noindex />
+      <SectionHeading eyebrow="Cart" title="Order review." description="Pricing will be confirmed by your sales representative." />
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
-          {cart.items.map((item) => (
+          {/* Newest first. The API appends each new line, so the buyer would
+              otherwise have to scroll past a long cart to see what they just
+              added. Copied before reversing — `cart.items` is shared state. */}
+          {[...cart.items].reverse().map((item) => (
             <CartLine key={item.id} item={item} onUpdate={updateCart} onRemove={removeFromCart} />
           ))}
         </div>
@@ -1043,6 +1210,8 @@ export function WishlistPage() {
 
   return (
     <section className="page-shell section-gap">
+      {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
+      <Seo title="Wishlist" noindex />
       <SectionHeading
         eyebrow="Wishlist"
         title="Named collections for buyer planning"
@@ -1113,6 +1282,11 @@ export function WishlistPage() {
             // Sized styles need a deliberate size choice, so send the buyer to
             // the product page rather than guessing one on their behalf.
             const needsSize = Boolean(resolveSizeChart(item.product));
+            const quickAdd = {
+              goldColor: item.product.customizationOptions.goldColors[0],
+              goldCarat: item.product.customizationOptions.goldCarats[0],
+              diamondQuality: DIAMOND_QUALITY,
+            };
 
             return (
             <Panel key={item.id}>
@@ -1121,6 +1295,8 @@ export function WishlistPage() {
                   src={item.product.images[0]}
                   alt={item.product.name}
                   className="mb-2.5 h-36 w-full object-cover transition duration-300 hover:opacity-90 sm:mb-4 sm:h-72"
+                  loading="lazy"
+                  decoding="async"
                 />
               </Link>
               <span className="mb-2 inline-block border border-[var(--color-border)] px-1.5 py-px text-[9px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:px-2 sm:py-0.5 sm:text-[10px] sm:tracking-[0.2em]">
@@ -1141,15 +1317,10 @@ export function WishlistPage() {
                   <Button
                     className="w-full sm:flex-1"
                     onClick={() =>
-                      addToCart({
-                        productId: item.product.id,
-                        quantity: 1,
-                        customization: {
-                          goldColor: item.product.customizationOptions.goldColors[0],
-                          goldCarat: item.product.customizationOptions.goldCarats[0],
-                          diamondQuality: DIAMOND_QUALITY,
-                        },
-                      })
+                      addToCart(
+                        { productId: item.product.id, quantity: 1, customization: quickAdd },
+                        { product: item.product, customization: quickAdd },
+                      )
                     }
                   >
                     Move to Cart
@@ -1209,6 +1380,8 @@ export function CheckoutPage() {
 
   return (
     <section className="page-shell section-gap">
+      {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
+      <Seo title="Checkout" noindex />
       <SectionHeading eyebrow="Checkout" title="Multi-step approval-ready checkout" />
       <div className="mb-5 flex gap-3 sm:mb-8 sm:gap-4">
         {steps.map((label, index) => (
@@ -1266,6 +1439,8 @@ export function CheckoutPage() {
                   src={variantImage(item.product, item.customization)}
                   alt={item.product.name}
                   className="h-12 w-12 flex-shrink-0 object-cover sm:h-16 sm:w-16"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="min-w-0">
                   <p className="text-[13px] text-[var(--color-text)] sm:text-base">{item.product.name}</p>
@@ -1297,13 +1472,15 @@ export function CataloguePage() {
 
   return (
     <section className="page-shell section-gap">
+      {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
+      <Seo title="My Catalogues" noindex />
       <SectionHeading eyebrow="Catalogues" title="Assigned private lookbooks" description="Sales-rep curated catalogues visible only to approved buyers." />
       <div className="grid gap-6 lg:grid-cols-2">
         {data.map((catalogue) => (
           <Panel key={catalogue.id}>
             <div className="mb-4 grid grid-cols-3 gap-3">
               {catalogue.products.slice(0, 3).map((product) => (
-                <img key={product.id} src={product.images[0]} alt={product.name} className="h-32 w-full object-cover" />
+                <img key={product.id} src={product.images[0]} alt={product.name} className="h-32 w-full object-cover" loading="lazy" decoding="async" />
               ))}
             </div>
             <h3 className="text-2xl font-semibold text-[var(--color-text)]">{catalogue.name}</h3>
@@ -1387,6 +1564,8 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
                     src={variantImage(item.product, item.customization) || item.product?.media?.[0]?.secureUrl}
                     alt={item.product?.name || 'Product'}
                     className="h-12 w-12 flex-shrink-0 border border-[var(--color-border)] object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div>
@@ -1439,6 +1618,7 @@ export function ProfilePage() {
   const handleDownloadOrder = async (order) => {
     try {
       setDownloadingOrderId(order.id);
+      const { downloadDeArteOrderPdf } = await import('../utils/orderPdf');
       await downloadDeArteOrderPdf({ order, user: order.user || profile || {} });
       toast.success(`Downloaded ${order.orderId}`);
     } catch (error) {
@@ -1450,6 +1630,8 @@ export function ProfilePage() {
 
   return (
     <section className="page-shell section-gap">
+      {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
+      <Seo title="My Account" noindex />
       <SectionHeading eyebrow="Profile" title="Buyer account and order history" />
       <div className="grid gap-4 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>

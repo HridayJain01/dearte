@@ -2,9 +2,101 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
+
+    <!-- Defaults only. Every route overwrites these through <Seo>, and the
+         static shells written by scripts/prerender.mjs overwrite them at build
+         time so crawlers that do not run JavaScript still get real metadata. -->
+    <title>DeArte Jewellery — Lab-Grown Diamond Jewellery Manufacturer for B2B Buyers</title>
+    <meta
+      name="description"
+      content="DeArte is a B2B lab-grown diamond jewellery manufacturer supplying rings, earrings, pendants, bracelets and bridal sets to retailers and brands. Browse the wholesale catalogue and request a trade account."
+    />
+    <link rel="canonical" href="https://dearte-client.vercel.app/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DeArte Jewellery" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:title" content="DeArte Jewellery — Lab-Grown Diamond Jewellery Manufacturer for B2B Buyers" />
+    <meta
+      property="og:description"
+      content="DeArte is a B2B lab-grown diamond jewellery manufacturer supplying rings, earrings, pendants, bracelets and bridal sets to retailers and brands."
+    />
+    <meta property="og:url" content="https://dearte-client.vercel.app/" />
+    <meta property="og:image" content="https://dearte-client.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DeArte Jewellery" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DeArte Jewellery — Lab-Grown Diamond Jewellery Manufacturer for B2B Buyers" />
+    <meta
+      name="twitter:description"
+      content="DeArte is a B2B lab-grown diamond jewellery manufacturer supplying rings, earrings, pendants, bracelets and bridal sets to retailers and brands."
+    />
+    <meta name="twitter:image" content="https://dearte-client.vercel.app/og-image.png" />
+
+    <meta name="theme-color" content="#6B0F2E" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- The API is on a different origin, so the first catalogue request pays a
+         DNS + TLS handshake before it can even start. Warming it here overlaps
+         that with the JS parse and pulls the largest-contentful paint forward. -->
+    <link rel="preconnect" href="https://dearte.onrender.com" crossorigin />
+    <link rel="dns-prefetch" href="https://dearte.onrender.com" />
+
+    <!-- Fonts used to be an @import at the top of index.css, which made them a
+         third-level request: HTML -> app CSS -> Google CSS -> font files, all of
+         it render-blocking. Linking them here starts the chain immediately and
+         in parallel with the bundle. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Jost:wght@300;400;500&display=swap"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://dearte-client.vercel.app/#organization",
+            "name": "DeArte Jewellery",
+            "legalName": "DeArte Jewels",
+            "url": "https://dearte-client.vercel.app/",
+            "email": "concierge@deartejewels.com",
+            "description": "B2B lab-grown diamond jewellery manufacturer supplying rings, earrings, pendants, bracelets and bridal sets to retailers and brands.",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://dearte-client.vercel.app/og-image.png",
+              "width": 1200,
+              "height": 630
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://dearte-client.vercel.app/#website",
+            "url": "https://dearte-client.vercel.app/",
+            "name": "DeArte Jewellery",
+            "publisher": { "@id": "https://dearte-client.vercel.app/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://dearte-client.vercel.app/products?search={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
