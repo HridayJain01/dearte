@@ -129,6 +129,8 @@ export function serializeProduct(doc) {
     isNewArrival: doc.isNewArrival,
     isBestSeller: doc.isBestSeller,
     showToGuests: doc.showToGuests,
+    firstColor: doc.firstColor || '',
+    firstView: doc.firstView || '',
     media,
     images: media.map((item) => item.secureUrl),
     colorVariants,

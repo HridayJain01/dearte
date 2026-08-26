@@ -385,11 +385,19 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       rawCategory: String(pickFirstDefined(row, ['category'])).trim(),
       rawSubCategory: String(pickFirstDefined(row, ['subcategory'])).trim(),
       rawCollection: String(pickFirstDefined(row, ['collection'])).trim(),
+      firstColor: '',
+      firstView: '',
       rows: [],
     };
 
     current.rows.push(rowNumber);
     if (!current.occasions.length) current.occasions = readOccasions(row);
+
+    const rowFirstColor = normalizeMetalColorName(pickFirstDefined(row, ['1st colour', '1st color', 'firstcolour', 'firstcolor']));
+    if (rowFirstColor && !current.firstColor) current.firstColor = rowFirstColor;
+
+    const rowFirstView = String(pickFirstDefined(row, ['1st view', 'firstview'])).trim();
+    if (rowFirstView && !current.firstView) current.firstView = rowFirstView;
 
     const views = current.colorVariantsMap.get(color) || new Map();
     views.set(view, {
@@ -404,8 +412,20 @@ function buildBulkImportPayloads(rows = [], options = {}) {
   const payloads = [...productsByStyle.values()].map((item) => {
     const colorVariants = [...item.colorVariantsMap.entries()].map(([color, views]) => ({
       color,
-      views: [...views.values()].sort((a, b) => a.view.localeCompare(b.view)),
-    }));
+      views: [...views.values()].sort((a, b) => {
+        if (item.firstView) {
+          if (a.view.toLowerCase() === item.firstView.toLowerCase()) return -1;
+          if (b.view.toLowerCase() === item.firstView.toLowerCase()) return 1;
+        }
+        return a.view.localeCompare(b.view);
+      }),
+    })).sort((a, b) => {
+      if (item.firstColor) {
+        if (a.color === item.firstColor) return -1;
+        if (b.color === item.firstColor) return 1;
+      }
+      return 0;
+    });
     const { weights } = item;
 
     return {
@@ -429,12 +449,15 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       status: item.status,
       isNewArrival: item.isNewArrival,
       isBestSeller: item.isBestSeller,
+      firstColor: item.firstColor,
+      firstView: item.firstView,
       media: buildPrimaryMedia(colorVariants),
       colorVariants,
       customizationOptions: {
         // The sheet supplies images per colour, not the colours the style is
         // sold in — keep the full offering so every colour stays orderable.
         goldColors: dedupeStrings([
+          item.firstColor,
           ...colorVariants.map((variant) => variant.color),
           'Yellow Gold',
           'Rose Gold',
@@ -535,6 +558,8 @@ function sanitizeProductPayload(body, currentProduct = null) {
     isNewArrival: parseBoolean(body.isNewArrival, currentProduct?.isNewArrival ?? false),
     isBestSeller: parseBoolean(body.isBestSeller, currentProduct?.isBestSeller ?? false),
     showToGuests: parseBoolean(body.showToGuests, currentProduct?.showToGuests ?? false),
+    firstColor: body.firstColor ?? currentProduct?.firstColor ?? '',
+    firstView: body.firstView ?? currentProduct?.firstView ?? '',
     media: derivedMedia,
     colorVariants,
     customizationOptions: mergeCustomizationOptions(

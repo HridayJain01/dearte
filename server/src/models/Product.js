@@ -43,6 +43,8 @@ const productSchema = new mongoose.Schema(
     views: { type: Number, default: 0 },
     cartAdds: { type: Number, default: 0 },
     orderCount: { type: Number, default: 0 },
+    firstColor: { type: String, default: '' },
+    firstView: { type: String, default: '' },
   },
   { timestamps: true, suppressReservedKeysWarning: true },
 );

@@ -31,7 +31,7 @@ export function ProductCard({ product, priority = false }) {
   // The single combination this card adds. It has to be spelled out because the
   // stepper below may only drive that one line.
   const quickAddCustomization = {
-    goldColor: options.goldColors?.[0] || '',
+    goldColor: product.firstColor || options.goldColors?.[0] || '',
     goldCarat: options.goldCarats?.[1] || options.goldCarats?.[0] || '',
     diamondQuality: DIAMOND_QUALITY,
   };
