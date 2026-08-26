@@ -39,6 +39,8 @@ const emptyProduct = {
   isBestSeller: false,
   showToGuests: false,
   sku: '',
+  firstColor: '',
+  firstView: '',
 };
 
 const emptyBanner = {
@@ -781,6 +783,8 @@ function ProductEditor({
             {metalOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </Field>
+        <Field label="First Color"><input className={textInput} value={form.firstColor || ''} onChange={(event) => setForm((current) => ({ ...current, firstColor: event.target.value }))} placeholder="e.g. Yellow Gold" /></Field>
+        <Field label="First View"><input className={textInput} value={form.firstView || ''} onChange={(event) => setForm((current) => ({ ...current, firstView: event.target.value }))} placeholder="e.g. Left" /></Field>
         <Field label="SKU"><input className={textInput} value={form.sku} onChange={(event) => setForm((current) => ({ ...current, sku: event.target.value }))} /></Field>
         <Field label="Metal Type"><input className={textInput} value={form.metalType} onChange={(event) => setForm((current) => ({ ...current, metalType: event.target.value }))} /></Field>
         <Field label="Metal"><input className={textInput} value={form.metal} onChange={(event) => setForm((current) => ({ ...current, metal: event.target.value }))} /></Field>
@@ -1770,6 +1774,8 @@ export function AdminProductsPage() {
                     isBestSeller: product.isBestSeller,
                     showToGuests: product.showToGuests,
                     sku: product.sku,
+                    firstColor: product.firstColor || '',
+                    firstView: product.firstView || '',
                   });
                 }}
               >
