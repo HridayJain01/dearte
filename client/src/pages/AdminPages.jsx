@@ -1725,6 +1725,81 @@ export function AdminUsersPage() {
   );
 }
 
+/*
+ * Bulk action bar for the admin product list. Appears only once something is
+ * ticked, so the list looks unchanged until you actually want it.
+ *
+ * Every action posts one request to /admin/products/bulk; nothing here loops
+ * over the selection client-side.
+ */
+function ProductBulkBar({ selectedIds, onClear, config, catalogues, onDone }) {
+  const [action, setAction] = useState('catalogue');
+  const [targetId, setTargetId] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const count = selectedIds.length;
+  if (!count) return null;
+
+  const targets = {
+    category: config.categories || [],
+    subCategory: config.subCategories || [],
+    collection: config.collections || [],
+    catalogue: catalogues,
+  }[action];
+
+  // Only category is mandatory on a product; the rest may be cleared to "none".
+  const clearable = action === 'subCategory' || action === 'collection';
+  const needsTarget = action !== 'delete' && !clearable;
+
+  const run = async () => {
+    if (action === 'delete' && !window.confirm(`Delete ${count} product(s)? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      const result = await adminService.bulkProducts({ ids: selectedIds, action, targetId });
+      toast.success(`${result?.count ?? count} product(s) updated`);
+      onClear();
+      onDone();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Bulk action failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 border border-[var(--color-border-active)] bg-[var(--color-surface-alt)] p-3">
+      <p className="text-sm font-medium text-[var(--color-text)]">{count} selected</p>
+      <select
+        value={action}
+        onChange={(event) => { setAction(event.target.value); setTargetId(''); }}
+        className={`${textInput} w-auto flex-1 py-2`}
+      >
+        <option value="catalogue">Add to catalogue</option>
+        <option value="category">Set category</option>
+        <option value="subCategory">Set sub-category</option>
+        <option value="collection">Set collection</option>
+        <option value="delete">Delete</option>
+      </select>
+      {action !== 'delete' && (
+        <select
+          value={targetId}
+          onChange={(event) => setTargetId(event.target.value)}
+          className={`${textInput} w-auto flex-1 py-2`}
+        >
+          <option value="">{clearable ? 'None' : 'Select…'}</option>
+          {targets.map((item) => (
+            <option key={item.id} value={item.id}>{item.name}</option>
+          ))}
+        </select>
+      )}
+      <Button variant="secondary" onClick={onClear}>Clear</Button>
+      <Button onClick={run} disabled={busy || (needsTarget && !targetId)}>
+        {busy ? 'Working…' : 'Apply'}
+      </Button>
+    </div>
+  );
+}
+
 export function AdminProductsPage() {
   const queryClient = useQueryClient();
   const { data: products = [], isLoading } = useQuery({ queryKey: ['admin-products'], queryFn: adminService.products });
@@ -1732,6 +1807,10 @@ export function AdminProductsPage() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyProduct);
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+  // Shared query key with AdminCataloguesPage, so opening this page after that
+  // one costs nothing.
+  const { data: catalogues = [] } = useQuery({ queryKey: ['admin-catalogues'], queryFn: adminService.catalogues });
 
   if (isLoading || !config) return <LoadingBlock />;
 
@@ -1799,17 +1878,61 @@ export function AdminProductsPage() {
               className={`${textInput} pl-9`}
             />
           </div>
-          <p className="text-xs text-[var(--color-text-muted)]">
-            {filteredProducts.length} of {products.length} products
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--color-border-active)]"
+                // Indeterminate is not expressible in JSX, so a partial
+                // selection simply shows unchecked and ticking selects all.
+                checked={filteredProducts.length > 0 && filteredProducts.every((item) => selectedIds.includes(item.id))}
+                onChange={(event) =>
+                  setSelectedIds(event.target.checked ? filteredProducts.map((item) => item.id) : [])
+                }
+              />
+              Select all shown
+            </label>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {filteredProducts.length} of {products.length} products
+            </p>
+          </div>
+          <ProductBulkBar
+            selectedIds={selectedIds}
+            onClear={() => setSelectedIds([])}
+            config={config}
+            catalogues={catalogues}
+            onDone={() => {
+              setEditingId(null);
+              setForm(emptyProduct);
+              queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+              queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
+            }}
+          />
           <div className="max-h-[780px] space-y-3 overflow-y-auto pr-1">
             {filteredProducts.length === 0 && (
               <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">No products match “{search}”.</p>
             )}
             {filteredProducts.map((product) => (
-              <button
+              <div
                 key={product.id}
-                className={`flex w-full items-center gap-3 border p-4 text-left transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
+                className={`flex items-center gap-3 border p-4 transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
+              >
+              <input
+                type="checkbox"
+                aria-label={`Select ${product.styleCode}`}
+                className="h-4 w-4 shrink-0 accent-[var(--color-border-active)]"
+                checked={selectedIds.includes(product.id)}
+                onChange={(event) =>
+                  setSelectedIds((current) =>
+                    event.target.checked
+                      ? [...current, product.id]
+                      : current.filter((id) => id !== product.id),
+                  )
+                }
+              />
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 onClick={() => {
                   setEditingId(product.id);
                   setForm({
@@ -1854,6 +1977,7 @@ export function AdminProductsPage() {
                   </p>
                 </div>
               </button>
+              </div>
             ))}
           </div>
         </Panel>

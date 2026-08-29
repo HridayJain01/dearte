@@ -1176,11 +1176,68 @@ router.post('/products/bulk-import', async (req, res) => {
   }
 });
 
+/*
+ * Bulk actions over a checkbox selection in admin.
+ *
+ * One route rather than four, because every action is the same shape: a list of
+ * product ids plus one thing to do with them. Everything is a single Mongo
+ * write, so a 500-product selection costs one round trip, not 500.
+ */
+router.post('/products/bulk', async (req, res) => {
+  const ids = (Array.isArray(req.body.ids) ? req.body.ids : []).filter(isObjectId);
+  if (!ids.length) return sendError(res, 'Select at least one product', 400);
+
+  const action = String(req.body.action || '');
+  // Empty string clears the field (a product may legitimately have no
+  // sub-category or collection); anything else must be a real id.
+  const target = req.body.targetId === '' ? null : String(req.body.targetId || '');
+  if (target !== null && action !== 'delete' && !isObjectId(target)) {
+    return sendError(res, 'A valid target is required', 400);
+  }
+
+  switch (action) {
+    case 'delete': {
+      const { deletedCount } = await Product.deleteMany({ _id: { $in: ids } });
+      // A deleted product left behind in a catalogue renders as a hole for the
+      // buyer, so drop the references in the same breath.
+      await Catalogue.updateMany({ products: { $in: ids } }, { $pull: { products: { $in: ids } } });
+      return sendSuccess(res, { count: deletedCount }, `Deleted ${deletedCount} product(s)`);
+    }
+    case 'category':
+    case 'subCategory':
+    case 'collection': {
+      if (action === 'category' && !target) return sendError(res, 'Category is required', 400);
+      const model = { category: Category, subCategory: SubCategory, collection: Collection }[action];
+      if (target && !(await model.exists({ _id: target }))) return sendError(res, 'Target not found', 404);
+
+      const update = { [action]: target };
+      // Moving to a different category orphans the old sub-category, which
+      // belongs to that other category and would filter to nothing.
+      if (action === 'category') update.subCategory = null;
+
+      const { modifiedCount } = await Product.updateMany({ _id: { $in: ids } }, { $set: update });
+      return sendSuccess(res, { count: modifiedCount }, `Updated ${modifiedCount} product(s)`);
+    }
+    case 'catalogue': {
+      const catalogue = await Catalogue.findById(target);
+      if (!catalogue) return sendError(res, 'Catalogue not found', 404);
+      // $addToSet so re-running the action never duplicates entries.
+      await Catalogue.updateOne({ _id: target }, { $addToSet: { products: { $each: ids } } });
+      return sendSuccess(res, { count: ids.length }, `Added ${ids.length} product(s) to ${catalogue.name}`);
+    }
+    default:
+      return sendError(res, 'Unknown bulk action', 400);
+  }
+});
+
 router.delete('/products/:id', async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product) return sendError(res, 'Product not found', 404);
 
   await product.deleteOne();
+  // Same cleanup the bulk route does: a dangling id leaves the buyer's
+  // catalogue counting a product that no longer renders.
+  await Catalogue.updateMany({ products: product._id }, { $pull: { products: product._id } });
   return sendSuccess(res, null, 'Product deleted');
 });
 
@@ -1564,24 +1621,19 @@ router.put('/orders/:id', async (req, res) => {
     await order.populate(orderPopulate);
 
     if (nextStatus !== previousStatus) {
-      if (notifyCustomerViaWhatsapp) {
-        setImmediate(() => {
-          notifyWhatsappOrderStatus(order, {
-            previousStatus,
-            nextStatus,
-            customNote: notifyCustomerMessage.trim(),
-          }).catch((e) => console.error('[whatsapp] status notify failed', e.message));
-        });
-      }
-      if (notifyCustomerViaEmail) {
-        setImmediate(() => {
-          notifyEmailOrderStatus(order, {
-            previousStatus,
-            nextStatus,
-            customNote: notifyCustomerMessage.trim(),
-          }).catch((e) => console.error('[email] status notify failed', e.message));
-        });
-      }
+      // Awaited for the same reason as order-placed: a deferred send never runs
+      // once the serverless function returns.
+      const notice = { previousStatus, nextStatus, customNote: notifyCustomerMessage.trim() };
+      await Promise.allSettled([
+        notifyCustomerViaWhatsapp &&
+          notifyWhatsappOrderStatus(order, notice).catch((e) =>
+            console.error('[whatsapp] status notify failed', e.message),
+          ),
+        notifyCustomerViaEmail &&
+          notifyEmailOrderStatus(order, notice).catch((e) =>
+            console.error('[email] status notify failed', e.message),
+          ),
+      ]);
     }
 
     return sendSuccess(res, serializeOrder(order), 'Order updated');

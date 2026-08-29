@@ -523,14 +523,17 @@ router.post('/orders', async (req, res) => {
     { path: 'statusHistory.changedBy' },
   ]);
 
-  setImmediate(() => {
+  // Awaited, not fire-and-forget: on Vercel the function is frozen the moment
+  // the response is flushed, so anything deferred past it never runs. allSettled
+  // keeps the original guarantee that a failed notification cannot fail the order.
+  await Promise.allSettled([
     notifyWhatsappOrderPlaced(order).catch((e) =>
       console.error('[whatsapp] order-placed notifications failed', e.message),
-    );
+    ),
     notifyEmailOrderPlaced(order).catch((e) =>
       console.error('[email] order-placed notifications failed', e.message),
-    );
-  });
+    ),
+  ]);
 
   return sendSuccess(res, serializeOrder(order), 'Order placed successfully');
 });
@@ -633,11 +636,9 @@ router.post('/orders/:id/change-requests', async (req, res) => {
     return { productLabel, message: entry.message };
   });
 
-  setImmediate(() => {
-    notifyEmailOrderChangeRequest(order, { requests: requestsForEmail }).catch((e) =>
-      console.error('[email] change-request notifications failed', e.message),
-    );
-  });
+  await notifyEmailOrderChangeRequest(order, { requests: requestsForEmail }).catch((e) =>
+    console.error('[email] change-request notifications failed', e.message),
+  );
 
   return sendSuccess(res, serializeOrder(order), 'Change request submitted');
 });
