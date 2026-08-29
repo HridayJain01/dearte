@@ -28,7 +28,14 @@ Use custom domains early so cookie and CORS behavior matches production.
 - `CLOUDINARY_API_SECRET`
 
 Also set WhatsApp / email vars if you use those features. Optionally
-`ADDITIONAL_CLIENT_ORIGINS` for preview frontends.
+`ADDITIONAL_CLIENT_ORIGINS` for fixed extra frontends.
+
+For **Vercel preview deployments** of the client (unique `*.vercel.app` URLs), set
+on the API project:
+- `VERCEL_PREVIEW_TEAM` — team/scope slug from a preview host
+  (e.g. `dearte-client-abc123-hridayjain01s-projects.vercel.app` → `hridayjain01s-projects`)
+
+Without that, only `CLIENT_ORIGIN` (and the hardcoded production client URL) pass CORS.
 
 ### Frontend project
 

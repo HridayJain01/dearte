@@ -8,6 +8,7 @@ import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { variantImage } from '../utils/productVariants';
 import { DIAMOND_QUALITY } from '../utils/constants';
+import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader } from '../utils/importChunks';
 
 const textInput =
   'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--color-border-active)]';
@@ -172,10 +173,14 @@ const UPLOAD_CONCURRENCY = 10;
 // Cloudinary accepts a signed timestamp for an hour. Re-sign well inside that so a
 // long folder import cannot fail halfway through on an expired signature.
 const SIGNATURE_TTL_MS = 30 * 60 * 1000;
+// A folder import runs for minutes, and one dropped connection used to reject the
+// whole pool and throw away every image already uploaded. Signatures stay valid for
+// an hour, so a failed POST can simply be repeated.
+const UPLOAD_ATTEMPTS = 3;
 
 // The file is sent exactly as picked, with no transformation or quality parameters,
 // so Cloudinary stores the untouched original.
-async function postToCloudinary(file, signing) {
+async function postToCloudinaryOnce(file, signing) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('api_key', signing.apiKey);
@@ -189,7 +194,11 @@ async function postToCloudinary(file, signing) {
   });
 
   if (!response.ok) {
-    throw new Error(`Upload failed for ${file.name} (${response.status})`);
+    const error = new Error(`Upload failed for ${file.name} (${response.status})`);
+    // A 4xx will fail again no matter how often we ask - 429 excepted. Network
+    // faults and 5xx are exactly what the retry is for.
+    error.permanent = response.status >= 400 && response.status < 500 && response.status !== 429;
+    throw error;
   }
 
   const data = await response.json();
@@ -201,6 +210,19 @@ async function postToCloudinary(file, signing) {
     alt: file.name,
     resourceType: data.resource_type || 'image',
   };
+}
+
+async function postToCloudinary(file, signing) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await postToCloudinaryOnce(file, signing);
+    } catch (error) {
+      if (error.permanent || attempt >= UPLOAD_ATTEMPTS) throw error;
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500 * attempt);
+      });
+    }
+  }
 }
 
 // One signature covers every file in a batch, so a folder upload spends a single
@@ -592,13 +614,6 @@ function normalizeEditedSpecifications(form) {
     .filter((item) => item.attribute && item.value);
 }
 
-function normalizeSheetHeader(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
-}
-
 function getWorkbookRows(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -627,9 +642,7 @@ function summarizeImportRows(rows) {
       normalized[normalizeSheetHeader(key)] = value;
     });
 
-    const styleCode = String(
-      normalized.styleno || normalized.stylecode || normalized.style || normalized.collectionstyleno || '',
-    ).trim();
+    const styleCode = getRowStyleCode(row);
     const color = String(normalized.colour || normalized.color || '').trim();
     const view = String(normalized.view || '').trim();
     const category = String(normalized.category || normalized.productcategory || '').trim();
@@ -916,6 +929,7 @@ function BulkProductImportPanel({ onImported }) {
   const [importing, setImporting] = useState(false);
   const [cloudinaryBaseUrl, setCloudinaryBaseUrl] = useState('');
   const [uploadProgress, setUploadProgress] = useState(null);
+  const [batchProgress, setBatchProgress] = useState(null);
   const [importErrors, setImportErrors] = useState([]);
   // Taxonomy comes from the sheet itself, so only upload-wide defaults live here.
   const [importOptions, setImportOptions] = useState({
@@ -961,24 +975,19 @@ function BulkProductImportPanel({ onImported }) {
     event.target.value = '';
   };
 
-  const uploadFolderAssetsForRows = async (rows) => {
-    const fileNames = [...new Set(rows.map(getRowFileName).filter(Boolean))];
-    const missing = fileNames.filter((name) => !folderFileMap.has(normalizeImportFileKey(name)));
+  const rowFileNames = (rows) => [...new Set(rows.map(getRowFileName).filter(Boolean))];
 
-    if (missing.length) {
-      throw new Error(`Missing ${missing.length} image file(s). First missing file: ${missing[0]}`);
-    }
+  const missingRowFiles = (rows) =>
+    rowFileNames(rows).filter((name) => !folderFileMap.has(normalizeImportFileKey(name)));
 
-    const matchedNames = fileNames.filter((name) =>
-      folderFileMap.has(normalizeImportFileKey(name)),
-    );
+  const uploadFolderAssetsForRows = async (rows, onProgress) => {
+    // handleImport has already checked the whole sheet, so every name matches.
+    const matchedNames = rowFileNames(rows);
     const matchedFiles = matchedNames.map((name) =>
       folderFileMap.get(normalizeImportFileKey(name)),
     );
 
-    const assets = await uploadFiles(matchedFiles, 'dearte/products/bulk-import', (done, total) =>
-      setUploadProgress({ done, total }),
-    );
+    const assets = await uploadFiles(matchedFiles, 'dearte/products/bulk-import', onProgress);
 
     const uploadedAssets = new Map(
       matchedNames.map((name, index) => [normalizeImportFileKey(name), assets[index]]),
@@ -1002,39 +1011,88 @@ function BulkProductImportPanel({ onImported }) {
       return;
     }
 
+    const hasFolder = folderFiles.length > 0;
+    // Checked once, up front: a name missing on the last chunk should not surface
+    // after twenty minutes of uploading.
+    if (hasFolder) {
+      const missing = missingRowFiles(parsedRows);
+      if (missing.length) {
+        toast.error(`Missing ${missing.length} image file(s). First missing file: ${missing[0]}`);
+        return;
+      }
+    }
+
     try {
       setImporting(true);
       setImportErrors([]);
       setUploadProgress(null);
-      let rowsForImport = parsedRows;
 
-      if (folderFiles.length) {
-        rowsForImport = await uploadFolderAssetsForRows(parsedRows);
+      const chunks = chunkRowsByStyle(parsedRows);
+      const totalFiles = hasFolder ? rowFileNames(parsedRows).length : 0;
+      let uploadedFiles = 0;
+
+      const summary = { totalRows: 0, totalProducts: 0, created: 0, updated: 0, skippedRows: 0 };
+      const errors = [];
+      let consecutiveFailures = 0;
+
+      for (const [index, chunk] of chunks.entries()) {
+        setBatchProgress({ batch: index + 1, batches: chunks.length });
+        let rowsForImport = chunk;
+
+        try {
+          if (hasFolder) {
+            rowsForImport = await uploadFolderAssetsForRows(chunk, (done) =>
+              setUploadProgress({ done: uploadedFiles + done, total: totalFiles }),
+            );
+            uploadedFiles += rowFileNames(chunk).length;
+            setUploadProgress(null);
+          }
+
+          // Category, sub-category, collection and metal colour are read per row from the
+          // sheet and created on demand, so only the upload defaults are sent here.
+          const result = await adminService.bulkImportProducts({
+            rows: rowsForImport,
+            cloudinaryBaseUrl: cloudinaryBaseUrl.trim(),
+            isNewArrival: importOptions.isNewArrival,
+            isBestSeller: importOptions.isBestSeller,
+          });
+
+          Object.keys(summary).forEach((key) => {
+            summary[key] += result.summary?.[key] || 0;
+          });
+          errors.push(...(result.errors || []));
+          consecutiveFailures = 0;
+        } catch (error) {
+          // Chunks are independent, so one bad batch keeps the styles that already
+          // landed. But a dead session or a bad sheet would fail every remaining
+          // batch in turn, each burning the client's 180s timeout, so stop at two.
+          errors.push({
+            styleCode: '',
+            reason: `Batch ${index + 1}/${chunks.length} failed: ${
+              error.response?.data?.message || error.message
+            }`,
+          });
+          consecutiveFailures += 1;
+          if (consecutiveFailures >= 2) {
+            toast.error('Import stopped: two batches in a row failed.');
+            break;
+          }
+        }
       }
 
-      // Category, sub-category, collection and metal colour are read per row from the
-      // sheet and created on demand, so only the upload defaults are sent here.
-      const result = await adminService.bulkImportProducts({
-        rows: rowsForImport,
-        cloudinaryBaseUrl: cloudinaryBaseUrl.trim(),
-        isNewArrival: importOptions.isNewArrival,
-        isBestSeller: importOptions.isBestSeller,
-      });
-
-      setImportErrors(result.errors || []);
-      if (result.summary?.skippedRows) {
-        toast.error(
-          `Imported ${result.summary.totalProducts} styles, skipped ${result.summary.skippedRows} row(s)`,
-        );
+      setImportErrors(errors);
+      if (errors.length) {
+        toast.error(`Imported ${summary.totalProducts} styles, ${errors.length} problem(s)`);
       } else {
-        toast.success(`Imported ${result.summary.totalProducts} styles`);
+        toast.success(`Imported ${summary.totalProducts} styles`);
       }
-      onImported?.(result);
+      onImported?.({ summary, errors });
     } catch (error) {
       toast.error(error.response?.data?.message || error.message || 'Bulk import failed');
     } finally {
       setImporting(false);
       setUploadProgress(null);
+      setBatchProgress(null);
     }
   };
 
@@ -1160,7 +1218,9 @@ function BulkProductImportPanel({ onImported }) {
             ? 'Import / Update Products'
             : uploadProgress
               ? `Uploading images ${uploadProgress.done}/${uploadProgress.total}...`
-              : 'Importing...'}
+              : batchProgress
+                ? `Importing batch ${batchProgress.batch}/${batchProgress.batches}...`
+                : 'Importing...'}
         </Button>
       </div>
     </Panel>

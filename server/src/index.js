@@ -40,8 +40,41 @@ const allowedOrigins = new Set(
 // internet make authenticated requests on a logged-in user's behalf.
 const LOOPBACK_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
 
+// Vercel preview hosts look like:
+//   <project>-<hash>-<team>.vercel.app
+//   <project>-git-<branch>-<team>.vercel.app
+// Team slug scopes this so a stranger's project named like yours cannot pass CORS.
+const PREVIEW_TEAM = (process.env.VERCEL_PREVIEW_TEAM || '').trim().toLowerCase();
+
+function hostnameOf(origin) {
+  try {
+    return new URL(origin).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+function isVercelPreviewOrigin(origin) {
+  if (!PREVIEW_TEAM) return false;
+  const host = hostnameOf(origin);
+  if (!host.endsWith('.vercel.app')) return false;
+
+  for (const allowed of allowedOrigins) {
+    const allowedHost = hostnameOf(allowed);
+    if (!allowedHost.endsWith('.vercel.app')) continue;
+    const project = allowedHost.slice(0, -'.vercel.app'.length);
+    if (!project) continue;
+    // project-…-team.vercel.app
+    if (host.startsWith(`${project}-`) && host.endsWith(`-${PREVIEW_TEAM}.vercel.app`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isOriginAllowed(origin) {
   if (allowedOrigins.has(origin)) return true;
+  if (isVercelPreviewOrigin(origin)) return true;
   return !isProduction && LOOPBACK_ORIGIN.test(origin);
 }
 
