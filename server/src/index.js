@@ -80,6 +80,10 @@ function isOriginAllowed(origin) {
 
 // Render/Vercel terminate TLS upstream; without this the rate limiter sees the
 // proxy's IP for every caller and the per-IP budgets are meaningless.
+// ponytail: assumes exactly one trusted hop. Storefront traffic now arrives via
+// the frontend's /api rewrite, which adds a hop — after deploying, confirm
+// real users are still keyed individually (a shared key shows up as everyone
+// hitting "Too many requests" at once); bump this to 2 if they are not.
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
@@ -144,9 +148,10 @@ app.use((req, res, next) => {
   ensureReady().then(() => next()).catch(next);
 });
 
-// CSRF hardening. Session cookies are SameSite=None in production (the client and
-// API live on different sites), so the browser attaches them to cross-site
-// requests. A forged <form>/<img> can only issue "simple" requests, which cannot
+// CSRF hardening. Session cookies are SameSite=None in production, so the browser
+// attaches them to cross-site requests. (The storefront now reaches this API
+// through a same-origin /api rewrite, but None is kept so a direct cross-origin
+// caller still works.) A forged <form>/<img> can only issue "simple" requests, which cannot
 // carry a custom header without triggering a CORS preflight that our allow-list
 // rejects. Requiring X-Requested-With on every state-changing call therefore
 // blocks silent cross-site POSTs (e.g. to /auth/logout) that carry no JSON body.

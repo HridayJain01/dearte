@@ -1,7 +1,13 @@
 import axios from 'axios';
 
-const defaultTarget = import.meta.env.VITE_API_PROXY_TARGET || 'http://localhost:5001/api';
-const baseURL = import.meta.env.DEV ? '/api' : defaultTarget;
+// The API is always reached through the app's own origin: Vite proxies /api in
+// development (vite.config.js) and Vercel rewrites it in production
+// (client/vercel.json). This is not cosmetic. Pointing the browser straight at
+// the API's own domain makes the session cookies third-party, and every WebKit
+// browser — which on iOS means *every* browser — drops third-party cookies
+// outright. Login would return 200, the cookies would never be stored, and the
+// next request would 401 into "Your session expired".
+const baseURL = '/api';
 
 const api = axios.create({
   baseURL,
