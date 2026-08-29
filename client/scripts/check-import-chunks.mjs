@@ -1,6 +1,7 @@
 // Self-check for the bulk-import chunker: node scripts/check-import-chunks.mjs
 import assert from 'node:assert/strict';
-import { chunkRowsByStyle, getRowStyleCode } from '../src/utils/importChunks.js';
+import { chunkRowsByStyle, getRowStyleCode, parseImageFileName } from '../src/utils/importChunks.js';
+import { parseImageFileName as parseOnServer } from '../../server/src/utils/importFileName.js';
 
 const row = (style, view) => ({ 'Style No': style, View: view, 'File Name': `${style}-${view}.jpg` });
 
@@ -30,5 +31,29 @@ for (const size of [1, 3, 10, 200]) {
 
 // Style-less rows still travel, and do not get grouped together by an empty key.
 assert.equal(chunkRowsByStyle([{ View: 'a' }, { View: 'b' }], 1).length, 2);
+
+// The preview parser must agree with the server's, or the summary table promises
+// colours and views the import will not create.
+const fixtures = [
+  'ABL00008.Left.WG-RG_WM.jpg',
+  'ABL00008.Top.WG-YG_WM.jpg',
+  'ABL00008.Through.WG-WG_WM.jpg',
+  'ALR000108 A.Right.WG-RG_WM.jpg',
+  'APND00281 Left.WG-RG_WM.jpg',
+  'APND00281 Bracelet.WG-RG_WM.jpg',
+  'ABL00008.left.RG.jpg',
+  'ABL00008.Letf.RG_WM.jpg',
+  'ABL00008.up.RG_WM.jpg',
+  'ABL00008.Left.WG-ZZ_WM.jpg',
+  'ABL00008.jpg',
+  '',
+];
+for (const name of fixtures) {
+  assert.deepEqual(
+    parseImageFileName(name),
+    parseOnServer(name),
+    `preview and server parsers disagree on "${name}"`,
+  );
+}
 
 console.log('import chunker OK');

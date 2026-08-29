@@ -205,15 +205,17 @@ async function main() {
   // 1. The home page keeps index.html, with the host corrected.
   await writeFile(indexPath, buildShell(template, '/', ROUTE_SEO['/']), 'utf8');
 
-  // 2. One shell per public route. `cleanUrls` in vercel.json maps /about to
-  //    about.html; anything without a file falls through to the SPA rewrite.
+  // 2. One shell per public route, written as <route>/index.html so Vercel
+  //    serves it for /about with no cleanUrls involved — cleanUrls turns
+  //    /index.html into a redirect, which kills the SPA rewrite's destination.
+  //    Anything without a file falls through to that rewrite.
   let shells = 0;
   for (const path of publicPaths) {
     if (path === '/') continue;
     const meta = ROUTE_SEO[path];
     if (!meta) continue;
 
-    const filePath = join(DIST, `${path.replace(/^\//, '')}.html`);
+    const filePath = join(DIST, path.replace(/^\//, ''), 'index.html');
     await mkdir(dirname(filePath), { recursive: true });
     await writeFile(filePath, buildShell(template, path, meta), 'utf8');
     shells += 1;

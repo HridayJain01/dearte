@@ -24,6 +24,50 @@ export function getRowStyleCode(row) {
   ).trim();
 }
 
+const METAL_COLOR_LABELS = {
+  rg: 'Rose Gold',
+  wg: 'White Gold',
+  yg: 'Yellow Gold',
+  pg: 'Pink Gold',
+  rosegold: 'Rose Gold',
+  whitegold: 'White Gold',
+  yellowgold: 'Yellow Gold',
+};
+
+const METAL_COLOR_NAMES = new Set(Object.values(METAL_COLOR_LABELS));
+
+const VIEW_ALIASES = {
+  left: 'Left',
+  letf: 'Left',
+  right: 'Right',
+  through: 'Through',
+  top: 'Top',
+  up: 'Top',
+};
+
+// Preview-only mirror of server/src/utils/importFileName.js, which is what
+// actually decides the colour and view on import. The two must agree, or the
+// summary table promises something the import will not deliver -
+// scripts/check-import-chunks.mjs asserts they still match.
+export function parseImageFileName(fileName) {
+  const base = String(fileName || '').trim().replace(/\.[^.]+$/, '');
+  const segments = base.split('.').map((part) => part.trim()).filter(Boolean);
+  if (segments.length < 2) return null;
+
+  const metal = segments[segments.length - 1].split('_')[0].split('-').pop();
+  const color = METAL_COLOR_LABELS[normalizeSheetHeader(metal)] || metal;
+  if (!METAL_COLOR_NAMES.has(color)) return null;
+
+  if (segments.length >= 3) {
+    const raw = segments[segments.length - 2];
+    return { view: VIEW_ALIASES[normalizeSheetHeader(raw)] || raw, color };
+  }
+
+  const words = segments[0].split(/\s+/);
+  const view = VIEW_ALIASES[normalizeSheetHeader(words[words.length - 1])];
+  return view ? { view, color } : null;
+}
+
 // Vercel caps the import function at 60s (server/vercel.json) and the handler
 // resolves taxonomy one style at a time, so a full sheet in a single POST times
 // out long before it finishes. Every row of one style must stay in the same

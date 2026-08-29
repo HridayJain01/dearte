@@ -8,7 +8,7 @@ import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { variantImage } from '../utils/productVariants';
 import { DIAMOND_QUALITY } from '../utils/constants';
-import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader } from '../utils/importChunks';
+import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader, parseImageFileName } from '../utils/importChunks';
 
 const textInput =
   'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--color-border-active)]';
@@ -643,8 +643,11 @@ function summarizeImportRows(rows) {
     });
 
     const styleCode = getRowStyleCode(row);
-    const color = String(normalized.colour || normalized.color || '').trim();
-    const view = String(normalized.view || '').trim();
+    // Colour and view come from the file name, exactly as the importer reads
+    // them - the sheet's own Colour and View columns are not to be trusted.
+    const parsed = parseImageFileName(getRowFileName(row)) || {};
+    const color = parsed.color || '';
+    const view = parsed.view || '';
     const category = String(normalized.category || normalized.productcategory || '').trim();
     const subCategory = String(normalized.subcategory || normalized.subcategoryname || '').trim();
     const collection = String(normalized.collection || normalized.collectionname || '').trim();
@@ -1208,7 +1211,7 @@ function BulkProductImportPanel({ onImported }) {
         </div>
       ) : (
         <div className="rounded border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
-          Upload the Excel first. Required columns are `Style No`, `Category`, `Colour`, `View`, `File Name`, and the six Gross/Net weight columns (18kt, 14kt, 9kt). `Sub Category`, `Collection`, `Occasion 1-4` and `Colour Stone Wt` may be left blank. Category, sub-category and collection are read from each row and created automatically if they do not exist yet. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you.
+          Upload the Excel first. Required columns are `Style No`, `Category`, `File Name`, and the six Gross/Net weight columns (18kt, 14kt, 9kt). Colour and view are read from the File Name (`Style.View.Setting-Metal_WM.jpg`), not from the `Colour` and `View` columns. `Sub Category`, `Collection`, `Occasion 1-4` and `Colour Stone Wt` may be left blank. Category, sub-category and collection are read from each row and created automatically if they do not exist yet. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you.
         </div>
       )}
 

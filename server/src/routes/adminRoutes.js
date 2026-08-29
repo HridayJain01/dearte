@@ -40,6 +40,12 @@ import {
 import { getEmailConfigStatus } from '../services/email/transport.js';
 import { invalidateGuestCatalogueCache } from '../utils/guestCatalogue.js';
 import {
+  normalizeHeader,
+  normalizeMetalColorName,
+  normalizeViewName,
+  parseImageFileName,
+} from '../utils/importFileName.js';
+import {
   broadcastEmailToUsers,
   notifyEmailOrderStatus,
 } from '../services/orderEmailNotifications.js';
@@ -109,13 +115,6 @@ function parseBoolean(value, defaultValue = false) {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') return value === 'true';
   return Boolean(value);
-}
-
-function normalizeHeader(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
 }
 
 function pickFirstDefined(record, keys) {
@@ -239,23 +238,13 @@ function joinCloudinaryBaseUrl(baseUrl, fileName) {
 
 // The upload sheet is one row per IMAGE: Style No x Colour x View. Rows for the same
 // Style No collapse into a single product whose colorVariants hold the images.
-const METAL_COLOR_LABELS = {
-  rg: 'Rose Gold',
-  wg: 'White Gold',
-  yg: 'Yellow Gold',
-  pg: 'Pink Gold',
-  rosegold: 'Rose Gold',
-  whitegold: 'White Gold',
-  yellowgold: 'Yellow Gold',
-};
-
+//
 // Compulsory per the upload spec. Sub Category, Collection, Occasions and
-// Colour Stone Wt are intentionally absent - those may be blank.
+// Colour Stone Wt are intentionally absent - those may be blank. Colour and View
+// are absent too: both are read from the File Name, which is authoritative.
 const REQUIRED_IMPORT_FIELDS = [
   ['Style No', ['styleno', 'stylecode', 'style', 'collectionstyleno']],
   ['Category', ['category']],
-  ['Colour', ['colour', 'color', 'metalcolor']],
-  ['View', ['view', 'imageview', 'angle']],
   ['File Name', ['filename', 'file', 'image', 'imagename']],
   ['Gross Wt(18kt)', ['grosswt18kt', 'grosswt18k']],
   ['Gross Wt(14kt)', ['grosswt14kt', 'grosswt14k']],
@@ -264,11 +253,6 @@ const REQUIRED_IMPORT_FIELDS = [
   ['Net Wt(14kt)', ['netwt14kt', 'netwt14k']],
   ['Net Wt(9kt)', ['netwt9kt', 'netwt9k']],
 ];
-
-function normalizeMetalColorName(value) {
-  const raw = String(value || '').trim();
-  return METAL_COLOR_LABELS[normalizeHeader(raw)] || raw;
-}
 
 function readOccasions(row) {
   return dedupeStrings([
@@ -298,20 +282,6 @@ function readWeights(row) {
   };
 }
 
-// A file name encodes Style.View.Colour_WM.ext. If the Colour column disagrees with
-// the file name the row is malformed (e.g. "ABR00361.Right.LEFT.WG_WM.jpg"), and we
-// skip it rather than create a bogus colour variant.
-function fileNameColorMismatch(fileName, color) {
-  const base = String(fileName || '').trim().replace(/\.[^.]+$/, '');
-  const segments = base.split('.');
-  if (segments.length !== 3) return `File Name "${fileName}" is not Style.View.Colour format`;
-  const fromFile = normalizeHeader(segments[2].split('_')[0]);
-  if (fromFile && fromFile !== normalizeHeader(color)) {
-    return `Colour "${color}" does not match File Name "${fileName}"`;
-  }
-  return '';
-}
-
 function buildBulkImportPayloads(rows = [], options = {}) {
   const productsByStyle = new Map();
   const errors = [];
@@ -337,18 +307,21 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       return;
     }
 
-    const color = normalizeMetalColorName(pickFirstDefined(row, ['colour', 'color', 'metalcolor']));
-    const view = String(pickFirstDefined(row, ['view', 'imageview', 'angle'])).trim();
     const fileName = String(pickFirstDefined(row, ['filename', 'file', 'image', 'imagename'])).trim();
 
-    const mismatch = fileNameColorMismatch(
-      fileName,
-      pickFirstDefined(row, ['colour', 'color', 'metalcolor']),
-    );
-    if (mismatch) {
-      errors.push({ row: rowNumber, styleCode, reason: mismatch });
+    // The Colour and View columns are advisory only - sheets have arrived with a
+    // single fill-down colour on every row, and with the colour token pasted into
+    // the View column. The file name is what the photographer actually named.
+    const parsed = parseImageFileName(fileName);
+    if (!parsed) {
+      errors.push({
+        row: rowNumber,
+        styleCode,
+        reason: `File Name "${fileName}" is not Style.View.Colour format`,
+      });
       return;
     }
+    const { color, view } = parsed;
 
     const secureUrl = String(
       pickFirstDefined(row, ['cloudinaryurl', 'imagelink', 'imageurl', 'url', 'secureurl']),
@@ -393,10 +366,10 @@ function buildBulkImportPayloads(rows = [], options = {}) {
     current.rows.push(rowNumber);
     if (!current.occasions.length) current.occasions = readOccasions(row);
 
-    const rowFirstColor = normalizeMetalColorName(pickFirstDefined(row, ['1st colour', '1st color', 'firstcolour', 'firstcolor']));
+    const rowFirstColor = normalizeMetalColorName(pickFirstDefined(row, ['1stcolour', '1stcolor', 'firstcolour', 'firstcolor']));
     if (rowFirstColor && !current.firstColor) current.firstColor = rowFirstColor;
 
-    const rowFirstView = String(pickFirstDefined(row, ['1st view', 'firstview'])).trim();
+    const rowFirstView = normalizeViewName(pickFirstDefined(row, ['1stview', 'firstview']));
     if (rowFirstView && !current.firstView) current.firstView = rowFirstView;
 
     const views = current.colorVariantsMap.get(color) || new Map();
