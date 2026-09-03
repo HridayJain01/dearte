@@ -1,4 +1,5 @@
 import { createContext, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { markSessionEnded, markSessionStarted, onSessionExpired } from '../services/api';
 import { userService } from '../services/userService';
@@ -27,11 +28,27 @@ const reducer = (state, action) => {
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const queryClient = useQueryClient();
   const userRef = useRef(null);
 
   useEffect(() => {
     userRef.current = state.user;
   }, [state.user]);
+
+  // Every public endpoint is scoped by the session (guest teaser vs. the
+  // buyer's own catalogue), but the query keys are not, so a cached guest
+  // payload would survive a login. Drop the whole cache whenever the identity
+  // changes and let the mounted queries refetch as the new user.
+  const identity = state.user?.id ?? null;
+  const lastIdentity = useRef(undefined);
+
+  useEffect(() => {
+    if (state.loading) return;
+    if (lastIdentity.current !== undefined && lastIdentity.current !== identity) {
+      queryClient.clear();
+    }
+    lastIdentity.current = identity;
+  }, [identity, state.loading, queryClient]);
 
   useEffect(() => {
     let mounted = true;

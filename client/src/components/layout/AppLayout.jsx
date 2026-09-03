@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { EDUCATION_ROUTES, NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
-import { useNavCategories, useOccasions } from '../../hooks/useProducts';
+import { useCollections, useNavCategories, useOccasions } from '../../hooks/useProducts';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
@@ -37,9 +37,10 @@ const ICON_BUTTON =
 const navLinkClass = ({ isActive }) =>
   `${NAV_TEXT} transition ${isActive ? 'text-[var(--color-primary)] underline decoration-[var(--color-accent)] underline-offset-4' : 'text-[var(--color-text)] hover:text-[var(--color-primary)]'}`;
 
-// Desktop "Occasions" nav item. Options are fetched rather than hardcoded so
-// newly imported occasion tags show up without a code change.
-function OccasionsNavMenu({ label, occasions }) {
+// Desktop nav item that links to its landing page and reveals a quick-pick
+// dropdown on hover (Occasions, Collections). Items are fetched rather than
+// hardcoded so newly added ones show up without a code change.
+function QuickNavMenu({ label, to, items }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
@@ -51,14 +52,12 @@ function OccasionsNavMenu({ label, occasions }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const hasOccasions = occasions.length > 0;
-
-  // The label always links to the "Shop by Occasion" page. When occasions
-  // exist we additionally reveal a quick-pick dropdown on hover so buyers can
-  // jump straight to a filtered view without leaving the current page.
-  if (!hasOccasions) {
+  // The label always links to the landing page. When items exist we
+  // additionally reveal a quick-pick dropdown on hover so buyers can jump
+  // straight to a filtered view without leaving the current page.
+  if (!items.length) {
     return (
-      <NavLink to="/occasions" className={navLinkClass}>
+      <NavLink to={to} className={navLinkClass}>
         {label}
       </NavLink>
     );
@@ -73,7 +72,7 @@ function OccasionsNavMenu({ label, occasions }) {
       onMouseLeave={() => setOpen(false)}
     >
       <NavLink
-        to="/occasions"
+        to={to}
         aria-expanded={open}
         aria-haspopup="true"
         className={navLinkClass}
@@ -81,15 +80,15 @@ function OccasionsNavMenu({ label, occasions }) {
         {label}
       </NavLink>
       {open ? (
-        <div className="absolute left-0 top-full z-40 min-w-[200px] border border-[var(--color-border)] bg-[var(--color-surface)] py-2 shadow-lg">
-          {occasions.map((occasion) => (
+        <div className="absolute left-0 top-full z-40 max-h-[70vh] min-w-[200px] overflow-auto border border-[var(--color-border)] bg-[var(--color-surface)] py-2 shadow-lg">
+          {items.map((item) => (
             <Link
-              key={occasion.name}
-              to={`/products?occasion=${encodeURIComponent(occasion.name)}`}
+              key={item.name}
+              to={item.href}
               onClick={() => setOpen(false)}
               className={`${NAV_TEXT} block px-4 py-2 text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-primary)]`}
             >
-              {occasion.name}
+              {item.name}
             </Link>
           ))}
         </div>
@@ -336,9 +335,25 @@ export function AppLayout() {
   const { wishlist } = useWishlist();
   const { data: occasions } = useOccasions();
   const { data: navCategories } = useNavCategories();
+  // /collections is buyer-only, so guests would just 401 in a loop.
+  const { data: collections } = useCollections({ enabled: isAuthenticated });
   const settings = useSiteSettings();
-  const occasionList = occasions || [];
   const categoryList = navCategories || [];
+  const quickMenuItems = (link) => {
+    if (link.occasionMenu) {
+      return (occasions || []).map((occasion) => ({
+        name: occasion.name,
+        href: `/products?occasion=${encodeURIComponent(occasion.name)}`,
+      }));
+    }
+    if (link.collectionMenu) {
+      return (collections || []).map((collection) => ({
+        name: collection.name,
+        href: `/products?collection=${encodeURIComponent(collection.name)}`,
+      }));
+    }
+    return null;
+  };
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -368,8 +383,9 @@ export function AppLayout() {
 
           <nav className="hidden items-center gap-6 lg:flex">
             {NAV_LINKS.map((link) => {
-              if (link.occasionMenu) {
-                return <OccasionsNavMenu key={link.label} label={link.label} occasions={occasionList} />;
+              const quickItems = quickMenuItems(link);
+              if (quickItems) {
+                return <QuickNavMenu key={link.label} label={link.label} to={link.to} items={quickItems} />;
               }
               if (link.categoryMenu) {
                 return (
@@ -452,41 +468,47 @@ export function AppLayout() {
           // Capped and scrollable, since an expanded category tree is taller
           // than the viewport and the page behind it should not scroll.
           <div className="safe-bottom-pad flex max-h-[calc(100svh-3.5rem)] flex-col divide-y divide-[var(--color-border)]/70 overflow-y-auto border-t border-[var(--color-accent)]/40 bg-[var(--color-surface)] px-5 py-1 shadow-[var(--shadow-lifted)] lg:hidden">
-            {NAV_LINKS.map((link) =>
-              link.categoryMenu ? (
-                <CategoryMobileMenu
-                  key={link.label}
-                  label={link.label}
-                  to={link.to}
-                  categories={categoryList}
-                  onNavigate={() => setMenuOpen(false)}
-                />
-              ) : link.occasionMenu && occasionList.length ? (
-                <MobileAccordion key={link.label} label={link.label}>
-                  <MobileNavItem to="/occasions" onNavigate={() => setMenuOpen(false)} depth={1}>
-                    All {link.label}
-                  </MobileNavItem>
-                  {occasionList.map((occasion) => (
-                    <MobileNavItem
-                      key={occasion.name}
-                      to={`/products?occasion=${encodeURIComponent(occasion.name)}`}
-                      onNavigate={() => setMenuOpen(false)}
-                      depth={1}
-                    >
-                      {occasion.name}
+            {NAV_LINKS.map((link) => {
+              const quickItems = quickMenuItems(link);
+
+              if (link.categoryMenu) {
+                return (
+                  <CategoryMobileMenu
+                    key={link.label}
+                    label={link.label}
+                    to={link.to}
+                    categories={categoryList}
+                    onNavigate={() => setMenuOpen(false)}
+                  />
+                );
+              }
+
+              if (quickItems?.length) {
+                return (
+                  <MobileAccordion key={link.label} label={link.label}>
+                    <MobileNavItem to={link.to} onNavigate={() => setMenuOpen(false)} depth={1}>
+                      All {link.label}
                     </MobileNavItem>
-                  ))}
-                </MobileAccordion>
-              ) : (
-                <MobileNavItem
-                  key={link.to}
-                  to={link.occasionMenu ? '/occasions' : link.to}
-                  onNavigate={() => setMenuOpen(false)}
-                >
+                    {quickItems.map((item) => (
+                      <MobileNavItem
+                        key={item.name}
+                        to={item.href}
+                        onNavigate={() => setMenuOpen(false)}
+                        depth={1}
+                      >
+                        {item.name}
+                      </MobileNavItem>
+                    ))}
+                  </MobileAccordion>
+                );
+              }
+
+              return (
+                <MobileNavItem key={link.to} to={link.to} onNavigate={() => setMenuOpen(false)}>
                   {link.label}
                 </MobileNavItem>
-              ),
-            )}
+              );
+            })}
 
             {/* Filled + outlined rather than two identical outlines, so the
                 primary action reads first. */}

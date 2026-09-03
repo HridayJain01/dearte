@@ -22,7 +22,9 @@ export const NAV_LINKS = [
   // Links to the full product list; AppLayout also adds a category dropdown on
   // hover with the category -> sub category tree from /api/nav/categories.
   { label: 'Products', to: '/products', categoryMenu: true },
-  { label: 'Collections', to: '/collections' },
+  // Links to the collections landing page; AppLayout also adds a quick-pick
+  // dropdown on hover with options from /api/collections.
+  { label: 'Collections', to: '/collections', collectionMenu: true },
   // Links to the "Shop by Occasion" page; AppLayout also adds a quick-pick
   // dropdown on hover with options from /api/occasions.
   { label: 'Occasions', to: '/occasions', occasionMenu: true },

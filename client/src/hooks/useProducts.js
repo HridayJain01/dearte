@@ -24,10 +24,13 @@ export const useProduct = (styleCode) =>
     enabled: Boolean(styleCode),
   });
 
-export const useCollections = () =>
+// `enabled` lets the header skip the buyer-only fetch for guests.
+export const useCollections = ({ enabled = true } = {}) =>
   useQuery({
     queryKey: ['collections'],
     queryFn: productService.collections,
+    enabled,
+    staleTime: 5 * 60 * 1000,
   });
 
 export const useOccasions = () =>

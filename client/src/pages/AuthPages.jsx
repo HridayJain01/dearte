@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import { brandLogoAlt, brandLogoUrl } from '../utils/brandLogo';
 import { Button, Input, PasswordInput, Panel, SectionHeading } from '../components/ui/Primitives';
 import { Seo } from '../components/seo/Seo';
 import { loginSchema, registerSchema } from '../utils/validators';
+import { COUNTRIES, STATES_BY_COUNTRY } from '../utils/locations';
 
 function AuthShell({ title, description, seoTitle, children }) {
   return (
@@ -92,6 +93,11 @@ export function RegisterPage() {
     navigate('/login');
   });
 
+  const country = useWatch({ control: form.control, name: 'country' });
+  // Only the markets we carry a list for get a state dropdown; the rest keep a
+  // free-text field rather than an empty select.
+  const states = STATES_BY_COUNTRY[country];
+
   return (
     <AuthShell seoTitle="Apply for a Trade Account" title="Apply for a De Arté trade account." description="Buyer registrations stay inactive until reviewed and approved by the admin team.">
       <form className="grid gap-2.5 sm:gap-4 md:grid-cols-2" onSubmit={onSubmit}>
@@ -101,8 +107,24 @@ export function RegisterPage() {
         <Input label="Company Name" error={form.formState.errors.companyName?.message} {...form.register('companyName')} />
         <Input label="Address" className="md:col-span-2" error={form.formState.errors.address?.message} {...form.register('address')} />
         <Input label="City" error={form.formState.errors.city?.message} {...form.register('city')} />
-        <Input label="State" error={form.formState.errors.state?.message} {...form.register('state')} />
-        <Input label="Country" error={form.formState.errors.country?.message} {...form.register('country')} />
+        {states ? (
+          <Input as="select" label="State" error={form.formState.errors.state?.message} {...form.register('state')}>
+            <option value="">Select state</option>
+            {states.map((state) => <option key={state} value={state}>{state}</option>)}
+          </Input>
+        ) : (
+          <Input label="State" error={form.formState.errors.state?.message} {...form.register('state')} />
+        )}
+        <Input
+          as="select"
+          label="Country"
+          error={form.formState.errors.country?.message}
+          // A state from the old country would otherwise stay selected.
+          {...form.register('country', { onChange: () => form.setValue('state', '') })}
+        >
+          <option value="">Select country</option>
+          {COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
+        </Input>
         <Input label="Pin Code" error={form.formState.errors.pinCode?.message} {...form.register('pinCode')} />
         <Input label="GST Number" {...form.register('gstNumber')} />
         <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
