@@ -50,7 +50,7 @@ async function graphFetch(path, init = {}) {
 }
 
 /** Upload temporary media for sending document/image from buffer */
-export async function uploadWhatsappMedia({ buffer, mimeType, filename = 'file' }) {
+async function uploadWhatsappMedia({ buffer, mimeType, filename = 'file' }) {
   const pnid = phoneNumberId();
   const form = new FormData();
   form.append('messaging_product', 'whatsapp');
@@ -76,7 +76,7 @@ export async function uploadWhatsappMedia({ buffer, mimeType, filename = 'file' 
 }
 
 /** Send arbitrary messages payload blocks (single message object). */
-export async function sendRawMessage(payload) {
+async function sendRawMessage(payload) {
   const pnid = phoneNumberId();
   return graphFetch(`/${pnid}/messages`, {
     method: 'POST',

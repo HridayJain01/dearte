@@ -34,12 +34,6 @@ export const registerSchema = z
     message: 'Passwords must match',
   });
 
-export const forgotPasswordSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().optional(),
-  newPassword: passwordRule.optional(),
-});
-
 export const checkoutSchema = z.object({
   notes: z.string().optional(),
 });

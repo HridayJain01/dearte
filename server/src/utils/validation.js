@@ -49,12 +49,6 @@ export function parsePagination(query, { defaultLimit = 24, maxLimit = 100 } = {
   return { page, limit, skip: (page - 1) * limit };
 }
 
-/** Restrict a value to a known set; anything else falls back to the default. */
-export function oneOf(value, allowed, fallback = '') {
-  const candidate = asString(value);
-  return allowed.includes(candidate) ? candidate : fallback;
-}
-
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function isValidEmail(value) {

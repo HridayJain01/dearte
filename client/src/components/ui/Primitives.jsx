@@ -64,22 +64,6 @@ export function Panel({ children, className = '' }) {
   return <div className={`lux-panel p-3 sm:p-6 ${className}`}>{children}</div>;
 }
 
-export function Badge({ children, tone = 'default' }) {
-  const tones = {
-    default: 'bg-[var(--color-surface-alt)] text-[var(--color-text)]',
-    success: 'bg-[var(--color-surface-alt)] text-[var(--color-primary)]',
-    warning: 'bg-[var(--color-surface-alt)] text-[var(--color-accent)]',
-    accent: 'bg-[var(--color-surface)] text-[var(--color-primary)] border border-[var(--color-border)]',
-    lab: 'bg-[var(--color-surface-alt)] text-[var(--color-accent)]',
-  };
-
-  return (
-    <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${tones[tone]}`}>
-      {children}
-    </span>
-  );
-}
-
 export function StatCard({ label, title, value, caption, detail }) {
   const heading = label ?? title;
   const subtext = caption ?? detail;

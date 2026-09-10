@@ -194,7 +194,7 @@ export function serializeUser(doc) {
  * to someone other than that user (e.g. the admin who touched an order's status),
  * so contact PII — email, mobile, address, GST — never leaks through a nested ref.
  */
-export function serializeUserSummary(doc) {
+function serializeUserSummary(doc) {
   if (!doc) return null;
   return {
     id: String(doc._id),

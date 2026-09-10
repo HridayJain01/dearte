@@ -13,7 +13,7 @@ export const assetSchema = new mongoose.Schema(
   { _id: false },
 );
 
-export const productColorViewSchema = new mongoose.Schema(
+const productColorViewSchema = new mongoose.Schema(
   {
     view: { type: String, required: true },
     asset: { type: assetSchema, default: () => ({}) },
@@ -32,7 +32,7 @@ export const productColorVariantSchema = new mongoose.Schema(
 // Per-karat weights as supplied by the bulk-upload sheet. Gross includes stones,
 // net is metal only. Every style carries all three karats; the customer picks one
 // on the PDP, so these must stay queryable rather than living in `specifications`.
-export const karatWeightSchema = new mongoose.Schema(
+const karatWeightSchema = new mongoose.Schema(
   {
     k18: { type: Number, default: 0 },
     k14: { type: Number, default: 0 },
@@ -68,7 +68,7 @@ export const specificationSchema = new mongoose.Schema(
   { _id: false },
 );
 
-export const orderItemChangeRequestSchema = new mongoose.Schema(
+const orderItemChangeRequestSchema = new mongoose.Schema(
   {
     message: { type: String, required: true },
     status: { type: String, default: 'Open' }, // Open | Resolved

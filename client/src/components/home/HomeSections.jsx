@@ -331,38 +331,6 @@ export function ProductRail({ title, description, products, link, bgClass = 'bg-
   );
 }
 
-export function CompanyStrip({ companyInfo }) {
-  return (
-    <section className="border-t border-border bg-surface-alt py-8 sm:py-20">
-      <div className="page-shell editorial-grid items-center">
-        <div className="pr-0 md:pr-10">
-          <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">{companyInfo.founded}</p>
-          <h3 className="lux-heading mb-4 text-2xl sm:mb-6 sm:text-5xl">{companyInfo.tagline}</h3>
-          <Link to="/about">
-            <Button variant="ghost">Read our story &rarr;</Button>
-          </Link>
-        </div>
-        <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-          <div>
-            <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">Certifications</p>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {companyInfo.certifications.map((item) => (
-                <span key={item} className="border border-border bg-surface px-2 py-1 text-[11px] text-text-muted sm:px-3 sm:py-2 sm:text-sm">
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">Mission</p>
-            <p className="text-[12px] leading-relaxed text-text sm:text-sm sm:leading-7">{companyInfo.mission}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function TestimonialRail({ testimonials }) {
   const featured = testimonials?.[0];
   const supporting = testimonials?.slice(1, 4) || [];
@@ -530,53 +498,6 @@ export function TrustedBrandGrid({ brands }) {
         );
       })}
     </div>
-  );
-}
-
-export function CollectionsRail({ collections }) {
-  if (!collections?.length) return null;
-
-  return (
-    <section className="page-shell section-gap">
-      <SectionIntro
-        eyebrow="Curated Collections"
-        title="Explore our signature collections."
-        description="Handpicked assortments designed for specific occasions and styles."
-      />
-      <div className="hide-scrollbar snap-rail flex gap-4 overflow-x-auto pb-4 sm:gap-6">
-        {collections.map((collection, index) => (
-          <Reveal
-            key={collection.id}
-            delay={Math.min(index, 4) * 80}
-            className="min-w-[190px] max-w-[190px] flex-none snap-start sm:min-w-[300px] sm:max-w-[300px]"
-          >
-            <Link to={`/products?collection=${collection.name}`} className="block h-full">
-              <Panel className="group h-full overflow-hidden p-0">
-                <div className="relative overflow-hidden bg-[var(--color-surface-alt)]">
-                  {collection.image ? (
-                    <img
-                      src={collection.image}
-                      alt={collection.name}
-                      className="h-40 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-48"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-[var(--color-primary-bg)] to-[var(--color-surface)] sm:h-48">
-                      <p className="text-sm font-semibold text-[var(--color-text-muted)]">No Image</p>
-                    </div>
-                  )}
-                </div>
-                <div className="p-2.5 sm:p-6">
-                  <h3 className="font-serif text-base text-[var(--color-text)] sm:text-xl">{collection.name}</h3>
-                  <p className="hairline-draw mt-1 inline-block pb-1 text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] sm:mt-2 sm:text-xs sm:tracking-[0.12em]">View Collection &rarr;</p>
-                </div>
-              </Panel>
-            </Link>
-          </Reveal>
-        ))}
-      </div>
-    </section>
   );
 }
 

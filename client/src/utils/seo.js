@@ -29,9 +29,8 @@ export const SITE_URL = stripTrailingSlash(configuredSiteUrl);
 export const PLACEHOLDER_SITE_URL = FALLBACK_SITE_URL;
 
 export const SITE_NAME = 'DeArte Jewellery';
-export const SITE_LEGAL_NAME = 'DeArte Jewels';
 
-export const DEFAULT_TITLE = 'DeArte Jewellery — Lab-Grown Diamond Jewellery Manufacturer for B2B Buyers';
+const DEFAULT_TITLE = 'DeArte Jewellery — Lab-Grown Diamond Jewellery Manufacturer for B2B Buyers';
 export const DEFAULT_DESCRIPTION =
   'DeArte is a B2B lab-grown diamond jewellery manufacturer supplying rings, earrings, pendants, bracelets and bridal sets to retailers and brands. Browse the wholesale catalogue, build custom orders and request a trade account.';
 
@@ -39,11 +38,6 @@ export const DEFAULT_DESCRIPTION =
 export const DEFAULT_OG_IMAGE = '/og-image.png';
 export const DEFAULT_OG_IMAGE_WIDTH = 1200;
 export const DEFAULT_OG_IMAGE_HEIGHT = 630;
-
-export const CONTACT_EMAIL = 'concierge@deartejewels.com';
-
-/** Social profiles feed schema.org `sameAs`; add real handles as they go live. */
-export const SOCIAL_PROFILES = [];
 
 /**
  * Turn a router path into an absolute, canonical URL.
@@ -96,48 +90,6 @@ export function clampDescription(text, limit = 158) {
   const cut = flat.slice(0, limit);
   const lastSpace = cut.lastIndexOf(' ');
   return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.\s]+$/, '')}…`;
-}
-
-/** Organization node — reused by the home page and the static HTML shells. */
-export function organizationSchema() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': `${SITE_URL}/#organization`,
-    name: SITE_NAME,
-    legalName: SITE_LEGAL_NAME,
-    url: `${SITE_URL}/`,
-    logo: {
-      '@type': 'ImageObject',
-      url: `${SITE_URL}/og-image.png`,
-      width: DEFAULT_OG_IMAGE_WIDTH,
-      height: DEFAULT_OG_IMAGE_HEIGHT,
-    },
-    description: DEFAULT_DESCRIPTION,
-    email: CONTACT_EMAIL,
-    ...(SOCIAL_PROFILES.length ? { sameAs: SOCIAL_PROFILES } : {}),
-  };
-}
-
-/** WebSite node — declares the on-site search endpoint for a sitelinks searchbox. */
-export function webSiteSchema() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    '@id': `${SITE_URL}/#website`,
-    url: `${SITE_URL}/`,
-    name: SITE_NAME,
-    description: DEFAULT_DESCRIPTION,
-    publisher: { '@id': `${SITE_URL}/#organization` },
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: `${SITE_URL}/products?search={search_term_string}`,
-      },
-      'query-input': 'required name=search_term_string',
-    },
-  };
 }
 
 /**

@@ -154,22 +154,6 @@ export const ROUTE_SEO = {
  */
 export const INDEXABLE_PATHS = Object.keys(ROUTE_SEO);
 
-/**
- * Routes deliberately kept out of the index. They are behind a session or have
- * no standalone search value, so indexing them would only add thin pages.
- */
-export const NOINDEX_PATHS = [
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/cart',
-  '/checkout',
-  '/wishlist',
-  '/profile',
-  '/catalogue',
-  '/admin',
-];
-
 /** Lookup helper; returns an empty object so callers can spread it safely. */
 export function routeSeo(path) {
   return ROUTE_SEO[path] || {};

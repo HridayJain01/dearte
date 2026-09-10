@@ -1,10 +1,6 @@
 import {
-  BookOpen,
-  Briefcase,
-  Building2,
   FileClock,
   Gem,
-  Home,
   LayoutDashboard,
   MessageCircle,
   MessageSquareQuote,
@@ -64,12 +60,6 @@ export const TRUST_LINKS = [
   { label: 'Privacy Policy', to: '/privacy-policy' },
   { label: 'Terms & Conditions', to: '/terms' },
   { label: 'Return Policy', to: '/return-policy' },
-];
-
-export const SUPPORT_PAGES = [
-  { icon: Home, title: 'Responsive B2B storefront', text: 'Built for wholesale discovery without pricing exposure.' },
-  { icon: Building2, title: 'Private catalogue workflows', text: 'Role-aware buyer experiences and curated access.' },
-  { icon: Briefcase, title: 'Trade-first operations', text: 'Admin-managed catalogues, approvals, and reporting surfaces.' },
 ];
 
 /**

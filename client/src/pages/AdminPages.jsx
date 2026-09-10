@@ -3313,11 +3313,3 @@ export function AdminReportsPage() {
     </div>
   );
 }
-
-export function AdminSyncPage() {
-  return (
-    <div className="space-y-6">
-      <SectionHeading eyebrow="Removed" title="External sync removed" description="This platform no longer uses ERP or jewellery-system sync. Inventory, promotions, catalogues, and product media are managed directly from admin." />
-    </div>
-  );
-}
