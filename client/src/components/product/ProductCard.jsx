@@ -70,9 +70,6 @@ export function ProductCard({ product, priority = false }) {
             decoding="async"
             className="h-full w-full object-contain p-3 transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06] sm:p-5"
           />
-          <p className="absolute left-2.5 top-2.5 text-[9px] font-medium uppercase tracking-[0.18em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:text-[11px]">
-            Sale
-          </p>
           <button
             className="absolute right-1.5 top-1.5 z-10 p-1.5 text-[var(--color-primary)] transition duration-300 hover:scale-110 hover:[&>svg]:fill-[var(--color-primary)] sm:right-4 sm:top-3 sm:p-2"
             aria-label="Add to wishlist"
