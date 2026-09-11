@@ -94,7 +94,7 @@ function applySort(query, sort) {
     case 'gold-desc':
       return query.sort({ goldWeight: -1 });
     case 'best-sellers':
-      return query.sort({ orderCount: -1 });
+      return query.sort({ isBestSeller: -1, orderCount: -1 });
     case 'new-arrivals':
       return query.sort({ isNewArrival: -1, createdAt: -1 });
     default:
@@ -109,7 +109,7 @@ router.get('/site/home', async (req, res) => {
   const [banners, newArrivals, bestSellers, testimonials, events, trustedBrands, siteSettings, popupAds] = await Promise.all([
     Banner.find({ active: true }).sort({ sortOrder: 1 }),
     Product.find({ isNewArrival: true, status: 'Active', ...access }).populate(productPopulate).limit(10),
-    Product.find({ status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate).limit(10),
+    Product.find({ isBestSeller: true, status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate).limit(10),
     Testimonial.find({ status: 'Approved' }).sort({ createdAt: -1 }),
     Event.find({ active: true }).sort({ date: 1 }).limit(6),
     TrustedBrand.find({ active: true }).sort({ sortOrder: 1, createdAt: 1 }),
@@ -406,7 +406,7 @@ router.get('/products/new-arrivals', async (req, res) => {
 
 router.get('/products/best-sellers', async (req, res) => {
   const access = productAccessFilter(req.user, req.guestCatalogue);
-  const products = await Product.find({ status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate);
+  const products = await Product.find({ isBestSeller: true, status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate);
   return sendSuccess(res, products.map(serializeProduct));
 });
 

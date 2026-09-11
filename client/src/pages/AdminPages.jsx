@@ -1749,7 +1749,8 @@ function ProductBulkBar({ selectedIds, onClear, config, catalogues, onDone }) {
 
   // Only category is mandatory on a product; the rest may be cleared to "none".
   const clearable = action === 'subCategory' || action === 'collection';
-  const needsTarget = action !== 'delete' && !clearable;
+  const noTarget = ['delete', 'bestSellerOn', 'bestSellerOff'].includes(action);
+  const needsTarget = !noTarget && !clearable;
 
   const run = async () => {
     if (action === 'delete' && !window.confirm(`Delete ${count} product(s)? This cannot be undone.`)) return;
@@ -1778,9 +1779,11 @@ function ProductBulkBar({ selectedIds, onClear, config, catalogues, onDone }) {
         <option value="category">Set category</option>
         <option value="subCategory">Set sub-category</option>
         <option value="collection">Set collection</option>
+        <option value="bestSellerOn">Mark as best seller</option>
+        <option value="bestSellerOff">Remove from best sellers</option>
         <option value="delete">Delete</option>
       </select>
-      {action !== 'delete' && (
+      {!noTarget && (
         <select
           value={targetId}
           onChange={(event) => setTargetId(event.target.value)}
@@ -1808,6 +1811,7 @@ export function AdminProductsPage() {
   const [form, setForm] = useState(emptyProduct);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [bestSellersOnly, setBestSellersOnly] = useState(false);
   // Shared query key with AdminCataloguesPage, so opening this page after that
   // one costs nothing.
   const { data: catalogues = [] } = useQuery({ queryKey: ['admin-catalogues'], queryFn: adminService.catalogues });
@@ -1815,13 +1819,41 @@ export function AdminProductsPage() {
   if (isLoading || !config) return <LoadingBlock />;
 
   const query = search.trim().toLowerCase();
-  const filteredProducts = query
-    ? products.filter((product) =>
+  const filteredProducts = products.filter(
+    (product) =>
+      (!bestSellersOnly || product.isBestSeller) &&
+      (!query ||
         [product.styleCode, product.name, product.sku, product.category, product.collection]
           .filter(Boolean)
-          .some((field) => String(field).toLowerCase().includes(query))
-      )
-    : products;
+          .some((field) => String(field).toLowerCase().includes(query))),
+  );
+
+  // Any sheet with a Style No / Style Code column works; its codes become the
+  // entire best-seller list.
+  const replaceBestSellers = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const { rows } = await getWorkbookRows(file);
+      const norm = (code) => String(code || '').trim().toUpperCase();
+      const codes = new Set(rows.map(getRowStyleCode).map(norm).filter(Boolean));
+      const matched = products.filter((product) => codes.has(norm(product.styleCode)));
+      const known = new Set(matched.map((product) => norm(product.styleCode)));
+      const missing = [...codes].filter((code) => !known.has(code));
+      if (!matched.length) {
+        toast.error('No style codes in the sheet match a product (needs a "Style No" column).');
+        return;
+      }
+      const note = missing.length ? `\n\n${missing.length} code(s) not found: ${missing.slice(0, 10).join(', ')}` : '';
+      if (!window.confirm(`Replace ALL current best sellers with these ${matched.length} product(s)?${note}`)) return;
+      await adminService.bulkProducts({ ids: matched.map((product) => product.id), action: 'bestSellerReplace' });
+      toast.success(`Best sellers replaced: ${matched.length} product(s)`);
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error.message || 'Could not replace best sellers');
+    }
+  };
 
   const saveProduct = async () => {
     const payload = {
@@ -1866,7 +1898,13 @@ export function AdminProductsPage() {
         <Panel className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="lux-label">Products</p>
-            <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyProduct); }}>New Product</Button>
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer items-center border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+                Replace Best Sellers (Excel)
+                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={replaceBestSellers} />
+              </label>
+              <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyProduct); }}>New Product</Button>
+            </div>
           </div>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
@@ -1891,6 +1929,15 @@ export function AdminProductsPage() {
                 }
               />
               Select all shown
+            </label>
+            <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[var(--color-border-active)]"
+                checked={bestSellersOnly}
+                onChange={(event) => setBestSellersOnly(event.target.checked)}
+              />
+              Best sellers only ({products.filter((item) => item.isBestSeller).length})
             </label>
             <p className="text-xs text-[var(--color-text-muted)]">
               {filteredProducts.length} of {products.length} products
@@ -1968,7 +2015,10 @@ export function AdminProductsPage() {
                 <Thumbnail asset={product.media?.[0]} alt={product.name} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold text-[var(--color-text)]">{product.styleCode}</p>
+                    <p className="font-semibold text-[var(--color-text)]">
+                      {product.styleCode}
+                      {product.isBestSeller && <span className="ml-2 text-[10px] uppercase tracking-[0.12em] text-amber-700">★ Best seller</span>}
+                    </p>
                     <StatusBadge status={product.status} />
                   </div>
                   <p className="truncate text-sm text-[var(--color-text-muted)]">{product.name}</p>

@@ -1191,11 +1191,27 @@ router.post('/products/bulk', async (req, res) => {
   // Empty string clears the field (a product may legitimately have no
   // sub-category or collection); anything else must be a real id.
   const target = req.body.targetId === '' ? null : String(req.body.targetId || '');
-  if (target !== null && action !== 'delete' && !isObjectId(target)) {
+  const usesTarget = ['category', 'subCategory', 'collection', 'catalogue'].includes(action);
+  if (usesTarget && target !== null && !isObjectId(target)) {
     return sendError(res, 'A valid target is required', 400);
   }
 
   switch (action) {
+    case 'bestSellerOn':
+    case 'bestSellerOff': {
+      const { modifiedCount } = await Product.updateMany(
+        { _id: { $in: ids } },
+        { $set: { isBestSeller: action === 'bestSellerOn' } },
+      );
+      return sendSuccess(res, { count: modifiedCount }, `Updated ${modifiedCount} product(s)`);
+    }
+    case 'bestSellerReplace': {
+      // The uploaded sheet is the whole list. Unflag everything outside it
+      // (rather than clearing all first) so the homepage never sees zero.
+      await Product.updateMany({ isBestSeller: true, _id: { $nin: ids } }, { $set: { isBestSeller: false } });
+      await Product.updateMany({ _id: { $in: ids } }, { $set: { isBestSeller: true } });
+      return sendSuccess(res, { count: ids.length }, `Best sellers replaced with ${ids.length} product(s)`);
+    }
     case 'delete': {
       const { deletedCount } = await Product.deleteMany({ _id: { $in: ids } });
       // A deleted product left behind in a catalogue renders as a hole for the
