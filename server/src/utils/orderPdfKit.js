@@ -10,6 +10,13 @@
 
 import PDFDocument from 'pdfkit';
 import { serializeProduct } from './serializers.js';
+import {
+  diamondWeightFor,
+  goldWeightFor,
+  totalDiamondWeight,
+  totalGoldWeight,
+  totalPieces,
+} from './weights.js';
 import { drawBrandLogo } from './brandLogo.js';
 
 const BRAND = {
@@ -57,6 +64,18 @@ function toEmbeddableImageUrl(url) {
     return url.replace('/upload/', '/upload/f_jpg,q_auto,w_260,h_260,c_fill/');
   }
   return url;
+}
+
+// The photo of the colour that was actually ordered, not the style default.
+// Mirrors variantImage() in client/src/utils/productVariants.js so the emailed
+// PDF shows the same picture as the one the buyer downloads.
+function variantImageUrl(product, goldColor) {
+  const target = String(goldColor || '').trim().toLowerCase();
+  const variant = target
+    ? (product?.colorVariants || []).find((v) => String(v.color || '').trim().toLowerCase() === target)
+    : null;
+  const url = (variant?.views || []).map((view) => view.asset?.secureUrl).find(Boolean);
+  return url || (product?.images || []).find(Boolean) || '';
 }
 
 async function fetchImageBuffer(url) {
@@ -184,15 +203,20 @@ function drawItemCard(doc, item, imageBuffer, xMm, yMm, wMm, hMm) {
     widthMm: detailWidth,
   });
 
+  const goldCarat = item.customization?.goldCarat;
   text(doc, `Qty: ${item.quantity}`, detailsX, yMm + 21, { size: 8.3, color: BRAND.muted });
-  text(doc, `Diamond: ${formatWeight(product.diamondWeight, 'ct')}`, detailsX, yMm + 25.5, {
+  text(doc, `Diamond: ${formatWeight(diamondWeightFor(product), 'ct')}`, detailsX, yMm + 25.5, {
     size: 8.3,
     color: BRAND.muted,
   });
-  text(doc, `Gold: ${formatWeight(product.goldWeight, 'g')}`, detailsX, yMm + 30, {
-    size: 8.3,
-    color: BRAND.muted,
-  });
+  // Karat-aware, so a 9K line does not quote the style's 18K weight.
+  text(
+    doc,
+    `Gold: ${formatWeight(goldWeightFor(product, goldCarat), 'g')}${goldCarat ? ` (${goldCarat})` : ''}`,
+    detailsX,
+    yMm + 30,
+    { size: 8.3, color: BRAND.muted },
+  );
 
   const customization = [
     item.customization?.goldColor,
@@ -241,7 +265,7 @@ export function generateOrderPdfBuffer(order) {
       }));
 
       const imageBuffers = await Promise.all(
-        items.map((item) => fetchImageBuffer(item.product?.images?.[0] || '')),
+        items.map((item) => fetchImageBuffer(variantImageUrl(item.product, item.customization?.goldColor))),
       );
 
       await drawHeader(doc, title, reference);
@@ -258,16 +282,14 @@ export function generateOrderPdfBuffer(order) {
 
       const summaryGap = 4;
       const cardW = (CONTENT_W - summaryGap) / 2;
-      const totalGold = items.reduce(
-        (sum, it) => sum + Number(it.product?.goldWeight || 0) * (Number(it.quantity) || 1),
-        0,
-      );
-      const totalCarats = items.reduce(
-        (sum, it) => sum + Number(it.product?.diamondWeight || 0) * (Number(it.quantity) || 1),
-        0,
-      );
+      // Same helpers as the cart summary and the client PDF: karat-aware gold,
+      // and pieces, not lines.
+      const totalGold = totalGoldWeight(items);
+      const totalCarats = totalDiamondWeight(items);
+      const pieces = totalPieces(items);
+      const variantLabel = `${items.length} ${items.length === 1 ? 'variant' : 'variants'}`;
 
-      drawSummaryCard(doc, MARGIN, 40, cardW, 'Items in order', String(items.length));
+      drawSummaryCard(doc, MARGIN, 40, cardW, `Total pieces (across ${variantLabel})`, String(pieces));
       drawSummaryCard(doc, MARGIN + cardW + summaryGap, 40, cardW, 'Reference', reference);
       drawSummaryCard(doc, MARGIN, 62, cardW, 'Total gold weight', formatWeight(totalGold, 'g'));
       drawSummaryCard(

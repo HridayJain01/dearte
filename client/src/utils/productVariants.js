@@ -67,6 +67,32 @@ export function diamondWeightFor(product) {
   return Number(product?.diamondWeight || product?.weights?.diamond || 0);
 }
 
+/**
+ * Cart/order totals. Every surface that sums a set of lines — the cart summary,
+ * both PDFs, the admin order panel — goes through these, so the buyer's screen
+ * and the document they receive can never quote different figures.
+ * Mirrored on the server in server/src/utils/weights.js.
+ */
+
+/** Pieces, not lines: 3 variants x 4 each is 12 pieces. */
+export function totalPieces(items = []) {
+  return items.reduce((sum, item) => sum + (Number(item?.quantity) || 1), 0);
+}
+
+export function totalGoldWeight(items = []) {
+  return items.reduce(
+    (sum, item) => sum + goldWeightFor(item?.product, item?.customization?.goldCarat) * (Number(item?.quantity) || 1),
+    0,
+  );
+}
+
+export function totalDiamondWeight(items = []) {
+  return items.reduce(
+    (sum, item) => sum + diamondWeightFor(item?.product) * (Number(item?.quantity) || 1),
+    0,
+  );
+}
+
 const LINE_IDENTITY_KEYS = ['goldColor', 'goldCarat', 'diamondQuality', 'size', 'note'];
 
 /**

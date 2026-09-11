@@ -30,6 +30,9 @@ import {
   diamondWeightFor,
   goldColorSwatch,
   goldWeightFor,
+  totalDiamondWeight,
+  totalGoldWeight,
+  totalPieces,
   variantImage,
   variantImages,
 } from '../utils/productVariants';
@@ -1084,16 +1087,11 @@ export function CartPage() {
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
-  const totalDiamondWeight = cart.items.reduce(
-    (sum, item) => sum + diamondWeightFor(item.product) * (item.quantity || 1),
-    0,
-  );
-  // Karat-aware: a 9K line weighs its own 9K figure, not the style's default.
-  const totalGoldWeight = cart.items.reduce(
-    (sum, item) => sum + goldWeightFor(item.product, item.customization?.goldCarat) * (item.quantity || 1),
-    0,
-  );
-  const totalPieces = cart.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  // Karat-aware, and shared with both PDFs and the admin order panel, so the
+  // document the buyer receives quotes exactly what this summary showed them.
+  const diamondWeightTotal = totalDiamondWeight(cart.items);
+  const goldWeightTotal = totalGoldWeight(cart.items);
+  const pieces = totalPieces(cart.items);
 
   const handleDownloadPdf = async () => {
     try {
@@ -1147,21 +1145,21 @@ export function CartPage() {
                   across {cart.items.length} {cart.items.length === 1 ? 'variant' : 'variants'}
                 </span>
               </span>
-              <span className="text-2xl font-light text-[var(--color-primary)] sm:text-3xl">{totalPieces}</span>
+              <span className="text-2xl font-light text-[var(--color-primary)] sm:text-3xl">{pieces}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-sm">
                 Total Diamond Weight
                 <WeightDisclaimerTrigger />
               </span>
-              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{totalDiamondWeight.toFixed(2)} ct</span>
+              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{diamondWeightTotal.toFixed(2)} ct</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-sm">
                 Total Gold Weight
                 <WeightDisclaimerTrigger />
               </span>
-              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{totalGoldWeight.toFixed(2)} g</span>
+              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{goldWeightTotal.toFixed(2)} g</span>
             </div>
           </div>
           <div className="space-y-1.5 border-t border-[var(--color-border)] pt-3 text-[12px] text-[var(--color-text-muted)] sm:pt-4 sm:text-sm">

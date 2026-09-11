@@ -1,7 +1,14 @@
 import jsPDF from 'jspdf';
 import { formatDate, formatWeight } from './formatters';
 import { brandLogoUrl } from './brandLogo';
-import { diamondWeightFor, goldWeightFor, variantImage } from './productVariants';
+import {
+  diamondWeightFor,
+  goldWeightFor,
+  totalDiamondWeight,
+  totalGoldWeight,
+  totalPieces,
+  variantImage,
+} from './productVariants';
 
 const BRAND = {
   charcoal: '#1f1d1a',
@@ -288,11 +295,14 @@ async function generatePdf({ payload, user, filename }) {
   const summaryGap = 4;
   const summaryCardWidth = (contentWidth - summaryGap) / 2;
 
-  // compute totals for gold weight and diamond carats
-  const totalGold = payload.items.reduce((sum, it) => sum + (Number(it.product?.goldWeight || 0) * (Number(it.quantity) || 1)), 0);
-  const totalCarats = payload.items.reduce((sum, it) => sum + (Number(it.product?.diamondWeight || 0) * (Number(it.quantity) || 1)), 0);
+  // The same helpers the cart summary uses, so the PDF can never disagree with
+  // the screen the buyer approved: karat-aware gold, and pieces, not lines.
+  const totalGold = totalGoldWeight(payload.items);
+  const totalCarats = totalDiamondWeight(payload.items);
+  const pieces = totalPieces(payload.items);
+  const variantLabel = `${payload.items.length} ${payload.items.length === 1 ? 'variant' : 'variants'}`;
 
-  drawSummaryCard(doc, margin, summaryY, summaryCardWidth, payload.kind === 'cart' ? 'Items in draft' : 'Items in order', String(payload.items.length));
+  drawSummaryCard(doc, margin, summaryY, summaryCardWidth, `Total pieces (across ${variantLabel})`, String(pieces));
   drawSummaryCard(doc, margin + summaryCardWidth + summaryGap, summaryY, summaryCardWidth, 'Reference', payload.reference);
 
   // additional totals shown beneath the primary summary

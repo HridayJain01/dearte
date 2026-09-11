@@ -6,7 +6,7 @@ import { adminService } from '../services/adminService';
 import { Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
 import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
-import { variantImage } from '../utils/productVariants';
+import { totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
 import { DIAMOND_QUALITY } from '../utils/constants';
 import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader, parseImageFileName } from '../utils/importChunks';
 
@@ -2008,8 +2008,11 @@ export function AdminOrdersPage() {
   const { data = [], isLoading } = useQuery({ queryKey: ['admin-orders'], queryFn: adminService.orders });
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const selectedOrder = data.find((item) => item.id === selectedOrderId) || data[0];
-  const orderTotalDiamondWeight = (selectedOrder?.items || []).reduce((s, it) => s + (Number(it.product?.diamondWeight || 0) * (it.quantity || 1)), 0);
-  const orderTotalGoldWeight = (selectedOrder?.items || []).reduce((s, it) => s + (Number(it.product?.goldWeight || 0) * (it.quantity || 1)), 0);
+  // Shared with the buyer's cart summary and both PDFs — admin must never see a
+  // different figure from the one the buyer approved.
+  const orderTotalDiamondWeight = totalDiamondWeight(selectedOrder?.items);
+  const orderTotalGoldWeight = totalGoldWeight(selectedOrder?.items);
+  const orderTotalPieces = totalPieces(selectedOrder?.items);
   const [statusChangeFlow, setStatusChangeFlow] = useState(null);
   const [statusNotifyOptionalNote, setStatusNotifyOptionalNote] = useState('');
   const [statusSaving, setStatusSaving] = useState(false);
@@ -2195,6 +2198,16 @@ export function AdminOrdersPage() {
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="col-span-2 rounded border border-[var(--color-border)] p-3">
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Total Pieces
+                    <span className="ml-1">
+                      (across {(selectedOrder.items || []).length}{' '}
+                      {(selectedOrder.items || []).length === 1 ? 'variant' : 'variants'})
+                    </span>
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalPieces}</p>
+                </div>
                 <div className="rounded border border-[var(--color-border)] p-3">
                   <p className="text-xs text-[var(--color-text-muted)]">Total Diamond Weight</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalDiamondWeight.toFixed(2)} ct</p>
