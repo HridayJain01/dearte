@@ -35,14 +35,22 @@ export function PopupPromo({ ads }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--scrim-veil)] p-4 backdrop-blur-sm" role="dialog">
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--scrim-veil)] p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Promotion"
+      onKeyDown={(event) => event.key === 'Escape' && dismiss()}
+    >
       <div className="animate-hero-entry relative max-h-[90vh] max-w-lg overflow-hidden border border-[var(--color-accent)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-lifted)]">
         <span className="gold-hairline pointer-events-none absolute inset-x-0 top-0 z-10" aria-hidden />
+        {/* Focus starts on Close so keyboard users can dismiss with Enter or Escape. */}
         <button
           type="button"
+          autoFocus
           onClick={dismiss}
           className="absolute right-3 top-3 z-10 bg-[var(--color-primary)] p-2 text-white transition-colors duration-300 hover:bg-[var(--color-primary-hover)]"
-          aria-label="Close"
+          aria-label="Close promotion"
         >
           <X className="h-5 w-5" />
         </button>

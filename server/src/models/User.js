@@ -25,6 +25,9 @@ const userSchema = new mongoose.Schema(
       collections: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Collection' }], default: [] },
     },
     registeredAt: { type: Date, default: Date.now },
+    // When the buyer ticked the Terms/Privacy box at signup — the proof of
+    // consent the DPDP Act expects us to be able to produce.
+    termsAcceptedAt: { type: Date, default: null },
     kycDocuments: { type: [String], default: [] },
     refreshTokens: { type: [String], default: [] },
     cart: {

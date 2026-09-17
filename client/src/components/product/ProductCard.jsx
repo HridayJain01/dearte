@@ -114,6 +114,7 @@ export function ProductCard({ product, priority = false }) {
                         : updateCart(cartItem.id, { quantity: cartItem.quantity - 1 }),
                     );
                   }}
+                  aria-label="Decrease quantity"
                 >
                   −
                 </button>
@@ -126,6 +127,7 @@ export function ProductCard({ product, priority = false }) {
                     e.preventDefault();
                     ensureAuth(() => updateCart(cartItem.id, { quantity: cartItem.quantity + 1 }));
                   }}
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>

@@ -18,9 +18,9 @@ function useSiteSettings() {
   return data || {};
 }
 
-// Admin may store the WhatsApp number as digits or as a full link.
+// Admin may store the WhatsApp number as digits or as a full link. No fallback
+// number: a placeholder would route buyers' chats to a stranger's phone.
 function whatsappHref(value) {
-  if (!value) return 'https://wa.me/919876543210';
   if (/^https?:\/\//i.test(value)) return value;
   return `https://wa.me/${value.replace(/\D/g, '')}`;
 }
@@ -417,11 +417,11 @@ export function AppLayout() {
             >
               <Search className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
-            <button onClick={() => navigate('/wishlist')} className={`relative ${ICON_BUTTON}`}>
+            <button onClick={() => navigate('/wishlist')} aria-label="Wishlist" className={`relative ${ICON_BUTTON}`}>
               <Heart className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               {wishlist.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[9px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[10px]">{wishlist.items.length}</span> : null}
             </button>
-            <button onClick={() => navigate('/cart')} className={`relative ${ICON_BUTTON}`}>
+            <button onClick={() => navigate('/cart')} aria-label="Cart" className={`relative ${ICON_BUTTON}`}>
               <ShoppingBag className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               {cart.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[9px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[10px]">{cart.items.length}</span> : null}
             </button>
@@ -612,13 +612,17 @@ export function AppLayout() {
           <div>
             <p className="lux-label mb-2 !text-[var(--color-accent)] text-[10px] sm:mb-4 sm:text-xs">Connect</p>
             <div className="space-y-1.5 text-[11px] text-white/60 sm:space-y-3 sm:text-sm">
-              <p className="break-words">{settings.email || 'concierge@deartejewels.com'}</p>
-              <p>{settings.phone || '+91 98765 43210'}</p>
-              <p>{settings.address || 'Opera House, Mumbai'}</p>
+              {/* Only admin-set details render: placeholder contacts and bare
+                  social homepages read as a fake business. */}
+              {settings.email ? <a href={`mailto:${settings.email}`} className="block break-words hover:text-white">{settings.email}</a> : null}
+              {settings.phone ? <a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className="block hover:text-white">{settings.phone}</a> : null}
+              {settings.address ? <p>{settings.address}</p> : null}
               <div className="flex gap-3 pt-1 text-white/80 sm:pt-2">
-                <a href={settings.instagram || 'https://instagram.com'} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">IG</a>
-                <a href={settings.linkedin || 'https://linkedin.com'} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">IN</a>
-                <a href={settings.facebook || 'https://facebook.com'} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">FB</a>
+                {[['instagram', 'IG', 'Instagram'], ['linkedin', 'IN', 'LinkedIn'], ['facebook', 'FB', 'Facebook']].map(([key, short, name]) =>
+                  settings[key] ? (
+                    <a key={key} href={settings[key]} target="_blank" rel="noreferrer" aria-label={`DeArte on ${name}`} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">{short}</a>
+                  ) : null,
+                )}
               </div>
             </div>
           </div>
@@ -635,11 +639,13 @@ export function AppLayout() {
       </footer>
 
       <a
-        href={whatsappHref(settings.whatsapp)}
+        href={settings.whatsapp ? whatsappHref(settings.whatsapp) : undefined}
+        hidden={!settings.whatsapp}
         target="_blank"
         rel="noreferrer"
         aria-label="Chat on WhatsApp"
-        className="safe-bottom-offset fixed bottom-3 right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl transition hover:bg-[#1aa34a] sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
+        // WhatsApp's teal rather than its bright green: white on #25D366 is 2:1.
+        className="safe-bottom-offset fixed bottom-3 right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#128C7E] text-white shadow-xl transition hover:bg-[#075E54] sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
       >
         <span className="sr-only">WhatsApp</span>
         <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true">

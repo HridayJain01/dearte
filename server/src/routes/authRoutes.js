@@ -215,6 +215,10 @@ router.post('/register', credentialLimiter, async (req, res) => {
     return sendError(res, passwordError);
   }
 
+  if (req.body?.acceptedTerms !== true) {
+    return sendError(res, 'Please accept the Terms & Conditions and Privacy Policy');
+  }
+
   const existing = await User.findOne({ email });
   if (existing) {
     return sendError(res, 'An account with this email already exists');
@@ -239,6 +243,7 @@ router.post('/register', credentialLimiter, async (req, res) => {
     role: 'buyer',
     status: 'Inactive',
     registeredAt: new Date(),
+    termsAcceptedAt: new Date(),
     kycDocuments: ['GST Certificate'],
   });
 

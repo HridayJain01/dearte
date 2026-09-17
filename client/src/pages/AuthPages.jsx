@@ -35,7 +35,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const form = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: 'hridaymjain@gmail.com', password: 'password' },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -129,10 +129,19 @@ export function RegisterPage() {
         <Input label="GST Number" {...form.register('gstNumber')} />
         <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <PasswordInput label="Confirm Password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
-        <label className="flex items-center gap-2 text-[12px] text-[var(--color-text-muted)] sm:gap-3 sm:text-sm md:col-span-2">
-          <input type="checkbox" {...form.register('acceptedTerms')} />
-          I accept the terms and conditions.
-        </label>
+        <div className="md:col-span-2">
+          <label className="flex items-start gap-2 text-[12px] text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
+            <input type="checkbox" className="mt-1" {...form.register('acceptedTerms')} />
+            <span>
+              I accept the <Link to="/terms" target="_blank" className="text-[var(--color-primary)] underline">Terms &amp; Conditions</Link> and
+              have read the <Link to="/privacy-policy" target="_blank" className="text-[var(--color-primary)] underline">Privacy Policy</Link>.
+              Order confirmations are sent to the email and mobile number (via WhatsApp) given above.
+            </span>
+          </label>
+          {form.formState.errors.acceptedTerms ? (
+            <span className="mt-1 block text-[11px] text-[var(--color-primary)] sm:text-xs">{form.formState.errors.acceptedTerms.message}</span>
+          ) : null}
+        </div>
         <Button className="mt-1 md:col-span-2" type="submit">Submit Registration</Button>
       </form>
     </AuthShell>

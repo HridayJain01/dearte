@@ -263,7 +263,7 @@ export function EducationPage() {
           <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             {data.sections.map((section, index) => (
               <Panel key={section.title} className="relative overflow-hidden border-[var(--color-border)]/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(250,240,243,0.9))]">
-                <p className="mb-2 text-[9px] uppercase tracking-[0.14em] text-[var(--color-accent)] sm:mb-3 sm:text-xs sm:tracking-[0.2em]">Module {String(index + 1).padStart(2, '0')}</p>
+                <p className="mb-2 text-[9px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:text-xs sm:tracking-[0.2em]">Module {String(index + 1).padStart(2, '0')}</p>
                 <h3 className="text-base font-semibold text-[var(--color-text)] sm:text-2xl">{section.title}</h3>
                 <ul className="mt-2.5 space-y-1.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-4 sm:space-y-3 sm:text-sm sm:leading-7">
                   {section.bullets.map((bullet) => (
@@ -366,7 +366,7 @@ export function EventsPage() {
           <Panel key={event.id}>
             <img src={event.image} alt={event.title} className="h-40 w-full object-cover sm:h-72" loading="lazy" decoding="async" />
             <h3 className="mt-2.5 text-base font-semibold text-[var(--color-text)] sm:mt-5 sm:text-2xl">{event.title}</h3>
-            <p className="mt-1 text-[11px] text-[var(--color-accent)] sm:mt-2 sm:text-sm">{event.date}</p>
+            <p className="mt-1 text-[11px] text-[var(--color-primary)] sm:mt-2 sm:text-sm">{event.date}</p>
             <p className="mt-1.5 text-[12px] leading-relaxed text-text-muted sm:mt-3 sm:text-sm">{event.description}</p>
           </Panel>
         ))}

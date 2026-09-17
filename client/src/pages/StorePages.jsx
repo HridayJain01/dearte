@@ -1056,6 +1056,7 @@ function CartLine({ item, onUpdate, onRemove }) {
             <button
               className="flex h-8 w-8 items-center justify-center text-base text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-9 sm:w-9 sm:text-lg"
               onClick={() => onUpdate(item.id, { quantity: Math.max(1, item.quantity - 1) })}
+              aria-label="Decrease quantity"
             >
               −
             </button>
@@ -1065,6 +1066,7 @@ function CartLine({ item, onUpdate, onRemove }) {
             <button
               className="flex h-8 w-8 items-center justify-center text-base text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-9 sm:w-9 sm:text-lg"
               onClick={() => onUpdate(item.id, { quantity: item.quantity + 1 })}
+              aria-label="Increase quantity"
             >
               +
             </button>
@@ -1251,6 +1253,7 @@ export function WishlistPage() {
         <input
           value={collectionName}
           onChange={(event) => setCollectionName(event.target.value)}
+          aria-label="New collection name"
           className="flex-1 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:px-4 sm:py-3 sm:text-base"
           placeholder="New collection name (e.g. Wedding Season)"
         />
@@ -1401,7 +1404,7 @@ export function CheckoutPage() {
               button React re-typed mid-click) can skip the review step. */}
           <form className="space-y-4 sm:space-y-5" onSubmit={(event) => event.preventDefault()}>
             {step === 0 ? (
-              <textarea {...form.register('notes')} placeholder="Special instructions and delivery preferences" className="min-h-[110px] w-full border border-[var(--color-border)] bg-transparent p-3 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:min-h-[160px] sm:p-4 sm:text-base" />
+              <textarea {...form.register('notes')} aria-label="Special instructions" placeholder="Special instructions and delivery preferences" className="min-h-[110px] w-full border border-[var(--color-border)] bg-transparent p-3 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:min-h-[160px] sm:p-4 sm:text-base" />
             ) : null}
             {step === 1 ? (
               <div className="space-y-4">

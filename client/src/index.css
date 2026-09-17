@@ -16,7 +16,8 @@
 
   /* ── Text ── */
   --color-text: #3A1A28;
-  --color-text-muted: #9A7080;
+  /* #9A7080 read 3.6–4.2:1 on the page surfaces; this clears WCAG AA 4.5:1 on all of them. */
+  --color-text-muted: #7A5463;
 
   /* ── Borders ── */
   --color-border: #E8D5DA;
@@ -84,6 +85,15 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Unlayered on purpose so it beats the `outline-none` utilities on inputs and
+   buttons. The white ring keeps the crimson outline visible on the crimson
+   footer and over hero photos. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #fff;
 }
 
 /* In @layer base so `text-*` / `font-*` utilities still win. Unlayered, this
