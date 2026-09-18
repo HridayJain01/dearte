@@ -306,6 +306,9 @@ export function HeroSlider({ banners }) {
 }
 
 export function ProductRail({ title, description, products, link, bgClass = 'bg-transparent' }) {
+  // A guest-scoped catalogue can leave a rail with nothing in it; a heading over
+  // an empty strip reads as broken, so drop the whole section instead.
+  if (!products?.length) return null;
   return (
     <section className={`py-8 sm:py-20 ${bgClass}`}>
       <div className="page-shell">

@@ -180,6 +180,12 @@ router.get('/products', async (req, res) => {
 
   const filter = { status: 'Active' };
 
+  // "Best Sellers" / "New Arrivals" name a subset of the catalogue, not an
+  // ordering — both the nav links and the dropdown mean "show me only these".
+  // Without this the page sorted the flagged ones first and still listed all 331.
+  if (sort === 'best-sellers') filter.isBestSeller = true;
+  if (sort === 'new-arrivals') filter.isNewArrival = true;
+
   // Every value below is coerced to a primitive string first. Express parses
   // `?status[$ne]=x` into an object, so passing query values straight into
   // a filter would let a caller inject Mongo operators. User text that reaches
