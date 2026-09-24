@@ -9,6 +9,7 @@ export const adminService = {
   createProduct: (payload) => unwrap(api.post('/admin/products', payload)),
   updateProduct: (id, payload) => unwrap(api.put(`/admin/products/${id}`, payload)),
   bulkImportProducts: (payload) => unwrap(api.post('/admin/products/bulk-import', payload)),
+  bulkUpdateProducts: (payload) => unwrap(api.post('/admin/products/bulk-update', payload)),
   deleteProduct: (id) => unwrap(api.delete(`/admin/products/${id}`)),
   bulkProducts: (payload) => unwrap(api.post('/admin/products/bulk', payload)),
   categories: () => unwrap(api.get('/admin/categories')),

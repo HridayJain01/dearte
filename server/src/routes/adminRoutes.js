@@ -39,6 +39,7 @@ import {
 } from '../services/orderWhatsappNotifications.js';
 import { getEmailConfigStatus } from '../services/email/transport.js';
 import { invalidateGuestCatalogueCache } from '../utils/guestCatalogue.js';
+import { parseBulkUpdateRows, syncWeightSpecifications } from '../utils/bulkUpdate.js';
 import {
   normalizeHeader,
   normalizeMetalColorName,
@@ -1174,6 +1175,41 @@ router.post('/products/bulk-import', async (req, res) => {
   } catch (error) {
     return sendError(res, error.message, error.status || 400);
   }
+});
+
+// Values-only update keyed by Style No: no images, no taxonomy, blank cells untouched.
+router.post('/products/bulk-update', async (req, res) => {
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+  if (!rows.length) return sendError(res, 'Spreadsheet rows are required', 400);
+
+  const { updates, errors } = parseBulkUpdateRows(rows);
+  const products = await Product.find({ styleCode: { $in: [...updates.keys()] } });
+  const byStyle = new Map(products.map((doc) => [doc.styleCode, doc]));
+  const notFound = [...updates.keys()].filter((code) => !byStyle.has(code));
+  notFound.forEach((styleCode) => errors.push({ styleCode, reason: 'Style No not found' }));
+
+  let updated = 0;
+  await mapWithConcurrency(products, IMPORT_WRITE_CONCURRENCY, async (product) => {
+    try {
+      const set = updates.get(product.styleCode);
+      for (const [path, value] of Object.entries(set)) product.set(path, value);
+      // Legacy flat fields mirror the 18kt net / diamond figures (see models/Product.js).
+      product.goldWeight = product.weights?.net?.k18 || 0;
+      product.diamondWeight = product.weights?.diamond || 0;
+      product.specifications = syncWeightSpecifications(product.specifications, product.weights);
+      await product.save();
+      updated += 1;
+    } catch (error) {
+      errors.push({ styleCode: product.styleCode, reason: error.message });
+    }
+  });
+
+  invalidateGuestCatalogueCache();
+  return sendSuccess(
+    res,
+    { summary: { totalRows: rows.length, updated, notFound: notFound.length }, errors },
+    errors.length ? `Updated ${updated} style(s), ${errors.length} problem(s)` : `Updated ${updated} style(s)`,
+  );
 });
 
 /*

@@ -1855,6 +1855,33 @@ export function AdminProductsPage() {
     }
   };
 
+  // Style No + any product columns; only filled cells change. See server utils/bulkUpdate.js.
+  const updateValuesFromSheet = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const { rows } = await getWorkbookRows(file);
+      const styleCount = new Set(rows.map(getRowStyleCode).filter(Boolean)).size;
+      if (!styleCount) {
+        toast.error('The sheet needs a "Style No" column.');
+        return;
+      }
+      if (!window.confirm(`Update values for ${styleCount} style(s) from ${file.name}? Blank cells are left unchanged.`)) return;
+      const result = await adminService.bulkUpdateProducts({ rows });
+      const errors = result.errors || [];
+      if (errors.length) {
+        const lines = errors.slice(0, 15).map((e) => `${e.row ? `Row ${e.row} ` : ''}${e.styleCode}: ${e.reason}`);
+        window.alert(`Updated ${result.summary.updated} style(s).\n\n${errors.length} problem(s):\n${lines.join('\n')}${errors.length > 15 ? '\n…' : ''}`);
+      } else {
+        toast.success(`Updated ${result.summary.updated} style(s)`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error.message || 'Could not update from sheet');
+    }
+  };
+
   const saveProduct = async () => {
     const payload = {
       ...form,
@@ -1902,6 +1929,10 @@ export function AdminProductsPage() {
               <label className="inline-flex cursor-pointer items-center border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
                 Replace Best Sellers (Excel)
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={replaceBestSellers} />
+              </label>
+              <label className="inline-flex cursor-pointer items-center border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+                Update Values (Excel)
+                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={updateValuesFromSheet} />
               </label>
               <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyProduct); }}>New Product</Button>
             </div>

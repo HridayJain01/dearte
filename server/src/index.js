@@ -128,6 +128,7 @@ app.use(
 // Most endpoints only ever receive small JSON payloads; the 25mb allowance is
 // scoped to the bulk-import route rather than exposed on every path.
 app.use('/api/admin/products/bulk-import', express.json({ limit: '25mb' }));
+app.use('/api/admin/products/bulk-update', express.json({ limit: '25mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
