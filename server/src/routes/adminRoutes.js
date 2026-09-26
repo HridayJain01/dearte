@@ -638,6 +638,7 @@ function sanitizeSiteSettings(body, current = null) {
     hours: body.hours ?? current?.hours ?? '',
     mapsEmbed: sanitizeEmbedUrl(body.mapsEmbed, current?.mapsEmbed ?? ''),
     newsletterBlurb: body.newsletterBlurb ?? current?.newsletterBlurb ?? '',
+    announcement: String(body.announcement ?? current?.announcement ?? '').trim().slice(0, 200),
     whatsappOperationsNumbers: body.whatsappOperationsNumbers ?? current?.whatsappOperationsNumbers ?? '',
     orderNotificationEmails: body.orderNotificationEmails ?? current?.orderNotificationEmails ?? '',
     guestAccess: sanitizeGuestAccess(body, current),

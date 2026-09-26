@@ -1,14 +1,15 @@
-import { ChevronDown, Download, Search, Share2, Trash2, X } from 'lucide-react';
+import { ChevronDown, Download, MessageCircleMore, Search, Share2, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import { useProducts, useProduct } from '../hooks/useProducts';
-import { useFilters } from '../hooks/useFilters';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
+import { useSiteSettings, whatsappHref } from '../hooks/useSiteSettings';
+import { recentlyViewed, rememberViewed } from '../utils/recentlyViewed';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
 import { Button, EmptyState, LoadingBlock, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
@@ -245,6 +246,29 @@ export function OccasionsPage() {
   );
 }
 
+// Filter-dropdown picks live in the URL rather than app state, so a filtered
+// view can be bookmarked or shared and Back returns to it. The keys differ from
+// the nav's single-value `category`/`collection`/... params, which name the page
+// and its canonical; a ticked checkbox does neither.
+const FILTER_PARAMS = { category: 'cat', subCategory: 'sub', collection: 'coll', occasion: 'occ', metalColor: 'metal' };
+const RANGE_PARAMS = ['diamondMin', 'diamondMax', 'goldMin', 'goldMax'];
+
+function ProductGridSkeleton() {
+  return (
+    <div className="page-shell section-gap">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-4" aria-busy="true" aria-label="Loading products">
+        {Array.from({ length: 8 }, (_, index) => (
+          <div key={index} className="animate-pulse">
+            <div className="h-40 bg-[var(--color-surface-alt)] sm:h-72" />
+            <div className="mt-3 h-2.5 w-1/3 bg-[var(--color-surface-alt)]" />
+            <div className="mt-2 h-3.5 w-3/4 bg-[var(--color-surface-alt)]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ProductListPage() {
   const { category } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -254,18 +278,46 @@ export function ProductListPage() {
   const activeCollection = searchParams.get('collection') || '';
   const activeOccasion = searchParams.get('occasion') || '';
   const activeSearch = searchParams.get('search') || '';
-  const pageScope = `${activeCategory}::${activeSubCategory}::${activeCollection}::${activeOccasion}::${activeSearch}`;
-  const [paging, setPaging] = useState({ scope: pageScope, page: 1 });
-  const { filters, sort, setSort, setFilter, resetFilters } = useFilters();
-  const page = paging.scope === pageScope ? paging.page : 1;
+  const sort = searchParams.get('sort') || '';
+  const page = Math.max(1, Number(searchParams.get('page')) || 1);
+  const filters = useMemo(
+    () => ({
+      ...Object.fromEntries(Object.entries(FILTER_PARAMS).map(([field, key]) => [field, searchParams.getAll(key)])),
+      ...Object.fromEntries(RANGE_PARAMS.map((field) => [field, searchParams.get(field) || ''])),
+    }),
+    [searchParams],
+  );
   const [searchDraft, setSearchDraft] = useState(activeSearch);
 
-  useEffect(() => {
-    const urlSort = searchParams.get('sort');
-    if (urlSort && urlSort !== sort) {
-      setSort(urlSort);
-    }
-  }, [searchParams, setSort, sort]);
+  // Any refinement starts the results again from page 1.
+  const updateParams = (mutate) =>
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete('page');
+        mutate(next);
+        return next;
+      },
+      { replace: true },
+    );
+
+  const setFilter = (field, value) =>
+    updateParams((next) => {
+      const key = FILTER_PARAMS[field] || field;
+      next.delete(key);
+      [].concat(value).filter((item) => item !== '').forEach((item) => next.append(key, item));
+    });
+
+  const setSort = (value) => updateParams((next) => (value ? next.set('sort', value) : next.delete('sort')));
+
+  // Pushed, not replaced, so Back steps through pages like any other site.
+  const setPage = (value) =>
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      if (value > 1) next.set('page', String(value));
+      else next.delete('page');
+      return next;
+    });
 
   // Keep the box in sync when the URL changes from outside (header search,
   // back button, a shared link).
@@ -280,6 +332,7 @@ export function ProductListPage() {
       setSearchParams(
         (previous) => {
           const next = new URLSearchParams(previous);
+          next.delete('page');
           if (searchDraft.trim()) next.set('search', searchDraft.trim());
           else next.delete('search');
           return next;
@@ -313,18 +366,9 @@ export function ProductListPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const dropSearchParam = (key) =>
-    setSearchParams(
-      (previous) => {
-        const next = new URLSearchParams(previous);
-        next.delete(key);
-        return next;
-      },
-      { replace: true },
-    );
+  const dropSearchParam = (key) => updateParams((next) => next.delete(key));
 
   const clearAll = () => {
-    resetFilters();
     setSearchParams(sort ? { sort } : {});
     if (category) navigate('/products');
   };
@@ -388,7 +432,7 @@ export function ProductListPage() {
   // results, filter changes keep the previous list on screen and update in
   // place — see `placeholderData: keepPreviousData` in useProducts.
   if (isLoading || !data) {
-    return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Curating product library..." /></div>;
+    return <ProductGridSkeleton />;
   }
 
   const isRefreshing = isFetching && isPlaceholderData;
@@ -531,10 +575,7 @@ export function ProductListPage() {
           <Select
             className="w-full sm:w-64"
             value={sort}
-            onChange={(value) => {
-              setSort(value);
-              setSearchParams(value ? { sort: value } : {});
-            }}
+            onChange={setSort}
             options={[
               { value: '', label: 'Featured' },
               { value: 'diamond-asc', label: 'Diamond Wt. Low to High' },
@@ -562,13 +603,13 @@ export function ProductListPage() {
         {/* One row at every width — stacked full-width pagers wasted three
             screens' worth of height on a phone. */}
         <div className="flex items-center justify-between gap-3">
-          <Button variant="secondary" onClick={() => setPaging((current) => ({ scope: pageScope, page: Math.max(1, current.scope === pageScope ? current.page - 1 : 1) }))} disabled={page === 1}>
+          <Button variant="secondary" onClick={() => setPage(page - 1)} disabled={page === 1}>
             Previous
           </Button>
           <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
             Page {data.page} of {data.totalPages}
           </p>
-          <Button variant="secondary" onClick={() => setPaging((current) => ({ scope: pageScope, page: Math.min(data.totalPages, current.scope === pageScope ? current.page + 1 : 2) }))} disabled={page >= data.totalPages}>
+          <Button variant="secondary" onClick={() => setPage(Math.min(data.totalPages, page + 1))} disabled={page >= data.totalPages}>
             Next
           </Button>
         </div>
@@ -586,9 +627,19 @@ export function ProductDetailPage() {
   const { data, isLoading } = useProduct(styleCode);
   const { cart, addToCart } = useCart();
   const { wishlist, addToWishlist } = useWishlist();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [wishlistCollectionId, setWishlistCollectionId] = useState('');
+  const settings = useSiteSettings();
+
+  // Read before this visit is recorded, so the rail shows where the buyer came from.
+  const recent = useMemo(
+    () => (data ? recentlyViewed(user?.id).filter((item) => item.id !== data.id).slice(0, 8) : []),
+    [data, user?.id],
+  );
+  useEffect(() => {
+    if (data) rememberViewed(data, user?.id);
+  }, [data, user?.id]);
 
   const sizeChart = useMemo(() => resolveSizeChart(data || {}), [data]);
 
@@ -906,6 +957,15 @@ export function ProductDetailPage() {
             <button
               className="inline-flex items-center gap-2 transition hover:text-[var(--color-primary)]"
               onClick={async () => {
+                // Phones open the OS share sheet (WhatsApp, Messages...); desktops copy.
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: `${displayName} (${data.styleCode})`, url: window.location.href });
+                  } catch {
+                    // Dismissing the sheet rejects; nothing to report.
+                  }
+                  return;
+                }
                 await navigator.clipboard.writeText(window.location.href);
                 toast.success('Product link copied');
               }}
@@ -913,6 +973,29 @@ export function ProductDetailPage() {
               <Share2 className="h-4 w-4" />
               Share
             </button>
+            {settings.whatsapp ? (
+              <a
+                className="inline-flex items-center gap-2 transition hover:text-[var(--color-primary)]"
+                href={(() => {
+                  // Style code and the combination being viewed, so the sales team
+                  // can answer without asking which piece the buyer means.
+                  const url = new URL(whatsappHref(settings.whatsapp));
+                  const combination = [activeLine.goldColor, activeLine.goldCarat, activeLine.size && `Size ${activeLine.size}`]
+                    .filter(Boolean)
+                    .join(', ');
+                  url.searchParams.set(
+                    'text',
+                    `Hi, I'd like to enquire about ${displayName} (Style ${data.styleCode})${combination ? ` in ${combination}` : ''}.\n${window.location.href}`,
+                  );
+                  return url.toString();
+                })()}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MessageCircleMore className="h-4 w-4" />
+                Enquire on WhatsApp
+              </a>
+            ) : null}
           </div>
 
         </div>
@@ -927,6 +1010,8 @@ export function ProductDetailPage() {
         </div>
       </section>
 
+      <RecentlyViewedRail products={recent} />
+
       <SizeChartModal
         chart={sizeChart}
         open={isSizeChartOpen}
@@ -938,6 +1023,22 @@ export function ProductDetailPage() {
           setIsSizeChartOpen(false);
         }}
       />
+    </section>
+  );
+}
+
+function RecentlyViewedRail({ products }) {
+  if (!products.length) return null;
+  return (
+    <section className="pt-6 sm:pt-16">
+      <SectionHeading eyebrow="Recently Viewed" title="Pieces you looked at" />
+      <div className="hide-scrollbar snap-rail flex gap-3 overflow-x-auto pb-4 sm:gap-6">
+        {products.map((product) => (
+          <div key={product.id} className="min-w-[160px] max-w-[160px] flex-none snap-start sm:min-w-[280px] sm:max-w-[280px]">
+            <ProductCard product={product} />
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -1086,6 +1187,10 @@ function CartLine({ item, onUpdate, onRemove }) {
 
 export function CartPage() {
   const { cart, updateCart, removeFromCart } = useCart();
+  const { user } = useAuth();
+  // Styles already in the cart are left out: the rail is for what to add next.
+  const inCart = new Set(cart.items.map((item) => item.product?.id));
+  const recent = recentlyViewed(user?.id).filter((product) => !inCart.has(product.id)).slice(0, 8);
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
@@ -1118,6 +1223,7 @@ export function CartPage() {
           description="Start with collections, new arrivals, or best sellers to curate your next buyer order."
           action={<Link to="/products"><Button>Browse Collections</Button></Link>}
         />
+        <RecentlyViewedRail products={recent} />
       </section>
     );
   }
@@ -1187,8 +1293,33 @@ export function CartPage() {
           </Link>
         </Panel>
       </div>
+      <RecentlyViewedRail products={recent} />
     </section>
   );
+}
+
+// Opens cleanly in Excel and Sheets: every cell quoted, and a BOM so ₹/é
+// survive Excel's default encoding.
+function downloadWishlistCsv(items, collectionName, fileName) {
+  const rows = [
+    ['Collection', 'Style Code', 'Name', 'Category', 'Diamond Wt (ct)', 'Gold Colours', 'Gold Karats', 'Link'],
+    ...items.map((item) => [
+      collectionName(item.collectionId),
+      item.product.styleCode,
+      item.product.name,
+      item.product.category || '',
+      diamondWeightFor(item.product) || '',
+      (item.product.customizationOptions?.goldColors || []).join(' / '),
+      (item.product.customizationOptions?.goldCarats || []).join(' / '),
+      `${window.location.origin}/products/${item.product.styleCode}`,
+    ]),
+  ];
+  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }));
+  link.download = `${fileName.replace(/[^\w-]+/g, '-')}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 const WISHLIST_TAB =
@@ -1246,6 +1377,22 @@ export function WishlistPage() {
             </button>
           );
         })}
+        {visibleItems.length ? (
+          <Button
+            variant="ghost"
+            icon={Download}
+            className="ml-auto"
+            onClick={() =>
+              downloadWishlistCsv(
+                visibleItems,
+                getCollectionName,
+                activeTab === 'all' ? 'dearte-wishlist' : `dearte-${getCollectionName(activeTab)}`,
+              )
+            }
+          >
+            Export CSV
+          </Button>
+        ) : null}
       </div>
 
       {/* Create collection */}
@@ -1498,9 +1645,49 @@ export function CataloguePage() {
 
 function OrderHistoryRow({ order, downloading, onDownload }) {
   const queryClient = useQueryClient();
+  const { refreshCart } = useCart();
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [drafts, setDrafts] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [reordering, setReordering] = useState(false);
+
+  // One add per style carrying every ordered combination, then a single cart
+  // refresh, so a 20-line order is one toast rather than twenty. Sequential:
+  // each add rewrites the same cart document on the server. Styles since
+  // removed from the catalogue are skipped and counted.
+  const handleOrderAgain = async () => {
+    const byProduct = new Map();
+    let skipped = 0;
+    for (const item of order.items) {
+      if (!item.product?.id) {
+        skipped += 1;
+        continue;
+      }
+      const { goldColor, goldCarat, size, note } = item.customization || {};
+      const lines = byProduct.get(item.product.id) || [];
+      lines.push({ goldColor, goldCarat, size, note, quantity: item.quantity });
+      byProduct.set(item.product.id, lines);
+    }
+
+    setReordering(true);
+    for (const [productId, lines] of byProduct) {
+      try {
+        await userService.addToCart({ productId, lines });
+      } catch {
+        skipped += lines.length;
+      }
+    }
+    await refreshCart();
+    setReordering(false);
+
+    if (skipped === order.items.length) {
+      toast.error('None of these pieces can be ordered any more.');
+      return;
+    }
+    toast.success(skipped ? `Added to cart. ${skipped} unavailable item(s) skipped.` : 'Order added to your cart');
+    navigate('/cart');
+  };
 
   const setDraft = (itemId, value) =>
     setDrafts((current) => ({ ...current, [itemId]: value }));
@@ -1551,6 +1738,9 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
               onClick={() => onDownload(order)}
             >
               PDF
+            </Button>
+            <Button variant="ghost" loading={reordering} onClick={handleOrderAgain}>
+              Order again
             </Button>
           </div>
         </td>

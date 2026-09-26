@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Info } from 'lucide-react';
 
-export function WeightDisclaimerTrigger({ className = '' }) {
+const WEIGHT_NOTE = 'All weights mentioned are approximate and intended for reference only. Final product weight may vary.';
+
+export function WeightDisclaimerTrigger({ className = '', text = WEIGHT_NOTE, label = 'View weight disclaimer' }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const show = () => setIsOpen(true);
@@ -25,7 +27,7 @@ export function WeightDisclaimerTrigger({ className = '' }) {
         onFocus={show}
         onBlur={hide}
         className="inline-flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors duration-300"
-        aria-label="View weight disclaimer"
+        aria-label={label}
       >
         <Info className="h-4 w-4" />
       </button>
@@ -37,7 +39,7 @@ export function WeightDisclaimerTrigger({ className = '' }) {
         }`}
       >
         <span className="gold-hairline pointer-events-none absolute inset-x-0 top-0 h-px bg-[var(--color-accent)]" aria-hidden="true" />
-        All weights mentioned are approximate and intended for reference only. Final product weight may vary.
+        {text}
       </span>
     </span>
   );

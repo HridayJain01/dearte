@@ -6,7 +6,6 @@ import { Toaster } from 'react-hot-toast';
 import App from './App.jsx';
 import './index.css';
 import { AuthProvider } from './context/AuthContext.jsx';
-import { InventoryProvider } from './context/InventoryContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
 import { WishlistProvider } from './context/WishlistContext.jsx';
 
@@ -24,16 +23,19 @@ createRoot(document.getElementById('root')).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <InventoryProvider>
-            <CartProvider>
-              <WishlistProvider>
-                <App />
-                <Toaster position="top-right" />
-              </WishlistProvider>
-            </CartProvider>
-          </InventoryProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <App />
+              <Toaster position="top-right" />
+            </WishlistProvider>
+          </CartProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// Production only: a service worker in dev would cache Vite's modules and fight HMR.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+}

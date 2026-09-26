@@ -43,6 +43,7 @@ export function ProductCard({ product, priority = false }) {
   const otherVariantCount = productLines.length - (cartItem ? 1 : 0);
 
   const swatches = (options.goldColors?.length ? options.goldColors : ['Yellow Gold']).slice(0, 5);
+  const [image, hoverImage] = variantImages(product, quickAddCustomization.goldColor);
 
   const ensureAuth = async (action) => {
     if (!isAuthenticated) {
@@ -61,15 +62,29 @@ export function ProductCard({ product, priority = false }) {
       <Link to={`/products/${product.styleCode}`} className="block relative">
         <div className="relative h-40 overflow-hidden bg-[var(--color-surface)] sm:h-72">
           <img
-            src={variantImages(product, quickAddCustomization.goldColor)[0]}
+            src={image}
             alt={`${displayName} — style ${product.styleCode}`}
             width="320"
             height="288"
             loading={priority ? 'eager' : 'lazy'}
             fetchPriority={priority ? 'high' : 'auto'}
             decoding="async"
-            className="h-full w-full object-contain p-3 transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06] sm:p-5"
+            className={`h-full w-full object-contain p-3 transition duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06] sm:p-5 ${hoverImage ? 'group-hover:opacity-0' : ''}`}
           />
+          {/* Second view cross-fades in on hover. Tailwind's `hover:` only fires on
+              hover-capable pointers, so touch screens keep the first photo. */}
+          {hoverImage ? (
+            <img
+              src={hoverImage}
+              alt=""
+              aria-hidden
+              width="320"
+              height="288"
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full bg-[var(--color-surface)] object-contain p-3 opacity-0 transition duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.06] group-hover:opacity-100 sm:p-5"
+            />
+          ) : null}
           <button
             className="absolute right-1.5 top-1.5 z-10 p-1.5 text-[var(--color-primary)] transition duration-300 hover:scale-110 hover:[&>svg]:fill-[var(--color-primary)] sm:right-4 sm:top-3 sm:p-2"
             aria-label="Add to wishlist"

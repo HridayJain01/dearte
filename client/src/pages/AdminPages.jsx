@@ -102,6 +102,7 @@ const emptySiteSettings = {
   hours: '',
   mapsEmbed: '',
   newsletterBlurb: '',
+  announcement: '',
   guestAccess: {
     showPopupPromo: true,
     showHeroSlider: true,
@@ -3076,6 +3077,7 @@ export function AdminConfigPage() {
         </div>
         <Field label="Address"><textarea className={textareaInput} value={siteSettings.address} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), address: event.target.value }))} /></Field>
         <Field label="Maps Embed"><input className={textInput} value={siteSettings.mapsEmbed} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), mapsEmbed: event.target.value }))} /></Field>
+        <Field label="Announcement bar (blank hides it)"><input className={textInput} maxLength={200} value={siteSettings.announcement || ''} placeholder="e.g. Diwali orders close 15 Oct" onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), announcement: event.target.value }))} /></Field>
         <Field label="Newsletter blurb"><textarea className={textareaInput} value={siteSettings.newsletterBlurb} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), newsletterBlurb: event.target.value }))} /></Field>
         <Button onClick={async () => {
           await adminService.updateConfig({ siteSettings });

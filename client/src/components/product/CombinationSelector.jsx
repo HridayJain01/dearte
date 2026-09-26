@@ -2,7 +2,8 @@ import { Copy, Minus, Plus, Ruler, Trash2 } from 'lucide-react';
 import { Select } from '../ui/Select';
 import { sizeLabel } from '../../data/sizeMaster';
 import { goldColorSwatch } from '../../utils/productVariants';
-import { DIAMOND_QUALITY } from '../../utils/constants';
+import { DIAMOND_QUALITY, DIAMOND_QUALITY_NOTE } from '../../utils/constants';
+import { WeightDisclaimerTrigger } from '../ui/WeightDisclaimerTrigger';
 
 /**
  * The combinations queued for a single add-to-cart.
@@ -152,7 +153,10 @@ export function CombinationSelector({
                   onChange={(goldCarat) => updateLine(index, { goldCarat })}
                 />
                 <div>
-                  <p className="mb-1 text-[11px] text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">Diamond Quality</p>
+                  <p className="mb-1 flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">
+                    Diamond Quality
+                    <WeightDisclaimerTrigger text={DIAMOND_QUALITY_NOTE} label="What does this diamond quality mean?" />
+                  </p>
                   <div className="flex min-h-9 items-center border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 sm:min-h-12 sm:px-4 sm:py-3">
                     <p className="text-[13px] text-[var(--color-text)] sm:text-sm">{DIAMOND_QUALITY}</p>
                   </div>

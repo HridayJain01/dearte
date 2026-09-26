@@ -67,3 +67,8 @@ export const TRUST_LINKS = [
  * spec rather than offered as a choice anywhere in the storefront or admin.
  */
 export const DIAMOND_QUALITY = 'VVS-VS EF';
+
+// Shown beside the quality wherever a buyer picks a combination; the FAQ
+// (server/src/data/seed.js) carries the same explanation.
+export const DIAMOND_QUALITY_NOTE =
+  'VVS–VS clarity: any inclusions are invisible to the naked eye. E–F colour: colourless, near the top of the D–Z scale.';

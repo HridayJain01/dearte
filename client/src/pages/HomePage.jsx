@@ -1,6 +1,6 @@
 import { useHomePage } from '../hooks/useProducts';
 import { useAuth } from '../hooks/useAuth';
-import { LoadingBlock } from '../components/ui/Primitives';
+import { Button, EmptyState, LoadingBlock } from '../components/ui/Primitives';
 import {
   BrandExpressionFrame,
   CollectionsShowcase,
@@ -15,16 +15,31 @@ import {
 import { PopupPromo } from '../components/home/PopupPromo';
 import { Seo } from '../components/seo/Seo';
 import { routeSeo } from '../utils/seoRoutes';
+import { recentlyViewed } from '../utils/recentlyViewed';
 
 export function HomePage() {
   const { user } = useAuth();
-  const { data, isLoading } = useHomePage();
+  const { data, isLoading, isFetching, refetch } = useHomePage();
 
   if (isLoading) {
     return (
       <div className="page-shell py-10 sm:py-16">
         <LoadingBlock />
       </div>
+    );
+  }
+
+  // Offline or API down. This is where the installed app opens, so it has to
+  // say something rather than crash to a blank screen on `data.siteSettings`.
+  if (!data) {
+    return (
+      <section className="page-shell section-gap">
+        <EmptyState
+          title="We couldn't reach the collection."
+          description="Check your connection and try again."
+          action={<Button onClick={() => refetch()} loading={isFetching}>Try again</Button>}
+        />
+      </section>
     );
   }
 
@@ -60,6 +75,12 @@ export function HomePage() {
           bgClass="bg-[var(--color-surface-alt)]"
         />
       )}
+      {/* Personal to this browser, so it needs no admin toggle; empty on a first visit. */}
+      <ProductRail
+        title="Recently Viewed"
+        description="Pick up where you left off."
+        products={recentlyViewed(user?.id).slice(0, 8)}
+      />
       {show('showTestimonials') && <TestimonialRail testimonials={data.testimonials} />}
       {show('showEvents') && <EventsRail events={data.events} />}
       {show('showTrustedBrands') && (

@@ -199,6 +199,12 @@ export const seedData = {
       answer:
         'Sales reps can assign curated catalogues to specific buyers, and only those buyers can view them in their account.',
     },
+    {
+      id: 'faq-4',
+      question: `What does the diamond quality ${DIAMOND_QUALITY} mean?`,
+      answer:
+        'Every DeArte piece uses one house quality. VVS–VS is the clarity grade: any inclusions are invisible to the naked eye and hard to find even under 10× magnification. EF is the colour grade: E and F sit near the top of the D–Z scale, so the stones read as colourless.',
+    },
   ],
   staticPages: {
     'privacy-policy': {

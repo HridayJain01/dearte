@@ -316,7 +316,7 @@ export function ProductRail({ title, description, products, link, bgClass = 'bg-
           eyebrow="Curated Edit"
           title={title}
           description={description}
-          action={<RailLink to={link}>View All</RailLink>}
+          action={link ? <RailLink to={link}>View All</RailLink> : null}
         />
         <div className="hide-scrollbar snap-rail flex gap-3 overflow-x-auto pb-4 sm:gap-6">
           {products.map((product, index) => (

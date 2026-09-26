@@ -13,6 +13,8 @@ const siteSettingsSchema = new mongoose.Schema(
     hours: { type: String, default: '' },
     mapsEmbed: { type: String, default: '' },
     newsletterBlurb: { type: String, default: '' },
+    /** One line shown in a bar above the storefront nav; blank hides the bar. */
+    announcement: { type: String, default: '' },
     /** WhatsApp ops: comma-separated admin numbers who receive PDF copies when orders are placed (E.164 digits or local with default country prefix). */
     whatsappOperationsNumbers: { type: String, default: '' },
     /** Email ops: comma-separated admin emails who receive a copy of each new order. */

@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "DeArte Jewellery",
   "short_name": "DeArte",
   "description": "B2B lab-grown diamond jewellery catalogue for retailers and brands.",
@@ -7,8 +8,8 @@
   "background_color": "#FAF0F3",
   "theme_color": "#6B0F2E",
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
