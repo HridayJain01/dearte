@@ -22,13 +22,7 @@ import {
 } from '../utils/serializers.js';
 import { sanitizeSiteSettingsForPublic } from '../utils/siteSettingsPublic.js';
 import { optionalAuth, requireAuth } from '../middleware/auth.js';
-import {
-  productAccessFilter,
-  canAccessProduct,
-  filterCategoriesForUser,
-  filterCollectionsForUser,
-  allowedCollectionIds,
-} from '../utils/catalogAccess.js';
+import { productAccessFilter } from '../utils/catalogAccess.js';
 import { getGuestCatalogue } from '../utils/guestCatalogue.js';
 import {
   asString,
@@ -339,7 +333,7 @@ router.get('/products', async (req, res) => {
       .limit(pageSize),
     Product.countDocuments(scopedFilter),
     Category.find({ active: true }).sort({ name: 1 }),
-    Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 }),
+    Collection.find({ active: true }).select('name').sort({ name: 1 }),
     MetalOption.find({ active: true }).sort({ name: 1 }),
     SubCategory.find({ active: true }).populate('category').sort({ name: 1 }),
     Product.distinct('occasions', facetFilter('occasions')),
@@ -355,30 +349,13 @@ router.get('/products', async (req, res) => {
   const availableCollectionIds = toIdSet(facetCollectionIds);
   const availableMetalColorIds = toIdSet(facetMetalColorIds);
 
-  // Scope the filter facets to the buyer's access. Categories that only contain
-  // a granted collection are kept so the buyer can still navigate to them.
-  const collections = filterCollectionsForUser(req.user, allCollections, req.guestCatalogue).filter((item) =>
-    availableCollectionIds.has(String(item._id)),
-  );
-  const grantedCollectionIds = new Set(
-    req.user ? allowedCollectionIds(req.user) : (req.guestCatalogue?.collections || []).map(String),
-  );
-  const extraCategoryIds = allCollections
-    .filter((col) => grantedCollectionIds.has(String(col._id)))
-    .map((col) => String(col.category?._id || col.category || ''));
-  const categories = filterCategoriesForUser(req.user, allCategories, extraCategoryIds, req.guestCatalogue).filter(
-    (cat) => availableCategoryIds.has(String(cat._id)),
-  );
-  const visibleCategoryIds = new Set(categories.map((cat) => String(cat._id)));
-
-  // A guest may be granted a sub-category directly (without its parent category),
-  // so surface those in the facet too.
-  const guestSubCategoryIds = new Set((req.guestCatalogue?.subCategories || []).map(String));
-  const subCategories = allSubCategories.filter(
-    (sub) =>
-      availableSubCategoryIds.has(String(sub._id)) &&
-      (visibleCategoryIds.has(String(sub.category?._id)) || guestSubCategoryIds.has(String(sub._id))),
-  );
+  // No second access check here: the distinct() calls above already ran through
+  // accessFilter, so these ids ARE the taxonomy behind the products this visitor
+  // can see. Keeping one source of truth is why a facet can't list a category
+  // whose products are hidden, or hide a category whose products are shown.
+  const collections = allCollections.filter((item) => availableCollectionIds.has(String(item._id)));
+  const categories = allCategories.filter((cat) => availableCategoryIds.has(String(cat._id)));
+  const subCategories = allSubCategories.filter((sub) => availableSubCategoryIds.has(String(sub._id)));
 
   return sendSuccess(res, {
     items: items.map(serializeProduct),
@@ -419,17 +396,15 @@ router.get('/products/best-sellers', async (req, res) => {
 });
 
 router.get('/products/:styleCode', async (req, res) => {
-  const product = await Product.findOne({ styleCode: req.params.styleCode }).populate(productPopulate);
+  const access = productAccessFilter(req.user, req.guestCatalogue);
+  // A product outside the visitor's catalogue is a 404, same as a bad style code.
+  const product = await Product.findOne(
+    withAccess({ styleCode: req.params.styleCode }, access),
+  ).populate(productPopulate);
   if (!product) {
     return sendError(res, 'Product not found', 404);
   }
 
-  // Hide products outside the buyer's granted catalogue (same as not found).
-  if (!canAccessProduct(req.user, product, req.guestCatalogue)) {
-    return sendError(res, 'Product not found', 404);
-  }
-
-  const access = productAccessFilter(req.user, req.guestCatalogue);
   const related = await Product.find(
     withAccess(
       {
@@ -446,19 +421,6 @@ router.get('/products/:styleCode', async (req, res) => {
   return sendSuccess(res, { ...serializeProduct(product), relatedProducts: related.map(serializeProduct) });
 });
 
-router.get('/categories', requireAuth, async (req, res) => {
-  const [categories, collections] = await Promise.all([
-    Category.find({ active: true }).sort({ name: 1 }),
-    Collection.find({ active: true }).select('category').sort({ name: 1 }),
-  ]);
-  const grantedCollectionIds = new Set(allowedCollectionIds(req.user));
-  const extraCategoryIds = collections
-    .filter((col) => grantedCollectionIds.has(String(col._id)))
-    .map((col) => String(col.category?._id || col.category || ''));
-  const visible = filterCategoriesForUser(req.user, categories, extraCategoryIds);
-  return sendSuccess(res, visible.map(serializeTaxonomy));
-});
-
 // Powers the "Products" nav dropdown (category -> sub category). Open to guests
 // so the menu is never empty before sign-in — the category names are already
 // public on the products page tiles, and /products still scopes the results
@@ -469,28 +431,16 @@ router.get('/nav/categories', async (req, res) => {
   const access = productAccessFilter(req.user, req.guestCatalogue);
   const stockedFilter = withAccess({ status: 'Active' }, access);
 
-  const [categories, subCategories, collections, stockedCategoryIds, stockedSubCategoryIds] = await Promise.all([
+  const [categories, subCategories, stockedCategoryIds, stockedSubCategoryIds] = await Promise.all([
     Category.find({ active: true }).sort({ name: 1 }),
     SubCategory.find({ active: true }).populate('category').sort({ name: 1 }),
-    Collection.find({ active: true }).select('category'),
     Product.distinct('category', stockedFilter),
     Product.distinct('subCategory', stockedFilter),
   ]);
 
   const stockedCategories = new Set(stockedCategoryIds.filter(Boolean).map(String));
   const stockedSubCategories = new Set(stockedSubCategoryIds.filter(Boolean).map(String));
-
-  // A buyer granted only a collection can still reach that collection's parent
-  // category, so keep those parents in the menu (same rule as /categories).
-  const grantedCollectionIds = new Set(req.user ? allowedCollectionIds(req.user) : []);
-  const extraCategoryIds = collections
-    .filter((col) => grantedCollectionIds.has(String(col._id)))
-    .map((col) => String(col.category?._id || col.category || ''));
-
-  const granted = req.user
-    ? filterCategoriesForUser(req.user, categories, extraCategoryIds)
-    : categories;
-  const visible = granted.filter((cat) => stockedCategories.has(String(cat._id)));
+  const visible = categories.filter((cat) => stockedCategories.has(String(cat._id)));
 
   return sendSuccess(
     res,
@@ -507,8 +457,13 @@ router.get('/nav/categories', async (req, res) => {
 });
 
 router.get('/collections', requireAuth, async (req, res) => {
-  const all = await Collection.find({ active: true }).populate(['category', 'subCategory']).sort({ name: 1 });
-  const collections = filterCollectionsForUser(req.user, all);
+  // Same rule as everywhere else: list the collections that still have a product
+  // this user can see, so the menu never links to an empty results page.
+  const access = productAccessFilter(req.user, req.guestCatalogue);
+  const stockedIds = await Product.distinct('collection', withAccess({ status: 'Active' }, access));
+  const collections = await Collection.find({ active: true, _id: { $in: stockedIds.filter(Boolean) } })
+    .populate(['category', 'subCategory'])
+    .sort({ name: 1 });
   return sendSuccess(
     res,
     collections.map((item) => ({

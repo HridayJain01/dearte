@@ -137,6 +137,59 @@ a {
   box-shadow: var(--shadow-soft);
 }
 
+/* Native checkbox, brand-dressed: a sharp hairline square that fills crimson and
+   draws a gold tick when checked. Styling the element itself (rather than hiding
+   it behind a div) keeps the label click target, keyboard focus and screen-reader
+   behaviour for free. Layered so a caller can still resize it with utilities. */
+@layer components {
+  input[type='checkbox'] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease-lux),
+      border-color var(--dur-quick) var(--ease-lux);
+  }
+
+  input[type='checkbox']::after {
+    content: '';
+    width: 0.52rem;
+    height: 0.28rem;
+    border-left: 1.5px solid var(--color-accent);
+    border-bottom: 1.5px solid var(--color-accent);
+    transform: translateY(-1px) rotate(-45deg) scale(0.4);
+    opacity: 0;
+    transition: opacity var(--dur-quick) var(--ease-lux),
+      transform var(--dur-quick) var(--ease-lux);
+  }
+
+  input[type='checkbox']:hover:not(:checked) {
+    border-color: var(--color-border-active);
+  }
+
+  input[type='checkbox']:checked {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  input[type='checkbox']:checked::after {
+    opacity: 1;
+    transform: translateY(-1px) rotate(-45deg) scale(1);
+  }
+
+  input[type='checkbox']:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
 /* Layered so a caller can retune the size per breakpoint (`lux-label
    text-[10px]`) without needing an `!` override. */
 @layer components {
