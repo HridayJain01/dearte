@@ -11,6 +11,7 @@ import { aiFailure, aiStatus } from '../services/ai/llm.js';
 import { getAiSettings, saveAiSettings } from '../services/ai/settings.js';
 import { recentRuns, triggerClientRebuild } from '../services/ai/jobs.js';
 import { generateDraftNow, serializePost } from '../services/ai/blog.js';
+import { runPhotoIndexNow } from '../services/ai/photoSearch.js';
 
 const router = express.Router();
 
@@ -54,6 +55,15 @@ router.get('/status', async (_req, res) => {
 router.put('/settings', async (req, res) => {
   try {
     return sendSuccess(res, await saveAiSettings(req.body || {}), 'AI settings saved');
+  } catch (error) {
+    return aiFailure(res, error);
+  }
+});
+
+// A manual batch, whether or not the nightly job is switched on.
+router.post('/photo-index/run', async (_req, res) => {
+  try {
+    return sendSuccess(res, await runPhotoIndexNow());
   } catch (error) {
     return aiFailure(res, error);
   }

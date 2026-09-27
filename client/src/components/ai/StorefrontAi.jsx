@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { LoaderCircle, Sparkles } from 'lucide-react';
+import { Camera, LoaderCircle, Sparkles, X } from 'lucide-react';
 import { Button, Panel } from '../ui/Primitives';
+import { ProductCard } from '../product/ProductCard';
 import { useAiFeatures } from '../../hooks/useAiFeatures';
 import { useCart } from '../../hooks/useCart';
 import { aiErrorMessage, aiService } from '../../services/aiService';
@@ -123,5 +124,114 @@ export function SmartSearchButton({ query, onApply }) {
       {busy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
       <span className="max-sm:sr-only">Smart search</span>
     </button>
+  );
+}
+
+// Phones take 3–12 MB photos; the model needs a fraction of that. Shrinking in
+// the browser keeps the upload small and under the API's 1 MB body limit.
+async function shrinkPhoto(file, maxSide = 768) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close?.();
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+function PhotoResults({ result, preview, onClose }) {
+  const closeRef = useRef(null);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (event) => event.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--scrim-veil)] p-3 sm:p-8" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pieces similar to your photo"
+        className="w-full max-w-6xl border border-[var(--color-border)] bg-[var(--color-primary-bg)] p-4 sm:p-6"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start gap-4">
+          {preview ? <img src={preview} alt="Your photo" className="h-16 w-16 flex-none border border-[var(--color-border)] object-cover sm:h-20 sm:w-20" /> : null}
+          <div className="min-w-0 flex-1">
+            <p className="lux-label text-[10px] sm:text-xs">Shop by photo</p>
+            <h2 className="lux-heading mt-1 text-xl sm:text-3xl">{result.items.length ? 'Closest pieces in the catalogue' : 'No close match yet'}</h2>
+            {result.seen?.length ? (
+              <p className="mt-1 text-[12px] text-[var(--color-text-muted)] sm:text-sm">We saw: {result.seen.join(' · ')}</p>
+            ) : null}
+          </div>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close" className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {result.items.length ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-6 lg:grid-cols-4">
+            {result.items.map((product) => <ProductCard key={product.id} product={product} />)}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-[var(--color-text-muted)]">{result.message || 'Try a clearer photo of a single piece, or use the filters.'}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Camera button next to the products search box: a photo in, similar styles out. */
+export function PhotoSearchButton() {
+  const features = useAiFeatures();
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [preview, setPreview] = useState('');
+  const close = useCallback(() => setResult(null), []);
+  if (!features.photoSearch) return null;
+
+  const onPick = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    try {
+      let image;
+      try {
+        image = await shrinkPhoto(file);
+      } catch {
+        toast.error("Couldn't read that photo. Try a JPEG or PNG.");
+        return;
+      }
+      const found = await aiService.photoSearch(image);
+      setPreview(image);
+      setResult(found);
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'Photo search is unavailable right now.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        title="Find pieces like a photo"
+        aria-label="Search by photo"
+        className={SEARCH_SIDE_BUTTON}
+      >
+        {busy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Camera className="h-4 w-4" aria-hidden />}
+        <span className="max-sm:sr-only">Photo</span>
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
+      {result ? <PhotoResults result={result} preview={preview} onClose={close} /> : null}
+    </>
   );
 }

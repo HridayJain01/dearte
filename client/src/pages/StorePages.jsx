@@ -19,7 +19,7 @@ import { Seo } from '../components/seo/Seo';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
-import { RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
+import { PhotoSearchButton, RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
 import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
 import { formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
@@ -554,8 +554,9 @@ export function ProductListPage() {
               </button>
             ) : null}
           </div>
-          {/* Render nothing unless switched on in AI Studio. */}
+          {/* Both render nothing unless switched on in AI Studio. */}
           <SmartSearchButton query={searchDraft} onApply={applySmartSearch} />
+          <PhotoSearchButton />
         </div>
         <ProductFilters
           filters={data.filters}

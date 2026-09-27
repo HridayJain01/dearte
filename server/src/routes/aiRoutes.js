@@ -16,6 +16,7 @@ import { aiFailure } from '../services/ai/llm.js';
 import { runBlogCron } from '../services/ai/blog.js';
 import { runNudgesCron, suggestionsForUser } from '../services/ai/reorder.js';
 import { parseSearch } from '../services/ai/search.js';
+import { runPhotoIndexCron, searchByPhoto } from '../services/ai/photoSearch.js';
 
 const router = express.Router();
 
@@ -47,6 +48,23 @@ router.post('/search', aiLimiter, requireFeature('smartSearch'), async (req, res
   }
 });
 
+const photoLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, data: null, message: 'Too many photo searches. Please wait a minute.' },
+});
+
+// Signed-in buyers only: each call sends an image to the vision model.
+router.post('/photo-search', requireAuth, photoLimiter, requireFeature('photoSearch'), async (req, res) => {
+  try {
+    return sendSuccess(res, await searchByPhoto(req.body?.image, req.user));
+  } catch (error) {
+    return aiFailure(res, error);
+  }
+});
+
 router.get('/reorder-suggestions', requireAuth, requireFeature('restock'), async (req, res) => {
   try {
     return sendSuccess(res, await suggestionsForUser(req.user));
@@ -59,6 +77,7 @@ router.get('/reorder-suggestions', requireAuth, requireFeature('restock'), async
 // secret configured they refuse to run at all, so they can never be public.
 const CRON_JOBS = {
   blog: () => runBlogCron(),
+  'photo-index': () => runPhotoIndexCron(),
   nudges: () => runNudgesCron(),
 };
 
