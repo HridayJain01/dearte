@@ -16,6 +16,9 @@
  *      description, canonical and Open Graph tags.
  *   4. Write sitemap.xml — those routes, plus whatever of the catalogue the
  *      public API is willing to hand a logged-out visitor.
+ *   5. Prerender the blog: every published post gets a page whose HTML holds
+ *      the full article (blogShell.mjs), plus sitemap entries, and new posts
+ *      are announced to IndexNow on production builds.
  *
  * Nothing here is allowed to fail the build. A sitemap without product URLs is
  * a small loss; a deploy that does not happen is a large one.
@@ -42,6 +45,17 @@ for (const [key, value] of Object.entries(viteEnv)) {
 // and a static import would be hoisted above the loop above.
 const { PLACEHOLDER_SITE_URL, SITE_URL, clampDescription } = await import('../src/utils/seo.js');
 const { INDEXABLE_PATHS, ROUTE_SEO } = await import('../src/utils/seoRoutes.js');
+const { productDisplayName } = await import('../src/utils/productTitle.js');
+const {
+  INDEXNOW_KEY,
+  articleSchemas,
+  beforeClose,
+  fillRoot,
+  jsonLdScripts,
+  postDataScript,
+  renderArticleHtml,
+  renderIndexHtml,
+} = await import('./blogShell.mjs');
 
 const API_BASE = (process.env.VITE_API_PROXY_TARGET || '').replace(/\/+$/, '');
 const SITE_NAME = 'DeArte Jewellery';
@@ -172,6 +186,85 @@ async function fetchPublicProducts() {
   return collected.filter((item) => item?.styleCode);
 }
 
+/**
+ * Every published blog post, with its full text, as a logged-out reader gets
+ * it (linked products are scoped to the guest catalogue). Empty on any
+ * failure: the blog pages then fall back to the plain shell and render in the
+ * browser, as every page did before this step existed.
+ */
+async function fetchPublishedPosts() {
+  if (!API_BASE) return [];
+  try {
+    const response = await fetch(`${API_BASE}/blog?include=body&limit=200`, { signal: AbortSignal.timeout(60000) });
+    if (!response.ok) {
+      log(`API responded ${response.status} for the blog; posts are not prerendered.`);
+      return [];
+    }
+    const payload = await response.json();
+    return (payload?.data?.items || []).filter((post) => post?.slug && post?.title);
+  } catch (error) {
+    log(`Could not read the blog (${error?.message || error}); posts are not prerendered.`);
+    return [];
+  }
+}
+
+async function writeBlogPages(template, posts) {
+  const indexMeta = ROUTE_SEO['/blog'];
+  const indexPath = join(DIST, 'blog', 'index.html');
+  await mkdir(dirname(indexPath), { recursive: true });
+  await writeFile(indexPath, fillRoot(buildShell(template, '/blog', indexMeta), renderIndexHtml(posts)), 'utf8');
+
+  for (const post of posts) {
+    const path = `/blog/${post.slug}`;
+    let html = buildShell(template, path, { title: post.title, description: post.metaDescription || post.excerpt });
+    html = replaceTag(html, /<meta property="og:type" content="[^"]*" \/>/, '<meta property="og:type" content="article" />');
+    const image = post.coverImage?.secureUrl;
+    if (image) {
+      html = replaceTag(html, /<meta property="og:image" content="[^"]*" \/>/, `<meta property="og:image" content="${escapeHtml(image)}" />`);
+      html = replaceTag(html, /<meta name="twitter:image" content="[^"]*" \/>/, `<meta name="twitter:image" content="${escapeHtml(image)}" />`);
+      // The declared size describes the default brand card, not this photo.
+      html = html.replace(/\s*<meta property="og:image:(width|height)" content="[^"]*" \/>/g, '');
+    }
+    html = beforeClose(html, 'head', jsonLdScripts(articleSchemas(post, { siteUrl: SITE_URL, siteName: SITE_NAME })));
+    html = fillRoot(html, renderArticleHtml(post, { productName: productDisplayName }));
+    html = beforeClose(html, 'body', postDataScript(post));
+
+    const filePath = join(DIST, 'blog', post.slug, 'index.html');
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, html, 'utf8');
+  }
+  log(`blog: prerendered ${posts.length} post(s)`);
+}
+
+/**
+ * Tell Bing and the other IndexNow engines about posts published in the last
+ * three days. Production builds only, so a preview never announces itself.
+ */
+async function announceNewPosts(posts) {
+  if (process.env.VERCEL_ENV !== 'production') return;
+  const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000;
+  const urlList = posts
+    .filter((post) => new Date(post.publishedAt).getTime() >= cutoff)
+    .map((post) => `${SITE_URL}/blog/${post.slug}`);
+  if (!urlList.length) return;
+  try {
+    const response = await fetch('https://api.indexnow.org/indexnow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({
+        host: new URL(SITE_URL).host,
+        key: INDEXNOW_KEY,
+        keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`,
+        urlList,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    log(`IndexNow: ${response.status} for ${urlList.length} URL(s)`);
+  } catch (error) {
+    log(`IndexNow ping failed (${error?.message || error}); the sitemap still lists the posts.`);
+  }
+}
+
 function sitemapEntry({ path, lastmod, changefreq, priority }) {
   return [
     '  <url>',
@@ -257,6 +350,23 @@ async function main() {
     );
   }
 
+  // 5. The blog: prerendered pages, sitemap entries, IndexNow.
+  const posts = await fetchPublishedPosts();
+  if (posts.length) {
+    await writeBlogPages(template, posts);
+    for (const post of posts) {
+      urls.push(
+        sitemapEntry({
+          path: `/blog/${encodeURIComponent(post.slug)}`,
+          lastmod: String(post.updatedAt || post.publishedAt || '').slice(0, 10) || BUILD_DATE,
+          changefreq: 'monthly',
+          priority: 0.7,
+        }),
+      );
+    }
+    await announceNewPosts(posts);
+  }
+
   const sitemap = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
@@ -266,7 +376,7 @@ async function main() {
   ].join('\n');
 
   await writeFile(join(DIST, 'sitemap.xml'), sitemap, 'utf8');
-  log(`sitemap.xml: ${publicPaths.length} static + ${seen.size} product URLs at ${SITE_URL}`);
+  log(`sitemap.xml: ${publicPaths.length} static + ${seen.size} product + ${posts.length} blog URLs at ${SITE_URL}`);
 }
 
 main().catch((error) => {

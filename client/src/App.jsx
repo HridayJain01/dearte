@@ -36,6 +36,9 @@ const TrustedByPage = lazy(() => import('./pages/ContentPages').then((module) =>
 const CareersPage = lazy(() => import('./pages/ContentPages').then((module) => ({ default: module.CareersPage })));
 const NotFoundPage = lazy(() => import('./pages/ContentPages').then((module) => ({ default: module.NotFoundPage })));
 
+const BlogListPage = lazy(() => import('./pages/BlogPages').then((module) => ({ default: module.BlogListPage })));
+const BlogPostPage = lazy(() => import('./pages/BlogPages').then((module) => ({ default: module.BlogPostPage })));
+
 const AdminDashboardPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminDashboardPage })));
 const AdminPromotionsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminPromotionsPage })));
 const AdminUsersPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminUsersPage })));
@@ -49,6 +52,7 @@ const AdminTestimonialsPage = lazy(() => import('./pages/AdminPages').then((modu
 const AdminRolesPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminRolesPage })));
 const AdminReportsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminReportsPage })));
 const AdminAiStudioPage = lazy(() => import('./pages/AdminAiPages').then((module) => ({ default: module.AdminAiStudioPage })));
+const AdminBlogPage = lazy(() => import('./pages/AdminAiPages').then((module) => ({ default: module.AdminBlogPage })));
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, role, loading } = useAuth();
@@ -144,6 +148,8 @@ function App() {
           <Route path="testimonials" element={<GuestAccessRoute accessKey="pageTestimonials" preload={loadContentPages}><TestimonialsPage /></GuestAccessRoute>} />
           <Route path="trusted-by" element={<GuestAccessRoute accessKey="pageTrustedBrands" preload={loadContentPages}><TrustedByPage /></GuestAccessRoute>} />
           <Route path="careers" element={<CareersPage />} />
+          <Route path="blog" element={<BlogListPage />} />
+          <Route path="blog/:slug" element={<BlogPostPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 
@@ -171,6 +177,7 @@ function App() {
           <Route path="roles" element={<AdminRolesPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="ai" element={<AdminAiStudioPage />} />
+          <Route path="blog" element={<AdminBlogPage />} />
         </Route>
       </Routes>
     </PageBoundary>

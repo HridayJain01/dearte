@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   MessageCircle,
   MessageSquareQuote,
+  Newspaper,
   Package,
   ScrollText,
   Settings,
@@ -50,10 +51,12 @@ export const ADMIN_LINKS = [
   { label: 'Roles', to: '/admin/roles', icon: ShieldCheck },
   { label: 'Reports', to: '/admin/reports', icon: FileClock },
   { label: 'AI Studio', to: '/admin/ai', icon: WandSparkles },
+  { label: 'Blog', to: '/admin/blog', icon: Newspaper },
 ];
 
 export const TRUST_LINKS = [
   { label: 'Contact Us', to: '/contact' },
+  { label: 'Blog', to: '/blog' },
   { label: 'FAQs', to: '/faq' },
   { label: 'Events', to: '/events' },
   { label: 'Testimonials', to: '/testimonials' },

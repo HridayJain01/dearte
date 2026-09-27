@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Play } from 'lucide-react';
+import { Eye, Play, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { Button, ErrorState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
 import { aiErrorMessage, aiService } from '../services/aiService';
 
@@ -271,6 +272,348 @@ export function AdminAiStudioPage() {
           rows={data.runs}
           empty="No jobs have run yet."
         />
+      </Panel>
+    </div>
+  );
+}
+
+const POST_STATUS = {
+  published: { label: 'Published', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  draft: { label: 'Draft', className: 'border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]' },
+  needs_review: { label: 'Needs review', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  unpublished: { label: 'Unpublished', className: 'border-gray-200 bg-gray-50 text-gray-500' },
+};
+
+function PostStatus({ status }) {
+  const style = POST_STATUS[status] || POST_STATUS.draft;
+  return (
+    <span className={`inline-flex whitespace-nowrap border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${style.className}`}>
+      {style.label}
+    </span>
+  );
+}
+
+// The whole draft, as it will read on the site, for a decision before publishing.
+function PostPreview({ post, onClose }) {
+  return (
+    <Panel className="space-y-4 border-[var(--color-border-active)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="lux-label">Preview · {POST_STATUS[post.status]?.label}</p>
+          <h3 className="lux-heading mt-2 text-2xl sm:text-3xl">{post.title}</h3>
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">Search snippet: {post.metaDescription}</p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close preview" className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      {post.quality?.issues?.length ? (
+        <div className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="font-medium">Checks and reviewer notes (score {post.quality.score}/10)</p>
+          <ul className="mt-1 list-disc pl-5">
+            {post.quality.issues.map((issue, index) => <li key={index}>{issue}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {post.coverImage?.secureUrl ? (
+        <img src={post.coverImage.secureUrl} alt={post.coverImage.alt || ''} className="max-h-64 w-full border border-[var(--color-border)] object-contain" />
+      ) : null}
+      <p className="text-base leading-7">{post.excerpt}</p>
+      {post.sections.map((section, index) => (
+        <div key={index}>
+          <h4 className="text-lg font-semibold text-[var(--color-primary)]">{section.heading}</h4>
+          {section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex} className="mt-2 text-sm leading-6">{paragraph}</p>)}
+          {section.bullets.length ? (
+            <ul className="mt-2 list-disc pl-5 text-sm leading-6">
+              {section.bullets.map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}
+            </ul>
+          ) : null}
+        </div>
+      ))}
+      {post.faq.length ? (
+        <div>
+          <h4 className="text-lg font-semibold text-[var(--color-primary)]">FAQ</h4>
+          {post.faq.map((entry, index) => (
+            <p key={index} className="mt-2 text-sm leading-6"><strong>{entry.question}</strong> {entry.answer}</p>
+          ))}
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
+const emptyTopic = { title: '', angle: '', category: '', occasion: '' };
+
+export function AdminBlogPage() {
+  const queryClient = useQueryClient();
+  const status = useQuery({ queryKey: ['admin-ai-status'], queryFn: aiService.status });
+  const posts = useQuery({ queryKey: ['admin-blog-posts'], queryFn: aiService.adminPosts });
+  // Two drafts, so saving one panel never discards edits in the other.
+  const [autopilot, setAutopilot] = useState(null);
+  const [queueDraft, setQueueDraft] = useState(null);
+  const [topicForm, setTopicForm] = useState(emptyTopic);
+  const [busy, setBusy] = useState('');
+  const [previewId, setPreviewId] = useState(null);
+
+  if (status.isLoading || posts.isLoading) return <LoadingBlock label="Loading the blog..." />;
+  if (status.isLoadingError) return <ErrorState error={status.error} onRetry={status.refetch} retrying={status.isFetching} />;
+  if (posts.isLoadingError) return <ErrorState error={posts.error} onRetry={posts.refetch} retrying={posts.isFetching} />;
+
+  const saved = status.data.settings.blog;
+  const blog = { ...saved, ...(autopilot || {}) };
+  const setBlog = (patch) => setAutopilot({ ...(autopilot || {}), ...patch });
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-ai-status'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-blog-posts'] });
+    queryClient.invalidateQueries({ queryKey: ['blog'] });
+  };
+
+  // One helper for every button: shows its spinner, reports the outcome.
+  const act = async (key, work, success) => {
+    setBusy(key);
+    try {
+      const message = await work();
+      if (message !== false) toast.success(message || success);
+      refresh();
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'That did not work. Please try again.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const saveSettings = (key, patch, clear, success) =>
+    act(key, async () => {
+      await aiService.saveSettings({ blog: patch });
+      clear(null);
+    }, success);
+
+  const generate = () =>
+    act('generate', async () => {
+      const { run, post } = await aiService.generatePost();
+      if (!run.ok) {
+        toast.error(run.error || 'Generation failed.');
+        return false;
+      }
+      if (post) setPreviewId(post.id);
+      return run.summary;
+    });
+
+  const changeStatus = (post, next) =>
+    act(`status-${post.id}`, async () => {
+      const result = await aiService.updatePost(post.id, { status: next });
+      const suffix = result.rebuilding ? ' The site is rebuilding with the change.' : '';
+      return `${next === 'published' ? 'Published' : 'Unpublished'}.${suffix}`;
+    });
+
+  const regenerate = (post) =>
+    act(`regen-${post.id}`, async () => {
+      const { run, post: fresh } = await aiService.regeneratePost(post.id);
+      if (!run.ok) {
+        toast.error(run.error || 'Regeneration failed.');
+        return false;
+      }
+      if (fresh) setPreviewId(fresh.id);
+      return run.summary;
+    });
+
+  const remove = (post) => {
+    if (!window.confirm(`Delete “${post.title}”? This cannot be undone.`)) return;
+    act(`delete-${post.id}`, () => aiService.deletePost(post.id), 'Post deleted');
+  };
+
+  const queue = queueDraft || saved.topicQueue || [];
+  const queued = queue.filter((topic) => topic.status === 'queued');
+  const setQueue = setQueueDraft;
+  const addTopic = () => {
+    if (!topicForm.title.trim()) return;
+    setQueue([
+      ...queue,
+      {
+        title: topicForm.title.trim(),
+        angle: topicForm.angle.trim(),
+        keywords: [],
+        hints: { category: topicForm.category.trim(), occasion: topicForm.occasion.trim(), collection: '' },
+        months: [],
+        status: 'queued',
+        source: 'admin',
+      },
+    ]);
+    setTopicForm(emptyTopic);
+  };
+
+  const previewPost = (posts.data || []).find((post) => post.id === previewId);
+  const configured = status.data.configured;
+
+  return (
+    <div className="space-y-5 sm:space-y-8">
+      <SectionHeading
+        eyebrow="Blog"
+        title="Automated journal"
+        description="A post is written, checked, reviewed and published on schedule. Anything that fails a check is held here for you instead."
+        action={
+          <Button icon={RefreshCw} loading={busy === 'generate'} disabled={!configured.text} onClick={generate}>
+            Generate draft now
+          </Button>
+        }
+      />
+
+      {!configured.text ? (
+        <Panel className="text-sm text-[var(--color-text-muted)]">
+          Set AI_API_KEY and AI_TEXT_MODEL on the API project to turn the blog on. See docs/ai.md.
+        </Panel>
+      ) : null}
+
+      {busy === 'generate' ? (
+        <Panel className="text-sm text-[var(--color-text-muted)]">Writing, checking and reviewing a draft. This takes up to a minute.</Panel>
+      ) : null}
+
+      {previewPost ? <PostPreview post={previewPost} onClose={() => setPreviewId(null)} /> : null}
+
+      <Panel className="space-y-4">
+        <p className="lux-label">Posts</p>
+        <SimpleTable
+          columns={[
+            {
+              key: 'title',
+              label: 'Title',
+              render: (value, row) => (
+                <div className="max-w-md">
+                  {row.status === 'published' ? (
+                    <Link to={`/blog/${row.slug}`} target="_blank" className="font-medium text-[var(--color-primary)] hover:underline">{value}</Link>
+                  ) : (
+                    <span className="font-medium">{value}</span>
+                  )}
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">{row.wordCount} words · score {row.quality?.score || 0}/10 · {row.trigger === 'admin' ? 'by admin' : 'scheduled'}</p>
+                </div>
+              ),
+            },
+            { key: 'status', label: 'Status', render: (value) => <PostStatus status={value} /> },
+            { key: 'createdAt', label: 'Written', render: (value, row) => formatWhen(row.publishedAt || value) },
+            {
+              key: 'actions',
+              label: 'Actions',
+              render: (_value, row) => (
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="ghost" icon={Eye} onClick={() => setPreviewId(previewId === row.id ? null : row.id)}>Preview</Button>
+                  {row.status === 'published' ? (
+                    <Button variant="ghost" loading={busy === `status-${row.id}`} onClick={() => changeStatus(row, 'unpublished')}>Unpublish</Button>
+                  ) : (
+                    <Button variant="secondary" loading={busy === `status-${row.id}`} onClick={() => changeStatus(row, 'published')}>Publish</Button>
+                  )}
+                  {row.status !== 'published' ? (
+                    <Button variant="ghost" icon={RefreshCw} loading={busy === `regen-${row.id}`} disabled={!configured.text} onClick={() => regenerate(row)}>Rewrite</Button>
+                  ) : null}
+                  <Button variant="ghost" icon={Trash2} loading={busy === `delete-${row.id}`} onClick={() => remove(row)} aria-label={`Delete ${row.title}`} />
+                </div>
+              ),
+            },
+          ]}
+          rows={posts.data || []}
+          empty="No posts yet. Generate a draft to see the writing style."
+        />
+      </Panel>
+
+      <Panel className="space-y-5">
+        <p className="lux-label">Autopilot</p>
+        <div className="space-y-3">
+          <Check
+            label="Write and publish on schedule"
+            hint="Runs about 03:00 IST on publish days. Nothing happens until this is on."
+            checked={blog.enabled}
+            onChange={(value) => setBlog({ enabled: value })}
+          />
+          <Check
+            label="Publish automatically when a post passes every check"
+            hint="Off: passing posts wait here as drafts. Posts that fail a check are always held."
+            checked={blog.autoPublish}
+            onChange={(value) => setBlog({ autoPublish: value })}
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Posts per week">
+            <select className={inputClass} value={blog.postsPerWeek} onChange={(event) => setBlog({ postsPerWeek: Number(event.target.value) })}>
+              <option value={1}>1 (Tuesdays)</option>
+              <option value={2}>2 (Tuesdays and Fridays)</option>
+            </select>
+          </Field>
+        </div>
+        <Field
+          label="Facts the writer may use"
+          hint="Posts may only quote numbers (prices, market shares, dates) that appear here or in the product data. Add figures with their source, one per line."
+        >
+          <textarea
+            className={`${inputClass} min-h-[140px]`}
+            value={blog.facts}
+            maxLength={4000}
+            placeholder="e.g. Minimum order: 5 pieces per style (trade terms, 2026)"
+            onChange={(event) => setBlog({ facts: event.target.value })}
+          />
+        </Field>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            loading={busy === 'autopilot'}
+            disabled={!autopilot}
+            onClick={() =>
+              saveSettings(
+                'autopilot',
+                { enabled: blog.enabled, autoPublish: blog.autoPublish, postsPerWeek: blog.postsPerWeek, facts: blog.facts },
+                setAutopilot,
+                'Autopilot settings saved',
+              )}
+          >
+            Save autopilot settings
+          </Button>
+          {autopilot ? <Button variant="ghost" onClick={() => setAutopilot(null)}>Discard changes</Button> : null}
+        </div>
+        {blog.enabled && !configured.cron ? (
+          <p className="text-xs text-[var(--color-primary)]">CRON_SECRET is not set on the API project, so the schedule cannot run yet.</p>
+        ) : null}
+        {blog.enabled && !configured.deployHook ? (
+          <p className="text-xs text-[var(--color-primary)]">CLIENT_DEPLOY_HOOK_URL is not set: new posts will show on the site, but reach search engines' page copies only at the next deploy.</p>
+        ) : null}
+      </Panel>
+
+      <Panel className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="lux-label">Topic queue</p>
+          <p className="text-xs text-[var(--color-text-muted)]">{queued.length} waiting. When fewer than five remain, the AI suggests more.</p>
+        </div>
+        <ol className="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
+          {queue.map((topic, index) => (
+            <li key={`${topic.title}-${index}`} className="flex items-start justify-between gap-3 py-2.5 text-sm">
+              <div className={topic.status === 'queued' ? '' : 'text-[var(--color-text-muted)] line-through'}>
+                <span className="font-medium">{topic.title}</span>
+                <span className="ml-2 text-xs text-[var(--color-text-muted)]">
+                  {[topic.hints?.category, topic.hints?.occasion, topic.hints?.collection].filter(Boolean).join(' · ')}
+                  {topic.months?.length ? ` · months ${topic.months.join(', ')}` : ''}
+                  {topic.source === 'ai' ? ' · suggested by AI' : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label={`Remove ${topic.title}`}
+                onClick={() => setQueue(queue.filter((_, itemIndex) => itemIndex !== index))}
+                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ol>
+        <div className="grid gap-3 md:grid-cols-[2fr_2fr_1fr_1fr_auto] md:items-end">
+          <Field label="New topic"><input className={inputClass} value={topicForm.title} maxLength={140} onChange={(event) => setTopicForm({ ...topicForm, title: event.target.value })} /></Field>
+          <Field label="Angle (optional)"><input className={inputClass} value={topicForm.angle} maxLength={300} onChange={(event) => setTopicForm({ ...topicForm, angle: event.target.value })} /></Field>
+          <Field label="Category"><input className={inputClass} value={topicForm.category} placeholder="Rings" onChange={(event) => setTopicForm({ ...topicForm, category: event.target.value })} /></Field>
+          <Field label="Occasion"><input className={inputClass} value={topicForm.occasion} placeholder="Festive" onChange={(event) => setTopicForm({ ...topicForm, occasion: event.target.value })} /></Field>
+          <Button variant="secondary" icon={Plus} onClick={addTopic}>Add</Button>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button loading={busy === 'topics'} disabled={!queueDraft} onClick={() => saveSettings('topics', { topicQueue: queue }, setQueueDraft, 'Topic queue saved')}>
+            Save topic queue
+          </Button>
+          {queueDraft ? <Button variant="ghost" onClick={() => setQueueDraft(null)}>Discard changes</Button> : null}
+        </div>
       </Panel>
     </div>
   );

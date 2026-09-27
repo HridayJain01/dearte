@@ -87,6 +87,13 @@ export const ROUTE_SEO = {
     priority: 0.5,
     changefreq: 'monthly',
   },
+  '/blog': {
+    title: 'Lab-Grown Diamond Jewellery Journal',
+    description:
+      'Guides, styling ideas and retail advice on lab-grown diamond jewellery from DeArte, written for jewellery retailers and the customers they serve.',
+    priority: 0.8,
+    changefreq: 'weekly',
+  },
   '/careers': {
     title: 'Careers at DeArte Jewellery',
     description:

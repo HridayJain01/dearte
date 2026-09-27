@@ -15,6 +15,7 @@ import {
   TrustedBrandGrid,
 } from '../components/home/HomeSections';
 import { PopupPromo } from '../components/home/PopupPromo';
+import { JournalRail } from '../components/blog/JournalRail';
 import { Seo } from '../components/seo/Seo';
 import { routeSeo } from '../utils/seoRoutes';
 import { recentlyViewed } from '../utils/recentlyViewed';
@@ -137,6 +138,8 @@ export function HomePage() {
           </div>
         </section>
       )}
+      {/* Renders nothing until the blog has posts. */}
+      <JournalRail />
       {show('showCTABanner') && <CTABanner />}
     </>
   );

@@ -7,5 +7,10 @@
       "maxDuration": 60,
       "memory": 1024
     }
-  }
+  },
+  "crons": [
+    { "path": "/api/ai/cron/blog", "schedule": "30 21 * * *" },
+    { "path": "/api/ai/cron/photo-index", "schedule": "0 22 * * *" },
+    { "path": "/api/ai/cron/nudges", "schedule": "30 22 * * 1" }
+  ]
 }

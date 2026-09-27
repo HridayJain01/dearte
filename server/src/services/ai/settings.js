@@ -62,7 +62,7 @@ export async function getAiSettings({ fresh = false } = {}) {
 
 const toBoolean = (value, fallback) => (typeof value === 'boolean' ? value : fallback);
 
-function sanitizeTopics(list) {
+export function sanitizeTopics(list) {
   return (Array.isArray(list) ? list : [])
     .slice(0, MAX_TOPICS)
     .map((topic) => ({

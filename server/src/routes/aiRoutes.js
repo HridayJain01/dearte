@@ -12,6 +12,7 @@ import rateLimit from 'express-rate-limit';
 import { optionalAuth } from '../middleware/auth.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { featuresFor } from '../services/ai/settings.js';
+import { runBlogCron } from '../services/ai/blog.js';
 
 const router = express.Router();
 
@@ -36,7 +37,9 @@ router.get('/features', async (req, res) => sendSuccess(res, await featuresFor(r
 
 // Vercel Cron calls these with `Authorization: Bearer $CRON_SECRET`. Without a
 // secret configured they refuse to run at all, so they can never be public.
-const CRON_JOBS = {};
+const CRON_JOBS = {
+  blog: () => runBlogCron(),
+};
 
 function cronAuthorized(req) {
   const expected = Buffer.from(`Bearer ${process.env.CRON_SECRET}`);

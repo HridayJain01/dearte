@@ -61,6 +61,9 @@ const blogPostSchema = new mongoose.Schema(
     },
     model: { type: String, default: '' },
     wordCount: { type: Number, default: 0 },
+    // Who asked for it: the nightly job, or an admin's "Generate draft now".
+    // The job checks this so it never writes twice in one day.
+    trigger: { type: String, enum: ['cron', 'admin'], default: 'cron' },
   },
   { timestamps: true },
 );
