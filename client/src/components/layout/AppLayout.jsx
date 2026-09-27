@@ -1,13 +1,13 @@
 import { ChevronDown, Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { EDUCATION_ROUTES, NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
 import { useCollections, useNavCategories, useOccasions } from '../../hooks/useProducts';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
-import { Button } from '../ui/Primitives';
+import { Button, LoadingBlock } from '../ui/Primitives';
 import { useSiteSettings, whatsappHref } from '../../hooks/useSiteSettings';
 
 // Single source of truth for nav typography so the desktop links, the Occasions
@@ -552,9 +552,14 @@ export function AppLayout() {
       </header>
 
       <main>
-        <div key={location.pathname} className="animate-page-enter">
-          <Outlet />
-        </div>
+        {/* Lazy pages suspend here, inside the layout, so the header and footer
+            paint while a page's code is still downloading. (Router navigations
+            are transitions, so an open page stays up until the next is ready.) */}
+        <Suspense fallback={<div className="page-shell py-10"><LoadingBlock label="Loading view..." /></div>}>
+          <div key={location.pathname} className="animate-page-enter">
+            <Outlet />
+          </div>
+        </Suspense>
       </main>
 
       {/* Mobile lays the four blocks out as a 2-column grid — brand and

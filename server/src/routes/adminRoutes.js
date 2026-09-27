@@ -16,7 +16,6 @@ import {
   TrustedBrand,
   User,
 } from '../models/index.js';
-import { cloudinary } from '../config/cloudinary.js';
 import { seedData } from '../data/seed.js';
 import { DIAMOND_QUALITIES, DIAMOND_QUALITY, OCCASIONS } from '../data/taxonomy.js';
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
@@ -2188,7 +2187,10 @@ router.get('/reports/:type', async (req, res) => {
   return sendError(res, 'Unknown report type', 404);
 });
 
+// The Cloudinary SDK is only needed by these two routes, so it is loaded on
+// first use instead of on every cold start of the API.
 router.post('/uploads/sign', async (req, res) => {
+  const { cloudinary } = await import('../config/cloudinary.js');
   const timestamp = Math.round(Date.now() / 1000);
   const folder = req.body.folder || 'dearte/uploads';
   const paramsToSign = {
@@ -2212,6 +2214,7 @@ router.post('/uploads/sign', async (req, res) => {
 
 router.delete('/uploads/:publicId', async (req, res) => {
   const publicId = decodeURIComponent(req.params.publicId);
+  const { cloudinary } = await import('../config/cloudinary.js');
   await cloudinary.uploader.destroy(publicId, { invalidate: true, resource_type: 'image' });
   return sendSuccess(res, null, 'Asset deleted');
 });

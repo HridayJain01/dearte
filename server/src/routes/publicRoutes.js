@@ -110,11 +110,13 @@ router.get('/site/home', async (req, res) => {
     Banner.find({ active: true }).sort({ sortOrder: 1 }),
     Product.find({ isNewArrival: true, status: 'Active', ...access }).populate(productPopulate).limit(10),
     Product.find({ isBestSeller: true, status: 'Active', ...access }).sort({ orderCount: -1 }).populate(productPopulate).limit(10),
-    Testimonial.find({ status: 'Approved' }).sort({ createdAt: -1 }),
+    // The home page shows one featured testimonial plus three, and only the
+    // newest popup; the full testimonial list has its own endpoint.
+    Testimonial.find({ status: 'Approved' }).sort({ createdAt: -1 }).limit(4),
     Event.find({ active: true }).sort({ date: 1 }).limit(6),
     TrustedBrand.find({ active: true }).sort({ sortOrder: 1, createdAt: 1 }),
     SiteSettings.findOne(),
-    PopupAd.find({ active: true }).sort({ createdAt: -1 }),
+    PopupAd.find({ active: true }).sort({ createdAt: -1 }).limit(1),
   ]);
 
   return sendSuccess(res, {

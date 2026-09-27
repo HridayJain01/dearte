@@ -1,11 +1,12 @@
-import { Component, Suspense, lazy } from 'react';
+import { Component, Suspense, lazy, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Seo } from './components/seo/Seo';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { Button, EmptyState, LoadingBlock } from './components/ui/Primitives';
 import { useAuth } from './hooks/useAuth';
-import { useHomePage } from './hooks/useProducts';
+import { siteSettingsQuery } from './hooks/useSiteSettings';
 
 const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })));
 
@@ -57,11 +58,24 @@ function ProtectedRoute({ children, adminOnly = false }) {
   return children;
 }
 
-function GuestAccessRoute({ children, accessKey }) {
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const { data, isLoading: dataLoading } = useHomePage();
+// The same modules the lazy pages above import; calling one only starts the
+// download early, so a guarded page's code arrives while access is checked.
+const loadStorePages = () => import('./pages/StorePages');
+const loadContentPages = () => import('./pages/ContentPages');
 
-  if (authLoading || dataLoading) {
+function GuestAccessRoute({ children, accessKey, preload }) {
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  // The guest flags live in site settings, which the header is already
+  // fetching. This used to wait for the whole /site/home payload instead.
+  const { data: settings, isLoading: settingsLoading } = useQuery(siteSettingsQuery);
+
+  useEffect(() => {
+    // A failed download resurfaces when the lazy page renders, via PageBoundary.
+    preload?.().catch(() => {});
+  }, [preload]);
+
+  // Signed-in users are never gated, so they don't wait for the settings.
+  if (authLoading || (!isAuthenticated && settingsLoading)) {
     return (
       <div className="page-shell py-10">
         <LoadingBlock label="Verifying access..." />
@@ -70,7 +84,7 @@ function GuestAccessRoute({ children, accessKey }) {
   }
 
   if (!isAuthenticated) {
-    const guestAccess = data?.siteSettings?.guestAccess || {};
+    const guestAccess = settings?.guestAccess || {};
     // If the setting explicitly denies access, redirect to login
     if (guestAccess[accessKey] === false) {
       return <Navigate to="/login" replace />;
@@ -131,11 +145,11 @@ function App() {
           <Route index element={<HomePage />} />
           {/* Product list + detail are open to guests (limited to the showToGuests
               teaser); cart, wishlist, checkout and account pages stay gated. */}
-          <Route path="products" element={<GuestAccessRoute accessKey="pageProducts"><ProductListPage /></GuestAccessRoute>} />
-          <Route path="collections" element={<GuestAccessRoute accessKey="pageCollections"><CollectionsPage /></GuestAccessRoute>} />
+          <Route path="products" element={<GuestAccessRoute accessKey="pageProducts" preload={loadStorePages}><ProductListPage /></GuestAccessRoute>} />
+          <Route path="collections" element={<GuestAccessRoute accessKey="pageCollections" preload={loadStorePages}><CollectionsPage /></GuestAccessRoute>} />
           <Route path="collections/:category" element={<LegacyCollectionRedirect />} />
           <Route path="occasions" element={<OccasionsPage />} />
-          <Route path="products/:styleCode" element={<GuestAccessRoute accessKey="pageProducts"><ProductDetailPage /></GuestAccessRoute>} />
+          <Route path="products/:styleCode" element={<GuestAccessRoute accessKey="pageProducts" preload={loadStorePages}><ProductDetailPage /></GuestAccessRoute>} />
           <Route path="cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
           <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
           <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
@@ -151,9 +165,9 @@ function App() {
           <Route path="terms" element={<StaticPage slug="terms" />} />
           <Route path="return-policy" element={<StaticPage slug="return-policy" />} />
           <Route path="faq" element={<FAQPage />} />
-          <Route path="events" element={<GuestAccessRoute accessKey="pageEvents"><EventsPage /></GuestAccessRoute>} />
-          <Route path="testimonials" element={<GuestAccessRoute accessKey="pageTestimonials"><TestimonialsPage /></GuestAccessRoute>} />
-          <Route path="trusted-by" element={<GuestAccessRoute accessKey="pageTrustedBrands"><TrustedByPage /></GuestAccessRoute>} />
+          <Route path="events" element={<GuestAccessRoute accessKey="pageEvents" preload={loadContentPages}><EventsPage /></GuestAccessRoute>} />
+          <Route path="testimonials" element={<GuestAccessRoute accessKey="pageTestimonials" preload={loadContentPages}><TestimonialsPage /></GuestAccessRoute>} />
+          <Route path="trusted-by" element={<GuestAccessRoute accessKey="pageTrustedBrands" preload={loadContentPages}><TrustedByPage /></GuestAccessRoute>} />
           <Route path="careers" element={<CareersPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

@@ -45,8 +45,11 @@
     <!-- iOS labels the home-screen icon with <title> unless told otherwise. -->
     <meta name="apple-mobile-web-app-title" content="DeArte" />
 
-    <!-- After the API moves off Render, add preconnect/dns-prefetch to the live
-         API origin here (scheme+host only) to warm DNS+TLS for the first XHR. -->
+    <!-- Banners and product photos are served by Cloudinary, and the home
+         page's largest paint is one of them. Opening the connection while the
+         app boots takes DNS+TLS off that image. (The API needs no hint: it is
+         reached on this origin through the /api rewrite.) -->
+    <link rel="preconnect" href="https://res.cloudinary.com" />
 
     <!-- Fonts used to be an @import at the top of index.css, which made them a
          third-level request: HTML -> app CSS -> Google CSS -> font files, all of

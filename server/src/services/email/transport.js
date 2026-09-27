@@ -16,8 +16,6 @@
  *   SMTP_SECURE       defaults to "true" (465 = SSL). Set "false" for 587 STARTTLS.
  */
 
-import nodemailer from 'nodemailer';
-
 function smtpUser() {
   return process.env.EMAIL_USER || '';
 }
@@ -47,8 +45,10 @@ export function getEmailConfigStatus() {
 
 let cachedTransporter;
 
-function getTransporter() {
+async function getTransporter() {
   if (cachedTransporter) return cachedTransporter;
+  // Loaded on first send rather than on every cold start of the API.
+  const { default: nodemailer } = await import('nodemailer');
   const port = Number(process.env.SMTP_PORT || 465);
   const secure =
     process.env.SMTP_SECURE != null ? process.env.SMTP_SECURE !== 'false' : port === 465;
@@ -78,7 +78,7 @@ export async function sendEmail({ to, subject, html, text, attachments }) {
   if (!recipients || (Array.isArray(recipients) && !recipients.length)) {
     throw new Error('Email recipient is required.');
   }
-  return getTransporter().sendMail({
+  return (await getTransporter()).sendMail({
     from: emailFromAddress(),
     to: recipients,
     subject: String(subject || '').slice(0, 250),

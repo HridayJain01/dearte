@@ -8,7 +8,6 @@
  * on browser canvas/Image), so the layout is mirrored here in pdfkit.
  */
 
-import PDFDocument from 'pdfkit';
 import { serializeProduct } from './serializers.js';
 import {
   diamondWeightFor,
@@ -245,7 +244,10 @@ function drawItemCard(doc, item, imageBuffer, xMm, yMm, wMm, hMm) {
   text(doc, 'Selected', rightX - 8.5, yMm + 17.5, { size: 7, color: BRAND.charcoal, align: 'center' });
 }
 
-export function generateOrderPdfBuffer(order) {
+export async function generateOrderPdfBuffer(order) {
+  // Loaded on first use: only order notifications need pdfkit, and importing it
+  // at the top put it on every cold start of the API.
+  const { default: PDFDocument } = await import('pdfkit');
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true });
     const chunks = [];

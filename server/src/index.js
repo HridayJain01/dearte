@@ -134,13 +134,19 @@ app.use(cookieParser());
 
 // On Vercel the process does not run start(); connect (and validate) once per
 // warm isolate before handling traffic. Local/Render still boot eagerly below.
+// A failed attempt is forgotten so the next request retries; otherwise one bad
+// connect would fail every request for as long as the (Fluid, long-lived)
+// instance stays warm.
 let readyPromise;
 function ensureReady() {
   if (!readyPromise) {
     readyPromise = (async () => {
       validateEnvironment();
       await connectDatabase();
-    })();
+    })().catch((error) => {
+      readyPromise = undefined;
+      throw error;
+    });
   }
   return readyPromise;
 }

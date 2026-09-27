@@ -14,10 +14,13 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            // Exact package names: a bare 'node_modules/react' prefix also caught
+            // react-router, react-hook-form and react-zoom-pan-pinch, loading the
+            // last two up front on every page instead of with the forms/PDP that use them.
+            if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) {
               return 'vendor-react'
             }
-            if (id.includes('node_modules/react-router-dom')) {
+            if (/node_modules\/react-router(-dom)?\//.test(id)) {
               return 'vendor-router'
             }
             if (id.includes('node_modules/@tanstack/react-query')) {
