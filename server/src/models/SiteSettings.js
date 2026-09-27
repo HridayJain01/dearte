@@ -43,9 +43,13 @@ const siteSettingsSchema = new mongoose.Schema(
      * Which products a logged-out guest may browse. Rules are additive (OR):
      * a product is visible if it matches ANY selected identifier. `includeFlagged`
      * keeps the legacy per-product `showToGuests` teaser in play alongside the rules.
+     * `includeBestSellers` / `includeNewArrivals` open those two flags across every
+     * category, so newly flagged products reach guests without a second tick.
      */
     guestCatalogue: {
       includeFlagged: { type: Boolean, default: true },
+      includeBestSellers: { type: Boolean, default: false },
+      includeNewArrivals: { type: Boolean, default: false },
       categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
       subCategories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SubCategory' }],
       collections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Collection' }],

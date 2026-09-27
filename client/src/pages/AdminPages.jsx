@@ -123,6 +123,8 @@ const emptySiteSettings = {
   },
   guestCatalogue: {
     includeFlagged: true,
+    includeBestSellers: false,
+    includeNewArrivals: false,
     categories: [],
     subCategories: [],
     collections: [],
@@ -2957,6 +2959,8 @@ function GuestCatalogueGroup({ label, options, selected, onToggle }) {
 function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collections, occasions, onChange, onSave }) {
   const gc = {
     includeFlagged: guestCatalogue?.includeFlagged ?? true,
+    includeBestSellers: guestCatalogue?.includeBestSellers ?? false,
+    includeNewArrivals: guestCatalogue?.includeNewArrivals ?? false,
     categories: guestCatalogue?.categories || [],
     subCategories: guestCatalogue?.subCategories || [],
     collections: guestCatalogue?.collections || [],
@@ -2972,28 +2976,41 @@ function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collec
 
   const totalSelected =
     gc.categories.length + gc.subCategories.length + gc.collections.length + gc.occasions.length;
+  const flagRules = [
+    gc.includeFlagged && 'flagged',
+    gc.includeBestSellers && 'best sellers',
+    gc.includeNewArrivals && 'new arrivals',
+  ].filter(Boolean);
 
   return (
     <Panel className="order-4 space-y-5">
       <div>
         <p className="lux-label">Guest Catalogue (which products guests can browse)</p>
         <p className="mt-1 text-sm text-gray-500">
-          Pick which products signed-out visitors may see by any identifier below. A product is shown to
-          guests if it matches <span className="font-medium">any</span> selected category, sub-category,
-          collection, or occasion. Leave everything empty to fall back to the per-product "Show to guests"
-          flag only.
+          Pick which products signed-out visitors may see. A product is shown to guests if it matches
+          <span className="font-medium"> any</span> rule below — one of the three tick-boxes, or a
+          selected category, sub-category, collection or occasion. The tick-boxes keep themselves current:
+          flag a product Best Seller next month and guests see it without anyone coming back here.
         </p>
       </div>
 
-      <label className="flex items-center gap-3 text-sm font-medium">
-        <input
-          type="checkbox"
-          className="h-5 w-5"
-          checked={gc.includeFlagged}
-          onChange={(e) => onChange({ ...gc, includeFlagged: e.target.checked })}
-        />
-        Also include products individually flagged "Show to guests"
-      </label>
+      <div className="space-y-3">
+        {[
+          ['includeFlagged', 'Products individually flagged "Show to guests"'],
+          ['includeBestSellers', 'Every Best Seller, across all categories'],
+          ['includeNewArrivals', 'Every New Arrival, across all categories'],
+        ].map(([field, label]) => (
+          <label key={field} className="flex items-center gap-3 text-sm font-medium">
+            <input
+              type="checkbox"
+              className="h-5 w-5"
+              checked={gc[field]}
+              onChange={(e) => onChange({ ...gc, [field]: e.target.checked })}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <GuestCatalogueGroup
@@ -3031,8 +3048,9 @@ function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collec
       <div className="flex items-center gap-4">
         <Button onClick={onSave}>Save Guest Catalogue</Button>
         <span className="text-sm text-gray-500">
-          {totalSelected} rule{totalSelected === 1 ? '' : 's'} selected
-          {gc.includeFlagged ? ' + flagged products' : ''}
+          {totalSelected} taxonomy rule{totalSelected === 1 ? '' : 's'} selected
+          {flagRules.length ? ` + ${flagRules.join(', ')}` : ''}
+          {!totalSelected && !flagRules.length ? ' — guests see nothing' : ''}
         </span>
       </div>
     </Panel>

@@ -13,6 +13,8 @@ function normalize(raw) {
   const gc = raw || {};
   return {
     includeFlagged: gc.includeFlagged !== false,
+    includeBestSellers: gc.includeBestSellers === true,
+    includeNewArrivals: gc.includeNewArrivals === true,
     categories: (gc.categories || []).map(String),
     subCategories: (gc.subCategories || []).map(String),
     collections: (gc.collections || []).map(String),

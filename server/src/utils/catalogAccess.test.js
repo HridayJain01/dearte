@@ -33,3 +33,16 @@ test('guest gets the guest-catalogue clauses; unconfigured store = teaser only',
   assert.deepEqual(productAccessFilter(null, {}), { showToGuests: true });
   assert.deepEqual(productAccessFilter(null, { includeFlagged: false }), { _id: { $in: [] } });
 });
+
+test('guest best-seller / new-arrival rules are catalogue-wide', () => {
+  assert.deepEqual(
+    productAccessFilter(null, { includeFlagged: false, includeBestSellers: true }),
+    { isBestSeller: true },
+  );
+  assert.deepEqual(
+    productAccessFilter(null, { includeFlagged: false, includeBestSellers: true, includeNewArrivals: true }),
+    { $or: [{ isBestSeller: true }, { isNewArrival: true }] },
+  );
+  // Off by default, so an existing store is unchanged.
+  assert.deepEqual(productAccessFilter(null, {}), { showToGuests: true });
+});

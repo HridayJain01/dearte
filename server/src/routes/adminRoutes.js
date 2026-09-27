@@ -595,11 +595,12 @@ function sanitizeGuestCatalogue(body, current) {
   const cur = plainSubdoc(current?.guestCatalogue);
   const incoming = body?.guestCatalogue;
   const pick = (key, fallback) => (incoming && incoming[key] !== undefined ? incoming[key] : fallback);
+  const flag = (key, fallback) =>
+    incoming && incoming[key] !== undefined ? Boolean(incoming[key]) : Boolean(cur[key] ?? fallback);
   return {
-    includeFlagged:
-      incoming && incoming.includeFlagged !== undefined
-        ? Boolean(incoming.includeFlagged)
-        : cur.includeFlagged ?? true,
+    includeFlagged: flag('includeFlagged', true),
+    includeBestSellers: flag('includeBestSellers', false),
+    includeNewArrivals: flag('includeNewArrivals', false),
     categories: incoming && incoming.categories !== undefined ? toObjectIdArray(incoming.categories) : cur.categories || [],
     subCategories:
       incoming && incoming.subCategories !== undefined ? toObjectIdArray(incoming.subCategories) : cur.subCategories || [],

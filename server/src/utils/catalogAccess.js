@@ -2,7 +2,8 @@
 //
 //   signed out ("guest")  -> the admin-configured guest catalogue
 //                            (SiteSettings.guestCatalogue): products flagged
-//                            showToGuests, plus any selected categories /
+//                            showToGuests, optionally every best seller and/or
+//                            new arrival, plus any selected categories /
 //                            sub-categories / collections / occasions.
 //
 //   signed in             -> admin & sales: the whole catalogue.
@@ -54,6 +55,10 @@ export function productAccessFilter(user, guestCatalogue) {
     // Guest: the teaser flag defaults on, so an unconfigured store behaves as
     // it always did (guests see only per-product showToGuests picks).
     if (gc.includeFlagged !== false) clauses.push({ showToGuests: true });
+    // Flag-based rules: catalogue-wide, so a product flagged best seller / new
+    // arrival tomorrow reaches guests without anyone editing these settings.
+    if (gc.includeBestSellers) clauses.push({ isBestSeller: true });
+    if (gc.includeNewArrivals) clauses.push({ isNewArrival: true });
     push(clauses, 'category', gc.categories);
     push(clauses, 'subCategory', gc.subCategories);
     push(clauses, 'collection', gc.collections);
