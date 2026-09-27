@@ -1,10 +1,11 @@
-import { Component, Suspense, lazy, useEffect } from 'react';
+import { lazy, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Seo } from './components/seo/Seo';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
-import { Button, EmptyState, LoadingBlock } from './components/ui/Primitives';
+import { PageBoundary } from './components/layout/PageBoundary';
+import { LoadingBlock } from './components/ui/Primitives';
 import { useAuth } from './hooks/useAuth';
 import { siteSettingsQuery } from './hooks/useSiteSettings';
 
@@ -99,40 +100,13 @@ function LegacyCollectionRedirect() {
   return <Navigate to={category ? `/products?category=${encodeURIComponent(category)}` : '/products'} replace />;
 }
 
-// Pages are lazy chunks: a spinner while one loads, and a way out if it can't.
-// A chunk fails to load offline before that page was ever opened, or after a
-// deploy deleted the chunk this tab still points at. Without the error half,
-// React unmounts everything to a white screen.
-class PageBoundary extends Component {
-  state = { failed: false };
-
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-
-  render() {
-    if (this.state.failed) {
-      return (
-        <section className="page-shell section-gap">
-          <EmptyState
-            title="This page couldn't load."
-            description="Check your connection and try again."
-            action={<Button onClick={() => window.location.reload()}>Try again</Button>}
-          />
-        </section>
-      );
-    }
-    return (
-      <Suspense fallback={<div className="page-shell py-10"><LoadingBlock label="Loading view..." /></div>}>
-        {this.props.children}
-      </Suspense>
-    );
-  }
-}
-
 function App() {
+  const { pathname } = useLocation();
+
+  // Storefront pages get their own boundary inside AppLayout, so the header
+  // stays usable; this one covers the layouts themselves and the admin area.
   return (
-    <PageBoundary>
+    <PageBoundary resetKey={pathname}>
       <Routes>
         <Route
           element={

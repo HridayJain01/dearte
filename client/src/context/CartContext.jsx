@@ -3,17 +3,20 @@ import toast from 'react-hot-toast';
 import { AuthContext } from './AuthContext';
 import { CartToast } from '../components/cart/CartToast';
 import { userService } from '../services/userService';
+import { errorMessage } from '../utils/errors';
 
 const CartContext = createContext(null);
 
 const reducer = (state, action) => {
   switch (action.type) {
     case 'SET':
-      return { ...state, cart: action.payload, loading: false };
+      return { ...state, cart: action.payload, loading: false, error: null };
     case 'RESET':
-      return { cart: { items: [], specialInstructions: '' }, loading: false };
+      return { cart: { items: [], specialInstructions: '' }, loading: false, error: null };
     case 'LOADING':
       return { ...state, loading: true };
+    case 'ERROR':
+      return { ...state, loading: false, error: action.error };
     default:
       return state;
   }
@@ -24,6 +27,7 @@ export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, {
     cart: { items: [], specialInstructions: '' },
     loading: false,
+    error: null,
   });
 
   useEffect(() => {
@@ -32,7 +36,12 @@ export function CartProvider({ children }) {
       return;
     }
 
-    userService.cart().then((cart) => dispatch({ type: 'SET', payload: cart }));
+    // Kept as `error` so the cart page can say why it's empty-handed rather
+    // than claim the cart is empty.
+    userService.cart().then(
+      (cart) => dispatch({ type: 'SET', payload: cart }),
+      (error) => dispatch({ type: 'ERROR', error }),
+    );
   }, [isAuthenticated]);
 
   // `preview` upgrades the confirmation from a line of text to a card showing
@@ -50,8 +59,7 @@ export function CartProvider({ children }) {
         toast.success(message);
       }
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Request failed';
-      toast.error(msg);
+      toast.error(errorMessage(error));
     }
   };
 

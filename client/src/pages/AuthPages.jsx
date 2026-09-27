@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { markSessionEnded } from '../services/api';
 import { userService } from '../services/userService';
 import { brandLogoAlt, brandLogoUrl } from '../utils/brandLogo';
+import { errorMessage } from '../utils/errors';
 import { Button, Input, PasswordInput, Panel, SectionHeading } from '../components/ui/Primitives';
 import { Seo } from '../components/seo/Seo';
 import { loginSchema, registerSchema } from '../utils/validators';
@@ -43,10 +44,10 @@ export function LoginPage() {
       const user = await login(values);
       navigate(user.role === 'admin' ? '/admin/dashboard' : '/');
     } catch (error) {
-      const message =
-        error.response?.data?.message || 'Incorrect email or password. Please try again.';
+      // An outage used to read as a wrong password.
+      const message = errorMessage(error, 'Incorrect email or password. Please try again.');
       toast.error(message);
-      form.setError('password', { type: 'manual', message });
+      if (error.response?.status < 500) form.setError('password', { type: 'manual', message });
     }
   });
 
@@ -89,8 +90,12 @@ export function RegisterPage() {
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
-    await register(values);
-    navigate('/login');
+    try {
+      await register(values);
+      navigate('/login');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not submit your registration.'));
+    }
   });
 
   const country = useWatch({ control: form.control, name: 'country' });
@@ -162,7 +167,12 @@ export function ForgotPasswordPage() {
   });
 
   const onRequestOtp = emailForm.handleSubmit(async ({ email }) => {
-    await userService.forgotPassword({ email });
+    try {
+      await userService.forgotPassword({ email });
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not send a reset code.'));
+      return;
+    }
     setSentEmail(email);
     setStep('reset');
     // The API never confirms whether the address exists, so neither does this.
@@ -170,7 +180,12 @@ export function ForgotPasswordPage() {
   });
 
   const onResetPassword = resetForm.handleSubmit(async ({ otp, newPassword }) => {
-    await userService.resetPassword({ email: sentEmail, otp, newPassword });
+    try {
+      await userService.resetPassword({ email: sentEmail, otp, newPassword });
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not reset the password.'));
+      return;
+    }
     // A reset revokes every session server-side, so drop the local marker too
     // rather than letting the app try to renew a session that no longer exists.
     markSessionEnded();

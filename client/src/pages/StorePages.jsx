@@ -12,7 +12,7 @@ import { useSiteSettings, whatsappHref } from '../hooks/useSiteSettings';
 import { recentlyViewed, rememberViewed } from '../utils/recentlyViewed';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
-import { Button, EmptyState, LoadingBlock, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
+import { Button, EmptyState, ErrorState, LoadingBlock, PageError, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Select';
 import { ProductCard } from '../components/product/ProductCard';
 import { Seo } from '../components/seo/Seo';
@@ -24,6 +24,7 @@ import { formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
 import { routeSeo } from '../utils/seoRoutes';
 import { breadcrumbSchema, clampDescription, itemListSchema, productSchema } from '../utils/seo';
+import { errorMessage } from '../utils/errors';
 import { productDescription, productDisplayName, productTitle } from '../utils/productTitle';
 import {
   customizationChips,
@@ -362,7 +363,7 @@ export function ProductListPage() {
     [activeCategory, activeSubCategory, activeCollection, activeOccasion, activeSearch, filters, page, sort],
   );
 
-  const { data, isLoading, isFetching, isPlaceholderData } = useProducts(params);
+  const { data, isLoading, isFetching, isPlaceholderData, isLoadingError, error, refetch } = useProducts(params);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -431,6 +432,9 @@ export function ProductListPage() {
   // Only the very first load (no data yet) blanks the page. Once we have
   // results, filter changes keep the previous list on screen and update in
   // place — see `placeholderData: keepPreviousData` in useProducts.
+  if (isLoadingError) {
+    return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
+  }
   if (isLoading || !data) {
     return <ProductGridSkeleton />;
   }
@@ -624,7 +628,7 @@ export function ProductDetailPage() {
   const [note, setNote] = useState('');
   const [lineState, setLineState] = useState({ productId: null, lines: [], activeIndex: 0 });
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
-  const { data, isLoading } = useProduct(styleCode);
+  const { data, isLoading, isLoadingError, error, refetch, isFetching } = useProduct(styleCode);
   const { cart, addToCart } = useCart();
   const { wishlist, addToWishlist } = useWishlist();
   const { isAuthenticated, user } = useAuth();
@@ -687,6 +691,12 @@ export function ProductDetailPage() {
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Preparing product atelier..." /></div>;
+  }
+
+  // A 404 is the server saying "no such style for you" (below); anything else
+  // (offline, server down) is a failure worth naming.
+  if (isLoadingError && error?.response?.status !== 404) {
+    return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
   }
 
   if (!data) {
@@ -1186,7 +1196,7 @@ function CartLine({ item, onUpdate, onRemove }) {
 }
 
 export function CartPage() {
-  const { cart, updateCart, removeFromCart } = useCart();
+  const { cart, updateCart, removeFromCart, error: cartError, refreshCart } = useCart();
   const { user } = useAuth();
   // Styles already in the cart are left out: the rail is for what to add next.
   const inCart = new Set(cart.items.map((item) => item.product?.id));
@@ -1214,6 +1224,10 @@ export function CartPage() {
       setIsDownloadingPdf(false);
     }
   };
+
+  if (cartError) {
+    return <PageError error={cartError} onRetry={refreshCart} />;
+  }
 
   if (!cart.items.length) {
     return (
@@ -1326,7 +1340,7 @@ const WISHLIST_TAB =
   'whitespace-nowrap border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
 
 export function WishlistPage() {
-  const { wishlist, removeFromWishlist, createWishlistCollection } = useWishlist();
+  const { wishlist, removeFromWishlist, createWishlistCollection, error: wishlistError, refreshWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [collectionName, setCollectionName] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -1338,6 +1352,10 @@ export function WishlistPage() {
 
   const getCollectionName = (collectionId) =>
     wishlist.collections.find((c) => c.id === collectionId)?.name || 'My Wishlist';
+
+  if (wishlistError) {
+    return <PageError error={wishlistError} onRetry={refreshWishlist} />;
+  }
 
   return (
     <section className="page-shell section-gap">
@@ -1407,7 +1425,7 @@ export function WishlistPage() {
         <Button
           onClick={() =>
             collectionName &&
-            createWishlistCollection({ name: collectionName }).then(() => setCollectionName(''))
+            createWishlistCollection({ name: collectionName }).then((ok) => ok && setCollectionName(''))
           }
         >
           Create Collection
@@ -1492,7 +1510,7 @@ export function WishlistPage() {
 }
 
 export function CheckoutPage() {
-  const { cart, refreshCart } = useCart();
+  const { cart, refreshCart, error: cartError } = useCart();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const steps = ['Notes', 'Review'];
@@ -1521,10 +1539,13 @@ export function CheckoutPage() {
         },
       });
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Could not place order';
-      toast.error(msg);
+      toast.error(errorMessage(error, 'Could not place order'));
     }
   });
+
+  if (cartError) {
+    return <PageError error={cartError} onRetry={refreshCart} />;
+  }
 
   return (
     <section className="page-shell section-gap">
@@ -1609,13 +1630,17 @@ export function CheckoutPage() {
 }
 
 export function CataloguePage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isLoadingError, error, refetch, isFetching } = useQuery({
     queryKey: ['catalogues'],
     queryFn: orderService.catalogues,
   });
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading private catalogues..." /></div>;
+  }
+
+  if (isLoadingError) {
+    return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
   }
 
   return (
@@ -1709,7 +1734,7 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
       setDrafts({});
       toast.success('Change request submitted.');
     } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || 'Could not submit change request.');
+      toast.error(errorMessage(error, 'Could not submit change request.'));
     } finally {
       setSubmitting(false);
     }
@@ -1802,8 +1827,10 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
 }
 
 export function ProfilePage() {
-  const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
-  const { data: orders = [] } = useQuery({ queryKey: ['orders'], queryFn: orderService.list });
+  const profileQuery = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
+  const ordersQuery = useQuery({ queryKey: ['orders'], queryFn: orderService.list });
+  const profile = profileQuery.data;
+  const orders = ordersQuery.data || [];
   const [downloadingOrderId, setDownloadingOrderId] = useState(null);
 
   const handleDownloadOrder = async (order) => {
@@ -1835,10 +1862,15 @@ export function ProfilePage() {
               <p><span className="text-[var(--color-text)] font-medium">City:</span> {profile.city}</p>
               <p><span className="text-[var(--color-text)] font-medium">GST:</span> {profile.gstNumber || 'Not provided'}</p>
             </div>
+          ) : profileQuery.isLoadingError ? (
+            <ErrorState error={profileQuery.error} onRetry={profileQuery.refetch} retrying={profileQuery.isFetching} />
           ) : <LoadingBlock label="Loading profile..." />}
         </Panel>
         <Panel>
           <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">Order History</p>
+          {ordersQuery.isLoadingError ? (
+            <ErrorState error={ordersQuery.error} onRetry={ordersQuery.refetch} retrying={ordersQuery.isFetching} />
+          ) : (
           <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[520px] text-left text-[12px] sm:min-w-0 sm:text-sm">
               <thead className="text-[var(--color-text-muted)]">
@@ -1862,6 +1894,7 @@ export function ProfilePage() {
               </tbody>
             </table>
           </div>
+          )}
         </Panel>
       </div>
     </section>

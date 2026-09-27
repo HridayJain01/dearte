@@ -28,7 +28,19 @@ async function populateUserCommerceState(user) {
     { path: 'cart.items.product', populate: productPopulate },
     { path: 'wishlist.items.product', populate: productPopulate },
   ]);
+  dropDeletedProducts(user);
   return user;
+}
+
+// A line whose product has since been deleted from the catalogue populates as
+// `product: null`. Sent as-is it crashed the wishlist and checkout pages, and a
+// cart holding one could not be ordered at all (Order requires a product).
+// Every cart/wishlist response and checkout passes through here, so drop them
+// once; the next save of this user persists the cleanup.
+export function dropDeletedProducts(user) {
+  for (const items of [user.cart?.items, user.wishlist?.items]) {
+    (items || []).filter((item) => !item.product).forEach((item) => item.deleteOne());
+  }
 }
 
 function ensureWishlist(user) {

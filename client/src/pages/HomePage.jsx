@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useHomePage } from '../hooks/useProducts';
 import { siteSettingsQuery } from '../hooks/useSiteSettings';
 import { useAuth } from '../hooks/useAuth';
-import { Button, EmptyState, LoadingBlock } from '../components/ui/Primitives';
+import { LoadingBlock, PageError } from '../components/ui/Primitives';
 import {
   BrandExpressionFrame,
   CollectionsShowcase,
@@ -50,25 +50,19 @@ function RailSkeleton() {
 
 export function HomePage() {
   const { user } = useAuth();
-  const { data, isLoading, isFetching, refetch } = useHomePage();
+  const { data, isLoading, isFetching, refetch, error } = useHomePage();
   // Which sections show is decided by site settings. /site/home carries a copy,
   // but the header has already started the much lighter settings request, so
   // the sections that need no data can render before the product rails do.
   const { data: settings } = useQuery(siteSettingsQuery);
   const siteSettings = data?.siteSettings ?? settings;
 
-  // Offline or API down. This is where the installed app opens, so it has to
-  // say something rather than crash to a blank screen on `data.siteSettings`.
+  // Offline, API down or erroring. This is where the installed app opens, so it
+  // has to say which, rather than crash to a blank screen on `data.siteSettings`.
+  // (A query paused for being offline has no error; describeError reads
+  // navigator.onLine for that case.)
   if (!data && !isLoading) {
-    return (
-      <section className="page-shell section-gap">
-        <EmptyState
-          title="We couldn't reach the collection."
-          description="Check your connection and try again."
-          action={<Button onClick={() => refetch()} loading={isFetching}>Try again</Button>}
-        />
-      </section>
-    );
+    return <PageError error={error} onRetry={() => refetch()} retrying={isFetching} />;
   }
 
   // Neither request has answered yet, so there is nothing to lay out.

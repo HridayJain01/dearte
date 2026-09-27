@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, Leaf, ShieldCheck, Sparkles, Gem, Ruler, BookOpenCheck } from 'lucide-react';
 import { productService } from '../services/productService';
 import { EDUCATION_ROUTES } from '../utils/constants';
-import { Button, EmptyState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
+import { Button, EmptyState, LoadingBlock, PageError, Panel, SectionHeading } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Select';
 import { TrustedBrandGrid } from '../components/home/HomeSections';
 import { Seo } from '../components/seo/Seo';
@@ -43,11 +43,12 @@ const CONTACT_FIELD =
 
 export function ContactPage() {
   const [enquiryType, setEnquiryType] = useState('Buyer Enquiry');
-  const { data, isLoading } = useQuery({ queryKey: ['contact'], queryFn: productService.contact });
+  const { data, isLoading, isLoadingError, error, refetch, isFetching } = useQuery({ queryKey: ['contact'], queryFn: productService.contact });
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
   }
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <section className="page-shell section-gap">
@@ -179,7 +180,7 @@ export function AboutPage() {
 
 export function EducationPage() {
   const { slug = 'diamond' } = useParams();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isLoadingError, error, refetch, isFetching } = useQuery({
     queryKey: ['education', slug],
     queryFn: () => productService.education(slug),
   });
@@ -187,6 +188,7 @@ export function EducationPage() {
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
   }
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   const educationPath = `/education/${slug}`;
   const educationSeo = routeSeo(educationPath);
@@ -296,7 +298,7 @@ export function EducationPage() {
 export function StaticPage({ slug: slugOverride }) {
   const { slug: routeSlug } = useParams();
   const slug = slugOverride || routeSlug;
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isLoadingError, error, refetch, isFetching } = useQuery({
     queryKey: ['static-page', slug],
     queryFn: () => productService.staticPage(slug),
   });
@@ -304,6 +306,7 @@ export function StaticPage({ slug: slugOverride }) {
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
   }
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <section className="page-shell section-gap">
@@ -319,11 +322,12 @@ export function StaticPage({ slug: slugOverride }) {
 }
 
 export function FAQPage() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['faq'], queryFn: productService.faq });
+  const { data = [], isLoading, isLoadingError, error, refetch, isFetching } = useQuery({ queryKey: ['faq'], queryFn: productService.faq });
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
   }
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <section className="page-shell section-gap">
@@ -354,8 +358,9 @@ export function FAQPage() {
 }
 
 export function EventsPage() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['events'], queryFn: productService.events });
+  const { data = [], isLoading, isLoadingError, error, refetch, isFetching } = useQuery({ queryKey: ['events'], queryFn: productService.events });
   if (isLoading) return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <section className="page-shell section-gap">
@@ -376,8 +381,9 @@ export function EventsPage() {
 }
 
 export function TestimonialsPage() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['testimonials'], queryFn: productService.testimonials });
+  const { data = [], isLoading, isLoadingError, error, refetch, isFetching } = useQuery({ queryKey: ['testimonials'], queryFn: productService.testimonials });
   if (isLoading) return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <section className="page-shell section-gap">
@@ -402,9 +408,10 @@ export function TestimonialsPage() {
 }
 
 export function TrustedByPage() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['trusted-by'], queryFn: productService.trustedBy });
+  const { data = [], isLoading, isLoadingError, error, refetch, isFetching } = useQuery({ queryKey: ['trusted-by'], queryFn: productService.trustedBy });
 
   if (isLoading) return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <section className="page-shell section-gap">
@@ -427,8 +434,9 @@ export function TrustedByPage() {
 }
 
 export function CareersPage() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['careers'], queryFn: productService.careers });
+  const { data = [], isLoading, isLoadingError, error, refetch, isFetching } = useQuery({ queryKey: ['careers'], queryFn: productService.careers });
   if (isLoading) return <div className="page-shell py-10 sm:py-16"><LoadingBlock /></div>;
+  if (isLoadingError) return <PageError error={error} onRetry={refetch} retrying={isFetching} />;
 
   return (
     <section className="page-shell section-gap">

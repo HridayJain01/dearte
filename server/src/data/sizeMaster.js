@@ -1220,7 +1220,9 @@ const CATEGORY_KEYWORDS = [
 // "Ear Rings" must not resolve to the ring chart.
 const NEVER_SIZED = [/\bear\s*rings?\b/, /\bnose\s*(pin|ring)s?\b/, /\btoe\s*rings?\b/];
 
-export function resolveSizeChart({ category, subCategory } = {}) {
+// Takes `null` too: an order line whose product was deleted has no product.
+export function resolveSizeChart(product) {
+  const { category, subCategory } = product || {};
   const haystack = `${subCategory || ''} ${category || ''}`.toLowerCase();
 
   if (NEVER_SIZED.some((pattern) => pattern.test(haystack))) {

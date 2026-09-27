@@ -1,5 +1,6 @@
 import { forwardRef, useState } from 'react';
-import { Eye, EyeOff, LoaderCircle, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle, Sparkles, TriangleAlert } from 'lucide-react';
+import { describeError } from '../../utils/errors';
 
 // Mobile keeps the same letterspaced, uppercase voice as desktop, just tighter,
 // so a two-word label never wraps onto a second line inside a grid card.
@@ -157,6 +158,36 @@ export function EmptyState({ title, description, action }) {
       <p className="mt-2 max-w-md text-[13px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">{description}</p>
       {action ? <div className="mt-4 sm:mt-6">{action}</div> : null}
     </Panel>
+  );
+}
+
+// What failed, in plain words, with the technical line underneath for support.
+export function ErrorState({ error, onRetry, retrying = false }) {
+  const { title, description, detail } = describeError(error);
+
+  return (
+    <Panel className="flex min-h-[180px] flex-col items-center justify-center text-center sm:min-h-[240px]">
+      <div role="alert" className="flex flex-col items-center">
+        <TriangleAlert className="mb-3 h-6 w-6 text-[var(--color-primary)] sm:mb-4 sm:h-8 sm:w-8" aria-hidden />
+        <h3 className="lux-heading text-xl sm:text-3xl">{title}</h3>
+        <p className="mt-2 max-w-md text-[13px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">{description}</p>
+      </div>
+      <p className="mt-3 max-w-lg break-all font-mono text-[10px] text-[var(--color-text-muted)] sm:text-xs">{detail}</p>
+      {onRetry ? (
+        <div className="mt-4 sm:mt-6">
+          <Button onClick={onRetry} loading={retrying}>Try again</Button>
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
+// ErrorState as a whole page's content.
+export function PageError(props) {
+  return (
+    <section className="page-shell section-gap">
+      <ErrorState {...props} />
+    </section>
   );
 }
 
