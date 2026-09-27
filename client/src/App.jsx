@@ -48,6 +48,7 @@ const AdminConfigPage = lazy(() => import('./pages/AdminPages').then((module) =>
 const AdminTestimonialsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminTestimonialsPage })));
 const AdminRolesPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminRolesPage })));
 const AdminReportsPage = lazy(() => import('./pages/AdminPages').then((module) => ({ default: module.AdminReportsPage })));
+const AdminAiStudioPage = lazy(() => import('./pages/AdminAiPages').then((module) => ({ default: module.AdminAiStudioPage })));
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, role, loading } = useAuth();
@@ -169,6 +170,7 @@ function App() {
           <Route path="testimonials" element={<AdminTestimonialsPage />} />
           <Route path="roles" element={<AdminRolesPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="ai" element={<AdminAiStudioPage />} />
         </Route>
       </Routes>
     </PageBoundary>

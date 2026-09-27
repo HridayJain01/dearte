@@ -25,7 +25,7 @@ function parseEmailList(value) {
     .filter((s) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s));
 }
 
-function opsEmailsFromSources(siteDoc) {
+export function opsEmailsFromSources(siteDoc) {
   const envList = parseEmailList(process.env.EMAIL_ADMIN_RECIPIENTS || '');
   const dbList = parseEmailList(siteDoc?.orderNotificationEmails || '');
   return [...new Set([...envList, ...dbList])];

@@ -9,6 +9,9 @@ import publicRoutes from './routes/publicRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import whatsappWebhookRoutes from './routes/whatsappWebhookRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
+import blogRoutes from './routes/blogRoutes.js';
+import adminAiRoutes from './routes/adminAiRoutes.js';
 import { requireAdmin, requireAuth } from './middleware/auth.js';
 import { sendError, sendSuccess } from './utils/responses.js';
 import { connectDatabase } from './config/database.js';
@@ -182,6 +185,11 @@ app.get('/api/health', (_req, res) =>
 
 app.use('/api/auth', authRoutes);
 app.use('/api/whatsapp', whatsappWebhookRoutes);
+// These three must come before the `/api` buyer router below: it requires a
+// session for everything it sees, which would turn guests away with a 401.
+app.use('/api/ai', aiRoutes);
+app.use('/api/blog', blogRoutes);
+app.use('/api/admin/ai', requireAuth, requireAdmin, adminAiRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', requireAuth, userRoutes);
 app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);

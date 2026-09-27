@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   Sparkles,
   Users,
+  WandSparkles,
 } from 'lucide-react';
 
 export const NAV_LINKS = [
@@ -48,6 +49,7 @@ export const ADMIN_LINKS = [
   { label: 'Testimonials', to: '/admin/testimonials', icon: MessageSquareQuote },
   { label: 'Roles', to: '/admin/roles', icon: ShieldCheck },
   { label: 'Reports', to: '/admin/reports', icon: FileClock },
+  { label: 'AI Studio', to: '/admin/ai', icon: WandSparkles },
 ];
 
 export const TRUST_LINKS = [

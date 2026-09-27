@@ -12,3 +12,7 @@ export { Event } from './Event.js';
 export { Testimonial } from './Testimonial.js';
 export { TrustedBrand } from './TrustedBrand.js';
 export { SiteSettings } from './SiteSettings.js';
+export { AiSettings } from './AiSettings.js';
+export { BlogPost } from './BlogPost.js';
+export { PhotoIndex } from './PhotoIndex.js';
+export { AiJobRun } from './AiJobRun.js';
