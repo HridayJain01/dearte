@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Eye, Play, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Eye, Play, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { Button, ErrorState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
 import { aiErrorMessage, aiService } from '../services/aiService';
+import { adminService } from '../services/adminService';
 
 // Kept local rather than imported from AdminPages.jsx: that module carries the
 // spreadsheet importer (xlsx), which this page has no use for.
@@ -118,6 +119,82 @@ const SETUP = [
   { key: 'cron', label: 'Cron secret' },
   { key: 'email', label: 'Email' },
 ];
+
+function BannerCopyPanel({ enabled }) {
+  const [goal, setGoal] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [creating, setCreating] = useState(-1);
+
+  const generate = async () => {
+    setBusy(true);
+    try {
+      setResult(await aiService.bannerCopy(goal));
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'Could not write copy right now.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Always inactive: it needs an image, and going live stays a human decision.
+  const create = async (banner, index) => {
+    setCreating(index);
+    try {
+      await adminService.createBanner({ ...banner, active: false });
+      toast.success('Created as an inactive banner. Add an image in Promotions, then switch it on.');
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'Could not create the banner.'));
+    } finally {
+      setCreating(-1);
+    }
+  };
+
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied. Paste it into Configuration → Announcement bar.');
+    } catch {
+      toast.error('Could not copy; select the text instead.');
+    }
+  };
+
+  return (
+    <Panel className="space-y-4">
+      <p className="lux-label">Banner and announcement copy</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Field label="Brief (optional)" hint="Numbers and dates only appear if they are in the brief.">
+            <input className={inputClass} value={goal} maxLength={300} placeholder="e.g. Diwali trade orders close 15 October; focus on earrings" onChange={(event) => setGoal(event.target.value)} />
+          </Field>
+        </div>
+        <Button icon={Sparkles} loading={busy} disabled={!enabled} onClick={generate}>Write copy</Button>
+      </div>
+      {result ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            {result.banners.length ? result.banners.map((banner, index) => (
+              <div key={index} className="border border-[var(--color-border)] p-3">
+                <p className="font-medium text-[var(--color-primary)]">{banner.title}</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">{banner.subtitle}</p>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">Button: {banner.ctaLabel} → {banner.ctaLink}</p>
+                <Button variant="ghost" className="mt-2" loading={creating === index} onClick={() => create(banner, index)}>Create as inactive banner</Button>
+              </div>
+            )) : <p className="text-sm text-[var(--color-text-muted)]">No banner passed the checks. Try again or change the brief.</p>}
+          </div>
+          <div className="space-y-2">
+            {result.announcements.map((line, index) => (
+              <div key={index} className="flex items-center justify-between gap-3 border border-[var(--color-border)] p-3 text-sm">
+                <span>{line}</span>
+                <Button variant="ghost" onClick={() => copy(line)}>Copy</Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
 
 export function AdminAiStudioPage() {
   const queryClient = useQueryClient();
@@ -251,6 +328,8 @@ export function AdminAiStudioPage() {
         <Button onClick={save} loading={saving} disabled={!draft}>Save settings</Button>
         {draft ? <Button variant="ghost" onClick={() => setDraft(null)}>Discard changes</Button> : null}
       </div>
+
+      <BannerCopyPanel enabled={configured.text} />
 
       <Panel className="space-y-4">
         <p className="lux-label">Recent runs</p>

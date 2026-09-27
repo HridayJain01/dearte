@@ -12,6 +12,7 @@ import { getAiSettings, saveAiSettings } from '../services/ai/settings.js';
 import { recentRuns, triggerClientRebuild } from '../services/ai/jobs.js';
 import { generateDraftNow, serializePost } from '../services/ai/blog.js';
 import { runPhotoIndexNow } from '../services/ai/photoSearch.js';
+import { bannerCopy } from '../services/ai/banner.js';
 
 const router = express.Router();
 
@@ -64,6 +65,15 @@ router.put('/settings', async (req, res) => {
 router.post('/photo-index/run', async (_req, res) => {
   try {
     return sendSuccess(res, await runPhotoIndexNow());
+  } catch (error) {
+    return aiFailure(res, error);
+  }
+});
+
+// Suggestions only; the admin turns one into an inactive banner.
+router.post('/banner-copy', async (req, res) => {
+  try {
+    return sendSuccess(res, await bannerCopy(req.body?.goal));
   } catch (error) {
     return aiFailure(res, error);
   }
