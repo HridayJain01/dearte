@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { LoaderCircle, Sparkles } from 'lucide-react';
 import { Button, Panel } from '../ui/Primitives';
 import { useAiFeatures } from '../../hooks/useAiFeatures';
 import { useCart } from '../../hooks/useCart';
@@ -78,5 +79,49 @@ export function RestockPanel() {
         })}
       </ul>
     </Panel>
+  );
+}
+
+// Square, bordered, same height as the products search box beside it.
+const SEARCH_SIDE_BUTTON =
+  'inline-flex min-h-10 flex-none items-center justify-center gap-1.5 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-primary)] transition hover:border-[var(--color-border-active)] disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-12 sm:px-4';
+
+/**
+ * ✨ next to the products search box: turns a sentence into the page's own
+ * filters. `onApply` receives { category: [], subCategory: [], …, search, sort }.
+ */
+export function SmartSearchButton({ query, onApply }) {
+  const features = useAiFeatures();
+  const [busy, setBusy] = useState(false);
+  if (!features.smartSearch) return null;
+
+  const text = query.trim();
+  const ready = text.split(/\s+/).filter(Boolean).length >= 3;
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const result = await aiService.smartSearch(text);
+      onApply(result.params);
+      toast.success(result.understood?.length ? `Showing ${result.understood.join(' · ')}` : 'Showing everything that matches');
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'Smart search is unavailable right now. The filters still work.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={run}
+      disabled={busy || !ready}
+      title={ready ? 'Turn this description into filters' : 'Describe what you want in a few words, e.g. “rose gold bridal studs under 4 g”'}
+      aria-label="Smart search: turn this description into filters"
+      className={SEARCH_SIDE_BUTTON}
+    >
+      {busy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
+      <span className="max-sm:sr-only">Smart search</span>
+    </button>
   );
 }

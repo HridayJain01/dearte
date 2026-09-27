@@ -19,7 +19,7 @@ import { Seo } from '../components/seo/Seo';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
-import { RestockPanel } from '../components/ai/StorefrontAi';
+import { RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
 import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
 import { formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
@@ -321,6 +321,20 @@ export function ProductListPage() {
       return next;
     });
 
+  // Smart search describes a fresh query, so it replaces every filter rather
+  // than stacking on them. Pushed, so Back returns to the previous results.
+  const applySmartSearch = (result) =>
+    setSearchParams(() => {
+      const next = new URLSearchParams();
+      Object.entries(FILTER_PARAMS).forEach(([field, key]) => (result[field] || []).forEach((value) => next.append(key, value)));
+      RANGE_PARAMS.forEach((field) => {
+        if (result[field] !== null && result[field] !== undefined && result[field] !== '') next.set(field, String(result[field]));
+      });
+      if (result.search) next.set('search', result.search);
+      if (result.sort) next.set('sort', result.sort);
+      return next;
+    });
+
   // Keep the box in sync when the URL changes from outside (header search,
   // back button, a shared link).
   useEffect(() => {
@@ -517,27 +531,31 @@ export function ProductListPage() {
             ))}
           </div>
         )}
-        <div className="relative w-full">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-muted)] sm:left-4 sm:h-4 sm:w-4" />
-          <input
-            id="product-search"
-            type="search"
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            placeholder="Search style, category, collection, metal"
-            aria-label="Search products"
-            className="min-h-10 w-full border border-[var(--color-border)] bg-[var(--color-surface)] py-2 pl-9 pr-9 text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:min-h-12 sm:py-3 sm:pl-11 sm:pr-11 sm:text-sm"
-          />
-          {searchDraft ? (
-            <button
-              type="button"
-              onClick={() => setSearchDraft('')}
-              aria-label="Clear search"
-              className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:right-2 sm:h-9 sm:w-9"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
+        <div className="flex gap-2">
+          <div className="relative w-full">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-muted)] sm:left-4 sm:h-4 sm:w-4" />
+            <input
+              id="product-search"
+              type="search"
+              value={searchDraft}
+              onChange={(event) => setSearchDraft(event.target.value)}
+              placeholder="Search style, category, collection, metal"
+              aria-label="Search products"
+              className="min-h-10 w-full border border-[var(--color-border)] bg-[var(--color-surface)] py-2 pl-9 pr-9 text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:min-h-12 sm:py-3 sm:pl-11 sm:pr-11 sm:text-sm"
+            />
+            {searchDraft ? (
+              <button
+                type="button"
+                onClick={() => setSearchDraft('')}
+                aria-label="Clear search"
+                className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:right-2 sm:h-9 sm:w-9"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+          {/* Render nothing unless switched on in AI Studio. */}
+          <SmartSearchButton query={searchDraft} onApply={applySmartSearch} />
         </div>
         <ProductFilters
           filters={data.filters}

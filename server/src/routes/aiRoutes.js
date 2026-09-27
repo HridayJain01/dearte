@@ -15,6 +15,7 @@ import { featuresFor } from '../services/ai/settings.js';
 import { aiFailure } from '../services/ai/llm.js';
 import { runBlogCron } from '../services/ai/blog.js';
 import { runNudgesCron, suggestionsForUser } from '../services/ai/reorder.js';
+import { parseSearch } from '../services/ai/search.js';
 
 const router = express.Router();
 
@@ -36,6 +37,15 @@ export const requireFeature = (name) => async (req, res, next) => {
 };
 
 router.get('/features', async (req, res) => sendSuccess(res, await featuresFor(req.user)));
+
+// Open to guests (the products page is), so it is rate-limited per IP.
+router.post('/search', aiLimiter, requireFeature('smartSearch'), async (req, res) => {
+  try {
+    return sendSuccess(res, await parseSearch(req.body?.q, req.user));
+  } catch (error) {
+    return aiFailure(res, error);
+  }
+});
 
 router.get('/reorder-suggestions', requireAuth, requireFeature('restock'), async (req, res) => {
   try {
