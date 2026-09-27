@@ -9,10 +9,12 @@
 import crypto from 'crypto';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { optionalAuth } from '../middleware/auth.js';
+import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { featuresFor } from '../services/ai/settings.js';
+import { aiFailure } from '../services/ai/llm.js';
 import { runBlogCron } from '../services/ai/blog.js';
+import { runNudgesCron, suggestionsForUser } from '../services/ai/reorder.js';
 
 const router = express.Router();
 
@@ -35,10 +37,19 @@ export const requireFeature = (name) => async (req, res, next) => {
 
 router.get('/features', async (req, res) => sendSuccess(res, await featuresFor(req.user)));
 
+router.get('/reorder-suggestions', requireAuth, requireFeature('restock'), async (req, res) => {
+  try {
+    return sendSuccess(res, await suggestionsForUser(req.user));
+  } catch (error) {
+    return aiFailure(res, error);
+  }
+});
+
 // Vercel Cron calls these with `Authorization: Bearer $CRON_SECRET`. Without a
 // secret configured they refuse to run at all, so they can never be public.
 const CRON_JOBS = {
   blog: () => runBlogCron(),
+  nudges: () => runNudgesCron(),
 };
 
 function cronAuthorized(req) {

@@ -19,6 +19,7 @@ import { Seo } from '../components/seo/Seo';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
+import { RestockPanel } from '../components/ai/StorefrontAi';
 import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
 import { formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
@@ -1851,6 +1852,8 @@ export function ProfilePage() {
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="My Account" noindex />
       <SectionHeading eyebrow="Profile" title="Buyer account and order history" />
+      {/* Renders nothing unless restock suggestions are on and something is due. */}
+      <RestockPanel />
       <div className="grid gap-4 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
           <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">My Profile</p>
