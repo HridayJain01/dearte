@@ -5,7 +5,11 @@
       "Bash(git commit -q -m ' *)",
       "Bash(git push *)",
       "Bash(git checkout *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(grep -v \"^\\\\s*$\")",
+      "WebFetch(domain:console.groq.com)",
+      "WebFetch(domain:www.pexels.com)",
+      "Bash(git -C /Users/hridayjain/Documents/Projects/dearte log -1 --format=%H main)"
     ]
   }
 }

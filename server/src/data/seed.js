@@ -213,6 +213,7 @@ export const seedData = {
         'We collect only the information required to service trade accounts, manage orders, and support catalogue assignments.',
         'Buyer data is never sold and is only shared with authorized internal teams and integrated business systems.',
         'Users may request updates to their business account information through the profile area or support desk.',
+        'When you use smart search or shop by photo, your search text or photo is sent to our AI service provider only to find matching products. Uploaded photos are not stored.',
       ],
     },
     terms: {
