@@ -22,7 +22,6 @@ import { facetsFor } from './search.js';
 const DAY = 24 * 60 * 60 * 1000;
 const RETRY_AFTER_DAYS = 7;
 const BATCH_LIMIT = 60;
-const WORKERS = 3;
 // ponytail: candidates are scored in memory; fine for a few thousand styles,
 // move the category filter and tag overlap into an aggregation beyond that.
 const MAX_CANDIDATES = 600;
@@ -82,12 +81,16 @@ async function pendingProducts() {
   return [...guestVisible, ...others].map(serializeProduct);
 }
 
-/** Tag as many pending styles as the time budget allows, three at a time. */
-export async function indexPhotos({ deadline = deadlineIn() } = {}) {
+/**
+ * Tag pending styles until the time budget runs out. One at a time: Groq's free
+ * tier counts an image as ~2,300 input tokens against 7,000 a minute, so about
+ * three photos a minute is the ceiling and parallel calls only collide.
+ * chatJson waits out each rate limit and this carries on.
+ */
+export async function indexPhotos({ deadline = deadlineIn(), queue } = {}) {
   if (!aiStatus().vision) throw new AiError('The vision model is not configured.', 503);
   const model = process.env.AI_VISION_MODEL || '';
-  const queue = await pendingProducts();
-  let cursor = 0;
+  const pending = queue || (await pendingProducts());
   let indexed = 0;
   let failed = 0;
   let busy = false;
@@ -95,32 +98,29 @@ export async function indexPhotos({ deadline = deadlineIn() } = {}) {
   const record = (productId, fields) =>
     PhotoIndex.updateOne({ product: productId }, { $set: { attemptedAt: new Date(), ...fields } }, { upsert: true });
 
-  async function worker() {
-    while (cursor < queue.length && !busy && timeLeft(deadline) > 12_000) {
-      const product = queue[cursor];
-      cursor += 1;
-      if (!primaryImage(product)) {
-        await record(product.id, { error: 'No photo' });
-        failed += 1;
-        continue;
+  for (const product of pending) {
+    if (timeLeft(deadline) < 12_000) break;
+    if (!primaryImage(product)) {
+      await record(product.id, { error: 'No photo' });
+      failed += 1;
+      continue;
+    }
+    try {
+      // The whole remaining budget, so a rate-limit wait (~20 s) can happen inside it.
+      const tags = await tagProduct(product, timeLeft(deadline) - 3_000);
+      await record(product.id, { tags, model, indexedAt: new Date(), error: '' });
+      indexed += 1;
+    } catch (error) {
+      // Still rate-limited after a wait: stop for now and leave the style
+      // untouched, so it is first in line next run rather than parked for a week.
+      if (error?.status === 429) {
+        busy = true;
+        break;
       }
-      try {
-        const tags = await tagProduct(product, Math.min(30_000, timeLeft(deadline) - 5_000));
-        await record(product.id, { tags, model, indexedAt: new Date(), error: '' });
-        indexed += 1;
-      } catch (error) {
-        // Rate-limited: stop for today and leave the style untouched, so it
-        // is first in line tomorrow rather than parked for a week.
-        if (error?.status === 429) {
-          busy = true;
-          break;
-        }
-        await record(product.id, { error: String(error?.message || error).slice(0, 200) });
-        failed += 1;
-      }
+      await record(product.id, { error: String(error?.message || error).slice(0, 200) });
+      failed += 1;
     }
   }
-  await Promise.all(Array.from({ length: WORKERS }, worker));
 
   const [active, done] = await Promise.all([
     Product.countDocuments({ status: 'Active' }),
@@ -129,12 +129,16 @@ export async function indexPhotos({ deadline = deadlineIn() } = {}) {
   return `Tagged ${indexed} style(s)${failed ? `, ${failed} failed` : ''}${busy ? ', stopped at the rate limit' : ''}; ${Math.max(0, active - done)} still to go.`;
 }
 
+// Runs several times a night (see server/vercel.json). Once every style is
+// tagged, a run ends here without logging, so AI Studio's list stays readable.
 export async function runPhotoIndexCron() {
   const settings = await getAiSettings({ fresh: true });
   if (!settings.photoIndex.enabled) return { skipped: 'The photo index is off.' };
   if (!aiStatus().vision) return { skipped: 'The vision model is not configured.' };
   const deadline = deadlineIn();
-  return runJob('photo-index', 'cron', () => indexPhotos({ deadline }));
+  const queue = await pendingProducts();
+  if (!queue.length) return { skipped: 'Every style is indexed.' };
+  return runJob('photo-index', 'cron', () => indexPhotos({ deadline, queue }));
 }
 
 export function runPhotoIndexNow() {

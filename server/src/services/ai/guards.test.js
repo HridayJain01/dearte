@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   bannedClaims,
+  claimEvidence,
   clampNumber,
   clampText,
   escapeHtml,
@@ -41,6 +42,12 @@ test('banned claims are caught, certification only when not in facts', () => {
   assert.ok(bannedClaims('Unlike Tanishq, we …').includes('competitor brand'));
   assert.ok(bannedClaims('Every stone is certified.').includes('certification claim'));
   assert.deepEqual(bannedClaims('Every stone is certified.', 'IGI certified stones on request'), []);
+  assert.ok(bannedClaims('Ask for grading certificates.').includes('certification claim'));
+  assert.deepEqual(bannedClaims('Customers appreciate the sparkle.'), []);
+  assert.ok(bannedClaims('…guaranteeing the same quality.').includes('guarantee'));
+  assert.ok(bannedClaims('Pieces that appreciate in value.').includes('value appreciation'));
+  assert.ok(bannedClaims('A diamond that holds its value.').includes('value appreciation'));
+  assert.deepEqual(claimEvidence('Our pieces are a smart investment for any family.'), ['investment claim: "…Our pieces are a smart investment for any family.…"']);
 });
 
 test('title similarity catches near-duplicates only', () => {
@@ -61,5 +68,6 @@ test('numbers and text are clamped', () => {
   assert.equal(clampNumber('abc', 0, 50), null);
   assert.equal(clampNumber(null, 0, 50), null);
   assert.equal(clampText('Rose gold studs for everyday wear', 20), 'Rose gold studs for');
+  assert.equal(clampText('Lab\u2011Grown\u00a0Diamonds\u202Ffor Diwali', 80), 'Lab-Grown Diamonds for Diwali');
   assert.equal(escapeHtml('<b>"x"</b>'), '&lt;b&gt;&quot;x&quot;&lt;/b&gt;');
 });

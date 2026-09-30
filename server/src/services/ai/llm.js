@@ -18,6 +18,16 @@ import { sendError } from '../../utils/responses.js';
 
 const DEFAULT_BASE_URL = 'https://api.groq.com/openai/v1';
 const TIMEOUT_MS = 45_000;
+// Reasoning models (gpt-oss) spend part of max_tokens thinking before they
+// write the JSON; without headroom a short answer is cut off mid-object. Keep
+// it small: Groq counts prompt + max_tokens against the 8,000-token-a-minute
+// cap when admitting a request, and rejects anything over it outright.
+// Callers' maxTokens stays "the size of the answer".
+const REASONING_HEADROOM = 1000;
+// Groq's per-minute token allowance refills continuously, and a 429 says how
+// long to wait (retry-after). One wait is cheaper than failing a nightly job;
+// a call whose own time limit can't absorb the wait fails fast instead.
+const MAX_RETRY_WAIT_MS = 30_000;
 
 /** Which kinds of call this deployment can make. Never exposes the key itself. */
 export function aiStatus() {
@@ -87,15 +97,9 @@ export function extractJson(text) {
  * the vision one. Prompts must mention JSON — some providers refuse JSON mode
  * otherwise.
  */
-export async function chatJson({
-  system,
-  user,
-  images = [],
-  model,
-  maxTokens = 1500,
-  temperature = 0.3,
-  timeoutMs = TIMEOUT_MS,
-}) {
+export async function chatJson(options, retried = false) {
+  const { system, user, images = [], model, maxTokens = 1500, temperature = 0.3, timeoutMs = TIMEOUT_MS } = options;
+  const started = Date.now();
   const apiKey = process.env.AI_API_KEY;
   const chosenModel = model || (images.length ? process.env.AI_VISION_MODEL : process.env.AI_TEXT_MODEL);
   if (!apiKey || !chosenModel) {
@@ -120,7 +124,12 @@ export async function chatJson({
         ],
         response_format: { type: 'json_object' },
         temperature,
-        max_tokens: maxTokens,
+        max_tokens: maxTokens + REASONING_HEADROOM,
+        // gpt-oss thinks for thousands of tokens at its default effort (5,500
+        // was seen), which eats the free per-minute allowance and can cut the
+        // answer off; low keeps it to about a hundred. Length is asked for in
+        // the prompt's structure instead.
+        ...(chosenModel.startsWith('openai/gpt-oss') && { reasoning_effort: 'low' }),
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -133,10 +142,22 @@ export async function chatJson({
   }
 
   if (response.status === 429) {
+    const waitMs = (Number(response.headers.get('retry-after')) || 0) * 1000;
+    const left = timeoutMs - (Date.now() - started);
+    await response.body?.cancel().catch(() => {});
+    if (!retried && waitMs > 0 && waitMs <= MAX_RETRY_WAIT_MS && waitMs + 5_000 < left) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      return chatJson({ ...options, timeoutMs: left - waitMs }, true);
+    }
     throw new AiError('The AI service is busy right now. Try again in a minute.', 429);
   }
   if (!response.ok) {
     const body = await response.text().catch(() => '');
+    // gpt-oss in JSON mode now and then writes an invalid object, which Groq
+    // rejects rather than returning; a second sample almost always parses.
+    if (!retried && response.status === 400 && body.includes('json_validate_failed') && timeoutMs - (Date.now() - started) > 10_000) {
+      return chatJson({ ...options, timeoutMs: timeoutMs - (Date.now() - started) }, true);
+    }
     // The provider's message stays in the server log; callers get a plain one.
     console.error(`[ai] ${chosenModel} answered ${response.status}: ${body.slice(0, 500)}`);
     throw new AiError('The AI service returned an error.', 503);

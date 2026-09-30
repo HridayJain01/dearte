@@ -130,7 +130,7 @@ export function describeParams(params) {
 }
 
 const SYSTEM = `You turn a jewellery buyer's search into catalogue filters.
-Use ONLY values from the lists provided and copy them exactly. Prefer a sub-category when one fits (for example "halo studs" → the matching halo or stud sub-category).
+Use ONLY values from the lists provided and copy them exactly. Set a sub-category only when the search names that kind of piece (for example "halo studs" or "tennis bracelet"); "rings" or "earrings" on their own mean just the category.
 Diamond weights are in carats (ct); gold weights are in grams (g). "Under 8 g" means goldMax 8. Leave a field empty when the search does not ask for it.
 sort is one of: "", "best-sellers", "new-arrivals", "diamond-asc", "diamond-desc", "gold-asc", "gold-desc".
 Return ONLY JSON: {"category": [], "subCategory": [], "collection": [], "occasion": [], "metalColor": [], "diamondMin": null, "diamondMax": null, "goldMin": null, "goldMax": null, "sort": "", "keywords": []}

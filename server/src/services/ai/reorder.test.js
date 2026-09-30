@@ -1,6 +1,7 @@
 // node --test server/src/services/ai/reorder.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import mongoose from 'mongoose';
 import { reorderSuggestions } from './reorder.js';
 
 const now = new Date('2026-09-28T00:00:00Z');
@@ -47,4 +48,12 @@ test('two lines of one style in one order count as one purchase', () => {
   const [suggestion] = reorderSuggestions(orders, { now });
   assert.equal(suggestion.timesOrdered, 1);
   assert.equal(suggestion.lines.length, 2);
+});
+
+test('real ObjectIds come back as their hex id (not the raw 12-byte buffer)', () => {
+  const productId = new mongoose.Types.ObjectId();
+  const at = (daysAgo) => new Date(Date.UTC(2026, 8, 30) - daysAgo * 86400000);
+  const orders = [45, 90].map((daysAgo) => ({ status: 'Fulfilled', createdAt: at(daysAgo), items: [{ product: productId, quantity: 4 }] }));
+  const [suggestion] = reorderSuggestions(orders, { now: new Date(Date.UTC(2026, 8, 30)) });
+  assert.equal(suggestion.productId, productId.toHexString());
 });

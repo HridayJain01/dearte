@@ -1,7 +1,7 @@
 // node --test server/src/services/ai/blog.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { draftProblems, istParts, nextTopic, normaliseDraft, wordCount } from './blog.js';
+import { draftProblems, fitMeta, istParts, nextTopic, normaliseDraft, wordCount } from './blog.js';
 
 const words = (count, word = 'jewellery') => Array.from({ length: count }, () => word).join(' ');
 
@@ -69,4 +69,23 @@ test('IST weekday and month are read in Asia/Kolkata', () => {
   const parts = istParts(new Date('2026-09-28T20:30:00Z'));
   assert.equal(parts.weekday, 'Tue');
   assert.equal(parts.month, 9);
+});
+
+test('list items written as paragraphs become bullets', () => {
+  const draft = normaliseDraft({
+    sections: [{ heading: 'Care', paragraphs: ['Keep it simple:', '• Warm water', '- A soft brush', '2) Dry with a cloth'], bullets: ['Store apart'] }],
+  });
+  assert.deepEqual(draft.sections[0].paragraphs, ['Keep it simple:']);
+  assert.deepEqual(draft.sections[0].bullets, ['Store apart', 'Warm water', 'A soft brush', 'Dry with a cloth']);
+});
+
+test('an over-long meta description is cut cleanly, never mid-phrase', () => {
+  const first = 'A practical checklist of rings, earrings, bangles and bracelets to stock on the counter before the Diwali rush begins.';
+  const sentences = `${first} It also covers karats, metal colours and the house diamond quality.`;
+  assert.ok(sentences.length > 165);
+  assert.equal(fitMeta(sentences), first);
+  const oneSentence = 'A practical checklist of ring, earring, bracelet and specialty items to have on the counter before the Diwali rush, with guidance on gold karats, diamond quality and lead times';
+  const fitted = fitMeta(oneSentence);
+  assert.ok(fitted.length <= 165 && fitted.endsWith('…') && !/\sand…$/.test(fitted), fitted);
+  assert.equal(fitMeta('Short and sweet.'), 'Short and sweet.');
 });

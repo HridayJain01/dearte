@@ -8,7 +8,7 @@ import { isEmailConfigured, sendEmail } from '../email/transport.js';
 import { promoEmail } from '../email/templates.js';
 import { escapeHtml } from './guards.js';
 import { getAiSettings } from './settings.js';
-import { deadlineIn, runJob, storefrontUrl, timeLeft } from './jobs.js';
+import { claimCronRun, deadlineIn, runJob, storefrontUrl, timeLeft } from './jobs.js';
 import { displayName, visibleProductsByIds } from './catalogue.js';
 
 // Orders the house has accepted. Pending ones may still be rejected, and a
@@ -31,7 +31,14 @@ function median(values) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-const idOf = (value) => String(value?.id || value?._id || value || '');
+// A product may arrive as an ObjectId, a document or a serialized { id }.
+// `_id` first: on an ObjectId, `.id` is the raw 12-byte buffer, not its hex.
+const idOf = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (value._id) return String(value._id);
+  return typeof value.id === 'string' ? value.id : String(value);
+};
 
 /**
  * Every style this buyer is due (or nearly due) to reorder, most overdue
@@ -127,6 +134,7 @@ export async function runNudgesCron(now = new Date()) {
   const settings = await getAiSettings({ fresh: true });
   if (!settings.nudges.enabled) return { skipped: 'Restock emails are off.' };
   if (!isEmailConfigured()) return { skipped: 'Email is not configured.' };
+  if (!(await claimCronRun('nudges', { now }))) return { skipped: 'Already ran this week.' };
 
   const deadline = deadlineIn();
   return runJob('nudges', 'cron', async () => {

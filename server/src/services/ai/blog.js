@@ -7,7 +7,6 @@
  * never a bad page on the site.
  */
 import { AiSettings, BlogPost, Category, Collection, Product, SiteSettings } from '../../models/index.js';
-import { seedData } from '../../data/seed.js';
 import { CATEGORY_TREE, DIAMOND_QUALITY, OCCASIONS } from '../../data/taxonomy.js';
 import { slugify } from '../../utils/slugify.js';
 import { escapeRegex } from '../../utils/validation.js';
@@ -15,7 +14,7 @@ import { normalizeAsset } from '../../utils/assets.js';
 import { serializeProduct } from '../../utils/serializers.js';
 import { AiError, aiStatus, chatJson } from './llm.js';
 import {
-  bannedClaims,
+  claimEvidence,
   clampNumber,
   clampText,
   escapeHtml,
@@ -24,7 +23,7 @@ import {
   ungroundedNumbers,
 } from './guards.js';
 import { getAiSettings, invalidateAiSettings, sanitizeTopics } from './settings.js';
-import { deadlineIn, notifyAdmins, runJob, storefrontUrl, timeLeft, triggerClientRebuild } from './jobs.js';
+import { claimCronRun, deadlineIn, notifyAdmins, runJob, storefrontUrl, timeLeft, triggerClientRebuild } from './jobs.js';
 import { accessFilterFor, displayName, primaryImage, productFacts, productPopulate, withAccess } from './catalogue.js';
 
 export const PASS_SCORE = 7;
@@ -55,19 +54,42 @@ export function nextTopic(queue = [], month) {
 const list = (value) => (Array.isArray(value) ? value : []);
 
 /** Coerce whatever the writer returned into the stored shape, trimmed. */
+const BULLET = /^\s*(?:[•·▪◦*–-]|\d+[.)])\s+/;
+const META_MAX = 165;
+
+/**
+ * A meta description that fits search results: an over-long one is cut at a
+ * sentence end, or else at a word with "…" — never mid-phrase ("… and").
+ */
+export function fitMeta(value) {
+  const text = clampText(value, 400);
+  if (text.length <= META_MAX) return text;
+  const cut = text.slice(0, META_MAX);
+  const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+  if (end >= 110) return cut.slice(0, end + 1);
+  let short = clampText(text, META_MAX - 1);
+  while (/\s(and|or|with|for|the|of|to|a|an|in|on|by|at|from)$/i.test(short)) short = short.replace(/\s+\S+$/, '');
+  return `${short}…`;
+}
+
 export function normaliseDraft(raw = {}) {
   const sections = list(raw.sections)
     .slice(0, 10)
-    .map((section) => ({
-      heading: clampText(section?.heading, 120),
-      paragraphs: list(section?.paragraphs).map((text) => clampText(text, 2000)).filter(Boolean).slice(0, 8),
-      bullets: list(section?.bullets).map((text) => clampText(text, 300)).filter(Boolean).slice(0, 10),
-    }))
+    .map((section) => {
+      // Models sometimes write list items as paragraphs starting with "•".
+      const paragraphs = list(section?.paragraphs).filter((text) => typeof text === 'string');
+      const listed = paragraphs.filter((text) => BULLET.test(text)).map((text) => text.replace(BULLET, ''));
+      return {
+        heading: clampText(section?.heading, 120),
+        paragraphs: paragraphs.filter((text) => !BULLET.test(text)).map((text) => clampText(text, 2000)).filter(Boolean).slice(0, 8),
+        bullets: [...list(section?.bullets), ...listed].map((text) => clampText(text, 300)).filter(Boolean).slice(0, 10),
+      };
+    })
     .filter((section) => section.heading && (section.paragraphs.length || section.bullets.length));
 
   return {
     title: clampText(raw.title, 90),
-    metaDescription: clampText(raw.metaDescription, 170),
+    metaDescription: fitMeta(raw.metaDescription),
     excerpt: clampText(raw.excerpt, 300),
     sections,
     faq: list(raw.faq)
@@ -115,8 +137,8 @@ export function draftProblems(draft, { sources = [], facts = '', existingTitles 
   const text = draftText(draft);
   const unknown = ungroundedNumbers(text, sources);
   if (unknown.length) problems.push(`Remove figures that are not in FACTS or PRODUCTS: ${unknown.slice(0, 8).join(', ')}.`);
-  const claims = bannedClaims(text, facts);
-  if (claims.length) problems.push(`Remove these kinds of claim: ${claims.join(', ')}.`);
+  const claims = claimEvidence(text, facts);
+  if (claims.length) problems.push(`Remove these claims (the quoted words show where): ${claims.join('; ')}.`);
 
   const similar = existingTitles.find((title) => titleSimilarity(title, draft.title) >= 0.6);
   if (similar) problems.push(`Too close to the existing post “${similar}”; take a clearly different angle.`);
@@ -130,8 +152,10 @@ Voice: warm, expert, specific and calm. Indian English spelling (jewellery, colo
 Hard rules:
 - Use a number (price, percentage, market size, date, weight, count of anything) ONLY if it appears in FACTS or PRODUCTS. Otherwise describe without numbers.
 - Never name another jewellery brand, retailer or laboratory that is not in FACTS.
-- Never promise guarantees, investment returns, resale value or health benefits.
+- Never promise guarantees, investment returns, resale value or health benefits, and never call jewellery an investment.
 - Never invent anything about DeArte: no workshop stories, people, locations, awards, certifications or design inspirations beyond FACTS.
+- Do not mention certificates, certification or grading reports at all unless FACTS mention them.
+- Do not describe DeArte's services, processes, staff, training, logistics, packaging, lead times or policies beyond what FACTS say.
 - Lab-grown diamonds are real diamonds with the same chemical, physical and optical properties as mined diamonds, grown by CVD or HPHT. Never call them fake, simulants or cubic zirconia.
 - Mention DeArte naturally one to three times. The article must be genuinely useful to a reader who never buys from DeArte.
 - Refer to PRODUCTS by name only where they fit, and say nothing about them beyond their listed facts.
@@ -140,31 +164,32 @@ Return ONLY a JSON object:
 {"title": "under 70 characters, specific, contains the main keyword",
  "metaDescription": "130-155 characters for search results",
  "excerpt": "one or two sentences for the article card",
- "sections": [{"heading": "...", "paragraphs": ["..."], "bullets": ["optional short list items"]}],
+ "sections": [{"heading": "...", "paragraphs": ["..."], "bullets": ["optional list items; never put list items in paragraphs"]}],
  "faq": [{"question": "...", "answer": "two or three sentences"}],
  "tags": ["three to six short topic tags"],
  "imageQuery": "three to six words to search a stock photo library for a lifestyle photo, no brand names",
  "imageAlt": "alt text for that photo"}
-Write 5 to 7 sections and 900 to 1,300 words across paragraphs and bullets, plus 3 or 4 FAQ entries.`;
+Structure: exactly 6 sections, and every section has exactly 3 paragraphs of 50 to 80 words each (bullets are optional extras on top), so the article runs about 1,000 words. Then 3 or 4 FAQ entries.`;
 
 const REVIEW_SYSTEM = `You are the managing editor of a trade journal for jewellery retailers. Review the draft strictly.
 Score it from 1 to 10, where 7 means "good enough to publish without edits".
-Deduct for: factual errors about diamonds, lab-grown diamonds, gold or hallmarking; claims about the company that are not in FACTS; filler and vague generalities; repetition; a salesy or hyped tone; weak structure; advice that would not help a jewellery retailer; anything legally risky.
-Return ONLY JSON: {"score": <integer 1-10>, "issues": ["specific, actionable problems, at most six"]}.`;
+"blocking" lists only what must be fixed before publishing, quoting the words: a statement about DeArte (its services, processes, staff, locations, logistics, packaging, timelines or credentials) that FACTS do not support; a product detail not in PRODUCTS; a factual error about diamonds, lab-grown diamonds, gold or hallmarking; a guarantee, investment or resale claim, or anything else legally risky.
+"issues" lists everything else worth improving: filler, vague generalities, repetition, a salesy tone, weak structure, advice that would not help a retailer.
+Return ONLY JSON: {"score": <integer 1-10>, "blocking": ["at most six"], "issues": ["at most six"]}.`;
 
 const TOPIC_SYSTEM = `You plan the editorial calendar for the journal of DeArte Jewellery, a B2B manufacturer of lab-grown diamond jewellery whose readers are jewellery retailers and their customers.
 Suggest specific, useful topics: understanding the lab-grown market as a retailer, styling, selling advice, buying guides, care, and seasonal occasions in India. Avoid news you cannot verify and never name other brands.
 Return ONLY JSON: {"topics": [{"title": "under 70 characters", "angle": "one sentence", "keywords": ["two or three search phrases"], "hints": {"category": "one of the categories or empty", "occasion": "one of the occasions or empty"}, "months": [month numbers 1-12 only if the topic is seasonal]}]}`;
 
+// Only what the storefront itself states. Founding year, certifications and
+// the like are not listed here (seed.js carries demo values for them); an admin
+// adds true ones under Admin → Blog → "Facts the writer may use".
 function companyFacts(site) {
-  const info = seedData.companyInfo || {};
   return [
     `${site?.companyName || 'DeArte Jewellery'} (DeArte Jewels) is a B2B manufacturer of lab-grown diamond jewellery supplying jewellery retailers and brands through trade accounts.`,
     site?.address ? `Address: ${site.address}.` : '',
-    info.founded ? `${info.founded}.` : '',
     `Every piece uses one house diamond quality: ${DIAMOND_QUALITY} (VVS-VS clarity, EF colour).`,
     'Gold is offered in 9K, 14K and 18K, in yellow, rose and white gold.',
-    info.certifications?.length ? `Company credentials: ${info.certifications.join(', ')}.` : '',
     `Categories made: ${CATEGORY_TREE.map((item) => item.name).join(', ')}.`,
     'Services: a wholesale trade catalogue, custom manufacturing and private label programmes.',
   ]
@@ -200,22 +225,26 @@ async function writeDraft(topic, context, { previous, feedback } = {}, timeoutMs
     .filter(Boolean)
     .join('\n');
 
-  return normaliseDraft(await chatJson({ system: WRITER_SYSTEM, user, maxTokens: 4000, temperature: 0.6, timeoutMs }));
+  // ~1,000 words is ~1,700 tokens. Prompt + max_tokens must stay under Groq's
+  // 8,000-a-minute cap even for the rewrite, whose prompt carries the draft.
+  return normaliseDraft(await chatJson({ system: WRITER_SYSTEM, user, maxTokens: 3000, temperature: 0.6, timeoutMs }));
 }
 
 async function reviewDraft(draft, context, timeoutMs) {
   try {
     const result = await chatJson({
       system: REVIEW_SYSTEM,
-      user: `FACTS:\n${context.facts}\n\nDRAFT:\n${JSON.stringify(promptView(draft))}`,
+      user: `FACTS:\n${context.facts}\n\nPRODUCTS (the writer may quote these):\n${context.productLines || '(none)'}\n\nDRAFT:\n${JSON.stringify(promptView(draft))}`,
       model: process.env.AI_REVIEW_MODEL || undefined,
       maxTokens: 700,
       temperature: 0.1,
       timeoutMs,
     });
+    const notes = (value) => list(value).map((issue) => clampText(issue, 300)).filter(Boolean).slice(0, 6);
     return {
       score: Math.round(clampNumber(result.score, 0, 10) ?? 0),
-      issues: list(result.issues).map((issue) => clampText(issue, 300)).filter(Boolean).slice(0, 6),
+      blocking: notes(result.blocking),
+      issues: notes(result.issues),
     };
   } catch (error) {
     // No review means no auto-publish; the draft is held rather than lost.
@@ -236,11 +265,22 @@ async function findByName(Model, hint) {
  * link in it must open for a logged-out reader. Hints are dropped one at a
  * time (occasion, then collection, then category) until something matches.
  */
+// "Styling Diamond Earrings…" → Earring. Whole words only: "earrings" must not match Rings.
+async function categoryInTitle(title) {
+  const categories = await Category.find().select('name').lean();
+  return (
+    categories.find((category) => {
+      const stem = category.name.toLowerCase().replace(/s$/, '');
+      return new RegExp(`\\b${escapeRegex(stem)}s?\\b`, 'i').test(title);
+    }) || null
+  );
+}
+
 async function pickProducts(topic, limit = 4) {
   const access = await accessFilterFor(null);
   const hints = topic.hints || {};
   const [category, collection] = await Promise.all([
-    findByName(Category, hints.category),
+    hints.category ? findByName(Category, hints.category) : categoryInTitle(topic.title || ''),
     findByName(Collection, hints.collection),
   ]);
   const clauses = [
@@ -339,7 +379,7 @@ async function suggestTopics(queue, monthName, timeoutMs) {
  * Write one post. `forceDraft` (admin "Generate draft now") never publishes,
  * whatever the auto-publish setting says.
  */
-export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), topicTitle = '', forceDraft = false } = {}) {
+export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), topicTitle = '', forceDraft = false, replacing = null } = {}) {
   if (!aiStatus().text) throw new AiError('AI is not configured on the server.', 503);
 
   const settings = await getAiSettings({ fresh: true });
@@ -359,7 +399,8 @@ export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), 
   const [products, site, existing] = await Promise.all([
     pickProducts(topic),
     SiteSettings.findOne().sort({ updatedAt: -1 }).lean(),
-    BlogPost.find({ status: { $ne: 'unpublished' } }).select('title').lean(),
+    // A rewrite is not compared with the draft it replaces.
+    BlogPost.find({ status: { $ne: 'unpublished' }, ...(replacing && { _id: { $ne: replacing } }) }).select('title').lean(),
   ]);
   const facts = [companyFacts(site), settings.blog.facts].filter(Boolean).join('\n');
   const productLines = products.map((product) => `- ${productFacts(product)}`).join('\n');
@@ -370,14 +411,26 @@ export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), 
   let problems = draftProblems(draft, checks);
   let review = problems.length ? null : await reviewDraft(draft, context, timeoutFor(deadline, 6_000));
 
-  if ((problems.length || !review || review.score < PASS_SCORE) && timeLeft(deadline) > 22_000) {
-    const feedback = [...problems, ...(review?.issues || [])];
-    draft = await writeDraft(topic, context, { previous: draft, feedback }, timeoutFor(deadline, 10_000));
+  const fine = (result) => Boolean(result) && result.score >= PASS_SCORE && !result.blocking.length;
+  if ((problems.length || !fine(review)) && timeLeft(deadline) > 22_000) {
+    const feedback = [...problems, ...(review?.blocking || []), ...(review?.issues || [])];
+    // A rewrite that can't run (busy, slow) keeps the first draft, held for a
+    // person, rather than losing it.
+    const rewrite = await writeDraft(topic, context, { previous: draft, feedback }, timeoutFor(deadline, 10_000)).catch((error) => {
+      console.warn('[blog] rewrite failed:', error?.message);
+      return null;
+    });
+    if (rewrite) draft = rewrite;
     problems = draftProblems(draft, checks);
     review = problems.length || timeLeft(deadline) < 8_000 ? null : await reviewDraft(draft, context, timeoutFor(deadline, 4_000));
   }
 
-  const passed = problems.length === 0 && Boolean(review) && review.score >= PASS_SCORE;
+  const passed = problems.length === 0 && fine(review);
+  // Held without a review (the model was busy or time ran out): say so, or
+  // the admin sees "Needs review" with no reason.
+  const unreviewed = !problems.length && !review
+    ? ['The automatic review could not run (the AI service was busy or out of time), so this draft was held. Read it, then publish or rewrite it.']
+    : [];
   const status = !passed ? 'needs_review' : forceDraft || !settings.blog.autoPublish ? 'draft' : 'published';
   const title = draft.title || topic.title;
   const slug = await uniqueSlug(title);
@@ -421,7 +474,10 @@ export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), 
     topic: topic.title,
     status,
     publishedAt: status === 'published' ? new Date() : null,
-    quality: { score: review?.score || 0, issues: [...problems, ...(review?.issues || [])] },
+    quality: {
+      score: review?.score || 0,
+      issues: [...problems, ...unreviewed, ...(review?.blocking || []).map((issue) => `Must fix: ${issue}`), ...(review?.issues || [])],
+    },
     model: process.env.AI_TEXT_MODEL || '',
     wordCount: wordCount(draft),
     trigger,
@@ -450,7 +506,7 @@ export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), 
   }
 
   const verdict = { published: 'Published', draft: 'Saved draft', needs_review: 'Held for review' }[status];
-  return { post, summary: `${verdict}: “${title}” (score ${post.quality.score}/10)` };
+  return { post, summary: `${verdict}: “${title}” (${review ? `score ${review.score}/10` : 'not reviewed'})` };
 }
 
 /** Rebuild the storefront so the post is prerendered, and tell the ops list. */
@@ -473,19 +529,18 @@ export async function runBlogCron(now = new Date()) {
   if (!aiStatus().text) return { skipped: 'AI is not configured.' };
   const { weekday } = istParts(now);
   if (!PUBLISH_DAYS[settings.blog.postsPerWeek].includes(weekday)) return { skipped: `Not a publish day (${weekday}).` };
-  const since = new Date(now.getTime() - 20 * 60 * 60 * 1000);
-  if (await BlogPost.exists({ trigger: 'cron', createdAt: { $gte: since } })) return { skipped: 'Already ran today.' };
+  if (!(await claimCronRun('blog', { now }))) return { skipped: 'Already ran today.' };
 
   const deadline = deadlineIn();
   return runJob('blog', 'cron', async () => (await generatePost({ trigger: 'cron', deadline })).summary);
 }
 
 /** Admin → Blog → "Generate draft now" (or Regenerate for a topic). */
-export async function generateDraftNow({ topicTitle = '' } = {}) {
+export async function generateDraftNow({ topicTitle = '', replacing = null } = {}) {
   const deadline = deadlineIn();
   let post = null;
   const run = await runJob('blog', 'admin', async () => {
-    const result = await generatePost({ trigger: 'admin', deadline, topicTitle, forceDraft: true });
+    const result = await generatePost({ trigger: 'admin', deadline, topicTitle, forceDraft: true, replacing });
     post = result.post;
     return result.summary;
   });

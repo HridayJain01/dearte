@@ -2,7 +2,7 @@
  * Plumbing shared by the scheduled AI jobs: a time budget (Vercel stops the
  * function at 60 s), a run log for AI Studio, and the two after-publish hooks.
  */
-import { AiJobRun, SiteSettings } from '../../models/index.js';
+import { AiJobRun, AiSettings, SiteSettings } from '../../models/index.js';
 import { isEmailConfigured, sendEmail } from '../email/transport.js';
 import { opsEmailsFromSources } from '../orderEmailNotifications.js';
 import { promoEmail } from '../email/templates.js';
@@ -36,6 +36,20 @@ export async function runJob(job, trigger, work) {
   run.finishedAt = new Date();
   await run.save().catch((error) => console.error('[ai-job] could not save run log', error?.message));
   return run.toObject();
+}
+
+/**
+ * True for exactly one caller per window. Vercel can deliver a scheduled run
+ * twice; without this a duplicate would publish a second post or email every
+ * buyer twice. An atomic update on the settings document is the lock.
+ */
+export async function claimCronRun(job, { now = new Date(), windowMs = 20 * 60 * 60 * 1000 } = {}) {
+  const field = `cronLocks.${job}`;
+  const result = await AiSettings.updateOne(
+    { [field]: { $not: { $gte: new Date(now.getTime() - windowMs) } } },
+    { $set: { [field]: now } },
+  );
+  return result.modifiedCount === 1;
 }
 
 export function recentRuns(limit = 20) {

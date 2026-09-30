@@ -49,6 +49,11 @@ const aiSettingsSchema = new mongoose.Schema(
       // stay distinguishable; the first means "use the seed list".
       topicQueue: { type: [topicSchema], default: undefined },
     },
+    // When each once-a-day job last started; see claimCronRun() in jobs.js.
+    cronLocks: {
+      blog: { type: Date, default: null },
+      nudges: { type: Date, default: null },
+    },
   },
   { timestamps: true },
 );

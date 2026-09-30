@@ -53,11 +53,15 @@ export function ungroundedNumbers(text, sources = [], { now = new Date() } = {})
 }
 
 const BANNED_CLAIMS = [
-  { pattern: /\bguarantee[sd]?\b/i, label: 'guarantee' },
+  { pattern: /\bguarant(ee|y)\w*/i, label: 'guarantee' },
   { pattern: /\b(best|lowest|cheapest)\s+(prices?|rates?)\b/i, label: 'price superlative' },
   { pattern: /\binvestment\b/i, label: 'investment claim' },
   { pattern: /\bresale value\b/i, label: 'resale value' },
-  { pattern: /\bappreciat(e|es|ed|ion)\b/i, label: 'value appreciation' },
+  {
+    // "Customers appreciate…" is fine; "appreciates in value" is not.
+    pattern: /\b(appreciat\w*\s+(in|over)\s+(value|price|time)|(value|price)\s+appreciation|(grows?|growing|rises?|rising)\s+in\s+value|holds?\s+(its|their)\s+value)\b/i,
+    label: 'value appreciation',
+  },
   { pattern: /\b100\s?(%|percent)/i, label: '100% claim' },
   { pattern: /\b(heal|heals|healing|cures?|therapeutic)\b/i, label: 'health claim' },
   {
@@ -66,17 +70,34 @@ const BANNED_CLAIMS = [
   },
 ];
 
+const CERTIFICATION = /\bcertif(y|ied|ies|icates?|ications?)\b/i;
+
+function findClaims(text, facts = '') {
+  const body = String(text || '');
+  const found = BANNED_CLAIMS.map(({ pattern, label }) => ({ label, match: body.match(pattern) })).filter((item) => item.match);
+  if (!/\bcertif/i.test(String(facts || ''))) {
+    const match = body.match(CERTIFICATION);
+    if (match) found.push({ label: 'certification claim', match });
+  }
+  return { body, found };
+}
+
 /**
  * Claims a trade manufacturer should not make in marketing copy. A
  * certification claim is only allowed when our own facts mention it.
  */
 export function bannedClaims(text, facts = '') {
-  const body = String(text || '');
-  const found = BANNED_CLAIMS.filter(({ pattern }) => pattern.test(body)).map(({ label }) => label);
-  if (/\bcertif(ied|icate|ication)\b/i.test(body) && !/\bcertif/i.test(String(facts || ''))) {
-    found.push('certification claim');
-  }
-  return found;
+  return findClaims(text, facts).found.map(({ label }) => label);
+}
+
+/** The same claims, each with the words that tripped it, so a rewrite can find them. */
+export function claimEvidence(text, facts = '') {
+  const { body, found } = findClaims(text, facts);
+  return found.map(({ label, match }) => {
+    const start = Math.max(0, match.index - 40);
+    const end = Math.min(body.length, match.index + match[0].length + 40);
+    return `${label}: "…${body.slice(start, end).replace(/\s+/g, ' ').trim()}…"`;
+  });
 }
 
 const STOPWORDS = new Set(
@@ -139,9 +160,16 @@ export function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, number));
 }
 
-/** Trim to `max` characters on a word boundary. */
+/**
+ * Trim to `max` characters on a word boundary. Models like to write
+ * non-breaking hyphens ("Lab‑Grown"), which searches don't match; they become
+ * plain hyphens, and odd spaces (which \s covers) plain spaces.
+ */
 export function clampText(value, max) {
-  const flat = String(value ?? '').replace(/\s+/g, ' ').trim();
+  const flat = String(value ?? '')
+    .replace(/[\u2010\u2011]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (flat.length <= max) return flat;
   const cut = flat.slice(0, max);
   const lastSpace = cut.lastIndexOf(' ');
