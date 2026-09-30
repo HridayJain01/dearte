@@ -13,6 +13,7 @@ import { recentRuns, triggerClientRebuild } from '../services/ai/jobs.js';
 import { generateDraftNow, serializePost } from '../services/ai/blog.js';
 import { runPhotoIndexNow } from '../services/ai/photoSearch.js';
 import { bannerCopy } from '../services/ai/banner.js';
+import { askData } from '../services/ai/insights.js';
 
 const router = express.Router();
 
@@ -79,6 +80,15 @@ router.post('/banner-copy', async (req, res) => {
   }
 });
 
+// "Ask your data": a question in, a report and a short answer out.
+router.post('/ask', async (req, res) => {
+  try {
+    return sendSuccess(res, await askData(req.body?.question));
+  } catch (error) {
+    return aiFailure(res, error);
+  }
+});
+
 // ── Blog ────────────────────────────────────────────────────────────────────
 
 router.get('/blog/posts', async (_req, res) => {
@@ -102,7 +112,7 @@ router.post('/blog/posts/:id/regenerate', async (req, res) => {
   const existing = await BlogPost.findById(req.params.id);
   if (!existing) return sendError(res, 'Post not found', 404);
   try {
-    const { run, post } = await generateDraftNow({ topicTitle: existing.topic || existing.title });
+    const { run, post } = await generateDraftNow({ topicTitle: existing.topic || existing.title, replacing: existing._id });
     // A replaced draft goes; a published post stays until someone unpublishes it.
     if (run.ok && post && existing.status !== 'published') await existing.deleteOne();
     return sendSuccess(res, { run, post: post && serializePost(post.toObject(), { admin: true }) });

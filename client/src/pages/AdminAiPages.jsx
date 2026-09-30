@@ -196,6 +196,101 @@ function BannerCopyPanel({ enabled }) {
   );
 }
 
+const EXAMPLE_QUESTIONS = [
+  'Which 10 styles sold the most pieces in the last 90 days?',
+  'How have earrings sold month by month this year?',
+  'Which buyers have not ordered in the last 60 days?',
+  'Which active styles have not sold since July?',
+  'What is the metal colour and karat mix this quarter?',
+  'How many orders were cancelled or rejected last month?',
+];
+
+// Plain CSS bars; the table under it carries the same figures for screen readers.
+function BarChart({ rows, label, value }) {
+  const bars = rows.slice(0, 12);
+  const max = Math.max(1, ...bars.map((row) => Number(row[value]) || 0));
+  return (
+    <div className="space-y-1.5" aria-hidden>
+      {bars.map((row, index) => (
+        <div key={index} className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 text-xs sm:grid-cols-[minmax(0,14rem)_1fr_auto]">
+          <span className="truncate text-[var(--color-text-muted)]" title={String(row[label])}>{row[label]}</span>
+          <div className="h-3 bg-[var(--color-surface-alt)]">
+            <div className="h-3 bg-[var(--color-primary)]" style={{ width: `${((Number(row[value]) || 0) / max) * 100}%` }} />
+          </div>
+          <span className="tabular-nums">{row[value]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AskPanel({ enabled }) {
+  const [question, setQuestion] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const ask = async (text) => {
+    const asked = text.trim();
+    if (asked.length < 4) return;
+    setQuestion(asked);
+    setBusy(true);
+    try {
+      setResult(await aiService.ask(asked));
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'Could not answer that right now.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel className="space-y-4">
+      <p className="lux-label">Ask your data</p>
+      <form
+        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        onSubmit={(event) => {
+          event.preventDefault();
+          ask(question);
+        }}
+      >
+        <div className="flex-1">
+          <Field label="Question about orders, styles or buyers" hint="Answered from fixed reports over your orders. Buyer names are never sent to the AI service.">
+            <input className={inputClass} value={question} maxLength={300} placeholder="e.g. Which 10 styles sold the most pieces in the last 90 days?" onChange={(event) => setQuestion(event.target.value)} />
+          </Field>
+        </div>
+        <Button type="submit" icon={Sparkles} loading={busy} disabled={!enabled || busy || question.trim().length < 4}>Ask</Button>
+      </form>
+      <div className="flex flex-wrap gap-2">
+        {EXAMPLE_QUESTIONS.map((example) => (
+          <button
+            key={example}
+            type="button"
+            disabled={!enabled || busy}
+            onClick={() => ask(example)}
+            className="border border-[var(--color-border)] px-2.5 py-1 text-left text-xs text-[var(--color-text-muted)] transition hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {example}
+          </button>
+        ))}
+      </div>
+      {result ? (
+        <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+          <p className="text-sm leading-6 text-[var(--color-text)]">{result.answer}</p>
+          {result.report ? (
+            <>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                {result.title} · {result.period}{result.category ? ` · ${result.category}` : ''}
+              </p>
+              {result.chart && result.rows.length ? <BarChart rows={result.rows} label={result.chart.label} value={result.chart.value} /> : null}
+              <SimpleTable columns={result.columns} rows={result.rows} empty="No orders match." />
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
 export function AdminAiStudioPage() {
   const queryClient = useQueryClient();
   const status = useQuery({ queryKey: ['admin-ai-status'], queryFn: aiService.status });
@@ -298,8 +393,8 @@ export function AdminAiStudioPage() {
         <p className="lux-label">Scheduled jobs</p>
         <div className="space-y-3">
           <Check
-            label="Photo index (nightly, about 03:30 IST)"
-            hint="Tags each style's photos so Shop by photo can match designs. Stored separately; product records are never changed."
+            label="Photo index (five short runs a night, between 00:30 and 07:30 IST)"
+            hint="Tags each style's main photo so Shop by photo can match designs; about 20 styles a night on the free AI plan. Stored separately; product records are never changed."
             checked={settings.photoIndex.enabled}
             onChange={(value) => update((next) => { next.photoIndex.enabled = value; })}
           />
@@ -328,6 +423,8 @@ export function AdminAiStudioPage() {
         <Button onClick={save} loading={saving} disabled={!draft}>Save settings</Button>
         {draft ? <Button variant="ghost" onClick={() => setDraft(null)}>Discard changes</Button> : null}
       </div>
+
+      <AskPanel enabled={configured.text} />
 
       <BannerCopyPanel enabled={configured.text} />
 
@@ -388,7 +485,7 @@ function PostPreview({ post, onClose }) {
       </div>
       {post.quality?.issues?.length ? (
         <div className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <p className="font-medium">Checks and reviewer notes (score {post.quality.score}/10)</p>
+          <p className="font-medium">Checks and reviewer notes{post.quality.score ? ` (score ${post.quality.score}/10)` : ' (not reviewed)'}</p>
           <ul className="mt-1 list-disc pl-5">
             {post.quality.issues.map((issue, index) => <li key={index}>{issue}</li>)}
           </ul>
@@ -563,7 +660,7 @@ export function AdminBlogPage() {
                   ) : (
                     <span className="font-medium">{value}</span>
                   )}
-                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">{row.wordCount} words · score {row.quality?.score || 0}/10 · {row.trigger === 'admin' ? 'by admin' : 'scheduled'}</p>
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">{row.wordCount} words · {row.quality?.score ? `score ${row.quality.score}/10` : 'not reviewed'} · {row.trigger === 'admin' ? 'by admin' : 'scheduled'}</p>
                 </div>
               ),
             },
