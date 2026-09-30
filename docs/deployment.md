@@ -30,6 +30,12 @@ Use custom domains early so cookie and CORS behavior matches production.
 Also set WhatsApp / email vars if you use those features. Optionally
 `ADDITIONAL_CLIENT_ORIGINS` for fixed extra frontends.
 
+AI features (all optional; see [ai.md](ai.md) for values and where to get them):
+`AI_API_KEY`, `AI_TEXT_MODEL`, `AI_VISION_MODEL`, `AI_REVIEW_MODEL`,
+`PEXELS_API_KEY`, `CRON_SECRET`, `CLIENT_DEPLOY_HOOK_URL`. The crons in
+`server/vercel.json` are created on deploy; they do nothing until the matching
+switch is ticked in Admin → AI Studio or Admin → Blog.
+
 For **Vercel preview deployments** of the client (unique `*.vercel.app` URLs), set
 on the API project:
 - `VERCEL_PREVIEW_TEAM` — team/scope slug from a preview host
@@ -64,6 +70,8 @@ Only needed when the target database is empty (or you intentionally want seed ba
 - WhatsApp webhook URL updated in Meta to `https://<api-host>/api/whatsapp/webhook`
 - Cloudinary uploads verified
 - Storefront and admin smoke-tested
+- AI (if used): Admin → AI Studio shows the setup ticks; Vercel → Settings →
+  Cron Jobs lists the AI crons; a feature tried on Staff preview before Everyone
 - Render API service turned off only after the above passes
 
 ## Documentation checklist

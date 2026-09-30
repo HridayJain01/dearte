@@ -40,6 +40,28 @@ the table exists.
 The script never fails the build. If the API is unreachable the sitemap ships
 with static routes only and the deploy proceeds.
 
+## The blog
+
+Posts are prerendered as well: the storefront is a single-page app, and a
+crawler would otherwise get an empty shell for every article.
+
+- Step 5 of `seo-build.mjs` fetches `/api/blog?include=body` and writes
+  `dist/blog/index.html` plus `dist/blog/<slug>/index.html`. Each page has the
+  full article HTML inside `#root`, its own title, description, canonical and
+  Open Graph tags, and `BlogPosting`, `BreadcrumbList` and `FAQPage` JSON-LD
+  (rendering lives in `scripts/blogShell.mjs`). The post also rides along as
+  JSON (`#prerendered-post`), so the page shows it at once while React
+  refreshes it in the background.
+- Posts are added to `sitemap.xml`.
+- On production builds only (`VERCEL_ENV=production`), posts published in the
+  last three days are sent to IndexNow (Bing, Yandex and others). The key file
+  is `client/public/14d93bd0c8520c2f588a7d1ba5b6e756.txt`; it is public by design.
+- A post reaches these static pages at the next build, so the API calls the
+  storefront's deploy hook (`CLIENT_DEPLOY_HOOK_URL`) whenever a post is
+  published, unpublished or deleted. Without the hook the post still shows on
+  the site, but crawlers only see it after the next deploy.
+- Like every other step, this never fails the build.
+
 ## The one environment variable
 
 `VITE_SITE_URL` — the canonical origin, no trailing slash.
@@ -123,7 +145,8 @@ and a stale title is worse than a rendered one. Googlebot renders them fine.
 ## After deploying
 
 1. Verify `https://<domain>/robots.txt` and `/sitemap.xml` resolve and name the
-   right host.
+   right host. Once a post is live, "View source" on `/blog/<slug>` should show
+   the article text, not an empty `#root`.
 2. Add the property in Google Search Console, submit the sitemap.
 3. Run the live URL through the Rich Results Test — `Product` will warn about a
    missing `offers`. That is expected and correct: trade pricing is only visible
