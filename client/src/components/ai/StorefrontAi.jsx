@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Camera, LoaderCircle, Sparkles, X } from 'lucide-react';
+import { Camera, Download, LoaderCircle, Sparkles, X } from 'lucide-react';
 import { Button, Panel } from '../ui/Primitives';
 import { ProductCard } from '../product/ProductCard';
 import { useAiFeatures } from '../../hooks/useAiFeatures';
+import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { aiErrorMessage, aiService } from '../../services/aiService';
 import { userService } from '../../services/userService';
@@ -233,5 +234,120 @@ export function PhotoSearchButton() {
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onPick} />
       {result ? <PhotoResults result={result} preview={preview} onClose={close} /> : null}
     </>
+  );
+}
+
+const FIELD =
+  'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm outline-none focus:border-[var(--color-border-active)]';
+
+/**
+ * "Build a lookbook with AI" on the Catalogues page: a brief in, a selection
+ * of the buyer's own visible styles out, to trim and download as a PDF.
+ */
+export function CatalogueBuilder() {
+  const features = useAiFeatures();
+  const { user } = useAuth();
+  const [brief, setBrief] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [book, setBook] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  if (!features.catalogueBuilder) return null;
+
+  const build = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      setBook(await aiService.buildCatalogue(brief.trim()));
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'The catalogue builder is unavailable right now.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const edit = (patch) => setBook((current) => ({ ...current, ...patch }));
+  const remove = (id) => setBook((current) => ({ ...current, items: current.items.filter((item) => item.id !== id) }));
+
+  const download = async () => {
+    setDownloading(true);
+    try {
+      const { downloadLookbookPdf } = await import('../../utils/lookbookPdf');
+      await downloadLookbookPdf({ title: book.title, intro: book.intro, products: book.items, user });
+    } catch {
+      toast.error('Could not create the PDF. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Panel className="mb-6 space-y-4 sm:mb-8">
+      <div>
+        <p className="lux-label text-[10px] sm:text-xs">Build a lookbook with AI</p>
+        <p className="mt-1 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
+          Describe the selection you need. Remove pieces and edit the wording, then download it as a PDF.
+        </p>
+      </div>
+      <form onSubmit={build} className="flex flex-col gap-3 sm:flex-row">
+        <input
+          className={FIELD}
+          value={brief}
+          maxLength={300}
+          aria-label="Describe the lookbook"
+          placeholder="e.g. 24 rose gold bridal pieces under 6 g for a wedding-season display"
+          onChange={(event) => setBrief(event.target.value)}
+        />
+        <Button type="submit" icon={Sparkles} loading={busy} disabled={busy || brief.trim().length < 3}>
+          Build
+        </Button>
+      </form>
+
+      {book ? (
+        <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="text-[var(--color-text-muted)]">Title</span>
+            <input className={FIELD} value={book.title} maxLength={60} onChange={(event) => edit({ title: event.target.value })} />
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="text-[var(--color-text-muted)]">Introduction</span>
+            <textarea className={`${FIELD} min-h-[72px]`} value={book.intro} maxLength={280} onChange={(event) => edit({ intro: event.target.value })} />
+          </label>
+          <p className="text-[12px] text-[var(--color-text-muted)] sm:text-xs">
+            {book.understood.length ? `Chosen by: ${book.understood.join(' · ')}.` : 'Nothing in the brief matched a filter, so this is a spread of the catalogue.'}
+            {book.relaxed.length ? ` Too few styles matched exactly, so these were loosened: ${book.relaxed.join(', ')}.` : ''}
+            {` ${book.items.length} ${book.items.length === 1 ? 'piece' : 'pieces'}`}
+            {book.items.length < book.requested ? ` (you asked for ${book.requested}).` : '.'}
+          </p>
+          {book.items.length ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
+              {book.items.map((product) => (
+                <div key={product.id} className="relative">
+                  <ProductCard product={product} />
+                  <button
+                    type="button"
+                    onClick={() => remove(product.id)}
+                    aria-label={`Remove ${productDisplayName(product)} from the lookbook`}
+                    title="Remove from the lookbook"
+                    className="absolute left-1.5 top-1.5 z-20 border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 text-[var(--color-text-muted)] transition hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)] sm:left-3 sm:top-3"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--color-text-muted)]">{book.message || 'No styles in your catalogue match that yet. Try a broader brief.'}</p>
+          )}
+          <div className="flex flex-wrap gap-3">
+            <Button icon={Download} loading={downloading} disabled={downloading || !book.items.length} onClick={download}>
+              Download PDF
+            </Button>
+            <Button variant="ghost" onClick={() => setBook(null)}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </Panel>
   );
 }

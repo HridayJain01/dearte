@@ -19,7 +19,7 @@ import { Seo } from '../components/seo/Seo';
 import { ProductFilters } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
-import { PhotoSearchButton, RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
+import { CatalogueBuilder, PhotoSearchButton, RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
 import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
 import { formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
@@ -1668,6 +1668,7 @@ export function CataloguePage() {
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="My Catalogues" noindex />
       <SectionHeading eyebrow="Catalogues" title="Assigned private lookbooks" description="Sales-rep curated catalogues visible only to approved buyers." />
+      <CatalogueBuilder />
       <div className="grid gap-6 lg:grid-cols-2">
         {data.map((catalogue) => (
           <Panel key={catalogue.id}>

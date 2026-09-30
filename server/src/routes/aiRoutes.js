@@ -17,6 +17,7 @@ import { runBlogCron } from '../services/ai/blog.js';
 import { runNudgesCron, suggestionsForUser } from '../services/ai/reorder.js';
 import { parseSearch } from '../services/ai/search.js';
 import { runPhotoIndexCron, searchByPhoto } from '../services/ai/photoSearch.js';
+import { buildCatalogue } from '../services/ai/catalogueBuilder.js';
 
 const router = express.Router();
 
@@ -68,6 +69,15 @@ router.post('/photo-search', requireAuth, photoLimiter, requireFeature('photoSea
 router.get('/reorder-suggestions', requireAuth, requireFeature('restock'), async (req, res) => {
   try {
     return sendSuccess(res, await suggestionsForUser(req.user));
+  } catch (error) {
+    return aiFailure(res, error);
+  }
+});
+
+// Signed-in buyers: a brief in, a titled selection of their own visible styles out.
+router.post('/catalogue-builder', requireAuth, aiLimiter, requireFeature('catalogueBuilder'), async (req, res) => {
+  try {
+    return sendSuccess(res, await buildCatalogue(req.body?.brief, req.user));
   } catch (error) {
     return aiFailure(res, error);
   }

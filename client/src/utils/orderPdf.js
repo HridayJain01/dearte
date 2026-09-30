@@ -10,7 +10,7 @@ import {
   variantImage,
 } from './productVariants';
 
-const BRAND = {
+export const BRAND = {
   charcoal: '#1f1d1a',
   gold: '#b68a3f',
   goldSoft: '#efe1bf',
@@ -19,7 +19,7 @@ const BRAND = {
   muted: '#6f685f',
 };
 
-function normalizeText(value) {
+export function normalizeText(value) {
   return String(value ?? '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -74,7 +74,7 @@ async function imageToDataUrl(url) {
 
 let cachedBrandLogoDataUrl = null;
 
-async function getBrandLogoDataUrl() {
+export async function getBrandLogoDataUrl() {
   if (cachedBrandLogoDataUrl === null) {
     cachedBrandLogoDataUrl = await imageToDataUrl(brandLogoUrl);
   }
