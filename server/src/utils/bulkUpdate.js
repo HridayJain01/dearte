@@ -94,14 +94,33 @@ export function parseBulkUpdateRows(rows = []) {
   return { updates, errors };
 }
 
+// Every spelling a weight row has been saved under: the labels above, older imports'
+// "Net Wt(18K)" / "Diamond Wt", and the editor's "Gold Weight". All of them are
+// replaced on a rewrite, or the page would list the old weight beside the new one.
+const isWeightRow = (attribute) => /^(gross|net|gold|diamond|colou?rstone)(wt|weight)/.test(normalizeHeader(attribute));
+
 /** Rewrite the weight rows of specifications from product.weights, keeping any other rows. */
 export function syncWeightSpecifications(specifications = [], weights = {}) {
-  const labels = new Set(WEIGHT_SPECS.map(([label]) => label));
   const weightRows = WEIGHT_SPECS.map(([attribute, group, key]) => ({
     attribute,
     value: Number(key ? weights?.[group]?.[key] : weights?.[group]) || 0,
   }))
     .filter((item) => item.value > 0)
     .map((item) => ({ ...item, value: String(item.value) }));
-  return [...weightRows, ...specifications.filter((item) => !labels.has(item.attribute))];
+  return [...weightRows, ...specifications.filter((item) => !isWeightRow(item.attribute))];
+}
+
+/**
+ * What a re-uploaded import sheet may change on a style that already exists: only
+ * what the sheet carries. Blank cells, empty lists and a sheet sent without images
+ * are dropped, so the stored name, description, photos, status and flags survive,
+ * and the weight rows are rewritten among the style's own specification rows.
+ */
+export function importUpdateFields(payload, currentSpecifications = []) {
+  const fields = Object.fromEntries(
+    Object.entries(payload).filter(
+      ([, value]) => value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && !value.length),
+    ),
+  );
+  return { ...fields, specifications: syncWeightSpecifications(currentSpecifications, payload.weights) };
 }

@@ -3,6 +3,14 @@ import { normalizeAsset, normalizeAssetArray } from './assets.js';
 const NINE_K_GROSS_RE = /^\s*(gross\s*wt|grosswt)\s*[\(\[]?\s*9\s*[kK][tT]?\s*[\)\]]?\s*$/i;
 const NINE_K_NET_RE = /^\s*(net\s*wt|netwt)\s*[\(\[]?\s*9\s*[kK][tT]?\s*[\)\]]?\s*$/i;
 
+// Every row is a box on the product page. A blank value, or a weight of 0 — a
+// piece with no colour stone, say — is not something the piece has, so its box
+// is left out rather than shown empty.
+function hasValue({ attribute, value }) {
+  const text = String(value ?? '').trim();
+  return Boolean(text) && !(/wt|weight/i.test(attribute) && Number.parseFloat(text) === 0);
+}
+
 function normalizeProductSpecifications(specs = []) {
   const normalized = specs.map((spec) => {
     // Read fields explicitly: `spec` may be a Mongoose subdocument, and spreading
@@ -13,7 +21,7 @@ function normalizeProductSpecifications(specs = []) {
     if (NINE_K_GROSS_RE.test(attribute)) return { attribute: 'Gross Wt(9K)', value };
     if (NINE_K_NET_RE.test(attribute)) return { attribute: 'Net Wt(9K)', value };
     return { attribute, value };
-  });
+  }).filter(hasValue);
 
   const diamondIdx = normalized.findIndex((s) => s.attribute === 'Diamond Wt');
   if (diamondIdx !== -1 && diamondIdx !== normalized.length - 1) {

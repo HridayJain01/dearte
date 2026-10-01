@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { adminService } from '../services/adminService';
 import { Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
-import { Download, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
 import { DIAMOND_QUALITY } from '../utils/constants';
@@ -285,14 +285,18 @@ function Thumbnail({ asset, alt = '', size = 'h-12 w-12' }) {
     return <div className={`${size} rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]`} />;
   }
 
-  return <img src={src} alt={alt} className={`${size} rounded object-cover`} />;
+  // Lazy: the product list can run to thousands of rows, and on a phone it is
+  // one long page rather than a short scroll box.
+  return <img src={src} alt={alt} loading="lazy" decoding="async" className={`${size} shrink-0 rounded object-cover`} />;
 }
 
+// Below md each row becomes a card, label beside value, rather than a table to
+// swipe sideways through on a phone.
 function DataTable({ columns, rows, emptyMessage = 'No records.' }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+      <table className="w-full text-left text-sm max-md:block">
+        <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface-alt)] max-md:hidden">
           <tr>
             {columns.map((column) => (
               <th key={column.key} className="py-2.5 pr-4 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)]">
@@ -301,24 +305,54 @@ function DataTable({ columns, rows, emptyMessage = 'No records.' }) {
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="max-md:block max-md:space-y-3">
           {rows.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className="py-10 text-center text-sm text-[var(--color-text-muted)]">
+            <tr className="max-md:block">
+              <td colSpan={columns.length} className="py-10 text-center text-sm text-[var(--color-text-muted)] max-md:block">
                 {emptyMessage}
               </td>
             </tr>
           ) : rows.map((row, index) => (
-            <tr key={row.id || index} className="border-b border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-alt)]">
+            <tr key={row.id || index} className="border-b border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-alt)] max-md:block max-md:border max-md:px-3 max-md:py-1.5">
               {columns.map((column) => (
-                <td key={column.key} className="py-3.5 pr-4 align-middle">
-                  {column.render ? column.render(row[column.key], row) : row[column.key]}
+                <td key={column.key} className="py-3.5 pr-4 align-middle max-md:flex max-md:items-center max-md:justify-between max-md:gap-4 max-md:py-1.5 max-md:pr-0">
+                  <span className="lux-label shrink-0 text-[10px] md:hidden">{column.label}</span>
+                  <div className="min-w-0 break-words max-md:text-right">
+                    {column.render ? column.render(row[column.key], row) : row[column.key]}
+                  </div>
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/*
+ * The detail half of a list/detail page. From xl up it sits inline beside the
+ * list. Below that it would land a screen or more under the list, out of sight of
+ * the row just tapped, so it stays hidden until opened and then covers the screen
+ * as a sheet; Back returns to the list where it was left.
+ */
+function DetailSheet({ open, title, onClose, children }) {
+  return (
+    <div
+      className={`min-w-0 ${open ? 'admin-sheet max-xl:fixed max-xl:inset-0 max-xl:z-40 max-xl:overflow-y-auto max-xl:overscroll-contain max-xl:bg-[var(--color-primary-bg)]' : 'max-xl:hidden'}`}
+    >
+      <div className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-2 xl:hidden">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Back to the list"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-[var(--color-primary)]"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <p className="min-w-0 flex-1 truncate font-serif text-xl text-[var(--color-primary)]">{title}</p>
+      </div>
+      <div className="max-xl:p-3 max-xl:pb-[calc(1.5rem_+_env(safe-area-inset-bottom))]">{children}</div>
     </div>
   );
 }
@@ -773,7 +807,7 @@ function ProductEditor({
   };
 
   return (
-    <Panel className="max-h-[780px] space-y-4 overflow-y-auto">
+    <Panel className="space-y-4 xl:max-h-[780px] xl:overflow-y-auto">
       <p className="lux-label">Product Editor</p>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Style Code"><input className={textInput} value={form.styleCode} onChange={(event) => setForm((current) => ({ ...current, styleCode: event.target.value }))} /></Field>
@@ -869,7 +903,7 @@ function ProductEditor({
               Attribute and value pairs shown on the product page. Imported rows are editable.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="ghost" type="button" onClick={autofillSpecifications}>Auto-fill from fields</Button>
             <Button variant="secondary" type="button" icon={Plus} onClick={addSpecification}>Add Row</Button>
           </div>
@@ -878,7 +912,7 @@ function ProductEditor({
         {form.specifications?.length ? (
           <div className="mt-4 space-y-2">
             {form.specifications.map((item, index) => (
-              <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div key={index} className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)_auto] items-center gap-2">
                 <input
                   className={textInput}
                   placeholder="Attribute"
@@ -937,6 +971,9 @@ function BulkProductImportPanel({ onImported }) {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [batchProgress, setBatchProgress] = useState(null);
   const [importErrors, setImportErrors] = useState([]);
+  // Folded away on phones, where the panel used to fill the first screen and push
+  // the product list out of sight; open from tablet width up.
+  const [startOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
   // Taxonomy comes from the sheet itself, so only upload-wide defaults live here.
   const [importOptions, setImportOptions] = useState({
         status: 'Active',
@@ -1087,10 +1124,11 @@ function BulkProductImportPanel({ onImported }) {
       }
 
       setImportErrors(errors);
+      const done = `${summary.created} new, ${summary.updated} updated`;
       if (errors.length) {
-        toast.error(`Imported ${summary.totalProducts} styles, ${errors.length} problem(s)`);
+        toast.error(`${done}, ${errors.length} problem(s)`);
       } else {
-        toast.success(`Imported ${summary.totalProducts} styles`);
+        toast.success(`Done: ${done}`);
       }
       onImported?.({ summary, errors });
     } catch (error) {
@@ -1103,36 +1141,38 @@ function BulkProductImportPanel({ onImported }) {
   };
 
   return (
-    <Panel className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <details className="lux-panel group space-y-4 p-3 sm:p-6" open={startOpen}>
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
         <div>
-          <p className="lux-label">Bulk Excel Import</p>
+          <p className="lux-label">Bulk Excel Import / Update</p>
           <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Group rows by style code, then map each color and view to its Cloudinary image.
+            New styles need their images. To change weights or other values of styles already
+            uploaded, just upload the Excel again and press Import / Update: photos stay as they are.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
-            Upload Sheet
-            <input
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={handleSheetUpload}
-            />
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
-            Upload Image Folder
-            <input
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleFolderUpload}
-              webkitdirectory=""
-              directory=""
-            />
-          </label>
-        </div>
+        <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-[var(--color-text-muted)] transition group-open:rotate-180" />
+      </summary>
+      <div className="flex flex-wrap gap-3">
+        <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+          Upload Sheet
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={handleSheetUpload}
+          />
+        </label>
+        <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+          Upload Image Folder
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFolderUpload}
+            webkitdirectory=""
+            directory=""
+          />
+        </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -1214,7 +1254,7 @@ function BulkProductImportPanel({ onImported }) {
         </div>
       ) : (
         <div className="rounded border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
-          Upload the Excel first. Required columns are `Style No`, `Category`, `File Name`, and the six Gross/Net weight columns (18kt, 14kt, 9kt). Colour and view are read from the File Name (`Style.View.Setting-Metal_WM.jpg`), not from the `Colour` and `View` columns. `Sub Category`, `Collection`, `Occasion 1-4` and `Colour Stone Wt` may be left blank. Category, sub-category and collection are read from each row and created automatically if they do not exist yet. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you.
+          Upload the Excel first. Required columns are `Style No`, `Category`, `File Name`, and the six Gross/Net weight columns (18kt, 14kt, 9kt). Colour and view are read from the File Name (`Style.View.Setting-Metal_WM.jpg`), not from the `Colour` and `View` columns. `Sub Category`, `Collection`, `Occasion 1-4` and `Colour Stone Wt` may be left blank. Category, sub-category and collection are read from each row and created automatically if they do not exist yet. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you. A Style No that already exists is updated with the sheet's values: a sheet sent without images keeps its photos, and its name, description, status and best-seller / new-arrival flags are left alone unless the sheet or a tick box above sets them.
         </div>
       )}
 
@@ -1229,23 +1269,26 @@ function BulkProductImportPanel({ onImported }) {
                 : 'Importing...'}
         </Button>
       </div>
-    </Panel>
+    </details>
   );
 }
 
 function TaxonomyManager({ title, items, onSave, onDelete, children, onEdit, onNew, saveLabel }) {
   return (
-    <Panel className="flex h-[540px] flex-col space-y-4">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
+    // Fixed height with one inner scroll on wide screens. On a phone the list
+    // gets a short scroll of its own and the form follows it in the page, so a
+    // tapped item's fields appear right below it.
+    <Panel className="flex flex-col space-y-4 lg:h-[540px]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
         <p className="lux-label">{title}</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={onNew}>New</Button>
           <Button onClick={onSave}>{saveLabel}</Button>
           {onDelete ? <Button variant="danger" onClick={onDelete}>Delete</Button> : null}
         </div>
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-        <div className="space-y-2">
+      <div className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
+        <div className="space-y-2 max-lg:max-h-72 max-lg:overflow-y-auto">
           {items.map((item) => (
             <button
               key={item.id}
@@ -1288,7 +1331,7 @@ export function AdminDashboardPage() {
   return (
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Dashboard" title="Admin overview" description="Operational visibility for buyers, products, orders, and catalogue assignments." />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard title="Buyers" value={stats.buyers || 0} detail={`${stats.pendingBuyers || 0} pending activation`} />
         <StatCard title="Products" value={stats.products || 0} detail={`${stats.newProducts || 0} marked new`} />
         <StatCard title="Orders" value={stats.orders || 0} detail="Mongo-backed order pipeline" />
@@ -1572,9 +1615,9 @@ function UserAccessEditor({ user, config, onClose }) {
   return (
     <Panel className="space-y-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="lux-label">Catalogue access</p>
-          <p className="text-sm text-[var(--color-text-muted)]">{user.name} · {user.email}</p>
+          <p className="text-sm text-[var(--color-text-muted)] wrap-anywhere">{user.name} · {user.email}</p>
         </div>
         <Button variant="secondary" onClick={onClose}>Close</Button>
       </div>
@@ -1667,7 +1710,9 @@ export function AdminUsersPage() {
       <SectionHeading eyebrow="Users" title="Buyer account management" description="Approve accounts, set sales roles, and control which categories or collections each buyer can view." />
 
       {editingUser ? (
-        <UserAccessEditor user={editingUser} config={config} onClose={() => setEditingUserId(null)} />
+        <DetailSheet open title={editingUser.name} onClose={() => setEditingUserId(null)}>
+          <UserAccessEditor user={editingUser} config={config} onClose={() => setEditingUserId(null)} />
+        </DetailSheet>
       ) : null}
 
       <Panel>
@@ -1815,6 +1860,7 @@ export function AdminProductsPage() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [bestSellersOnly, setBestSellersOnly] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   // Shared query key with AdminCataloguesPage, so opening this page after that
   // one costs nothing.
   const { data: catalogues = [] } = useQuery({ queryKey: ['admin-catalogues'], queryFn: adminService.catalogues });
@@ -1879,7 +1925,9 @@ export function AdminProductsPage() {
       } else {
         toast.success(`Updated ${result.summary.updated} style(s)`);
       }
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      // Everything, not just this list: a product page opened earlier in this tab
+      // would otherwise keep showing the old weights for its 3-minute stale time.
+      queryClient.invalidateQueries();
     } catch (error) {
       toast.error(error?.response?.data?.message || error.message || 'Could not update from sheet');
     }
@@ -1913,31 +1961,35 @@ export function AdminProductsPage() {
     toast.success(`Product ${editingId ? 'updated' : 'created'}`);
     setEditingId(null);
     setForm(emptyProduct);
+    setEditorOpen(false);
     queryClient.invalidateQueries({ queryKey: ['admin-products'] });
   };
+
+  const sheetButton = 'inline-flex cursor-pointer items-center border border-[var(--color-border)] px-3 py-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)] sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em]';
 
   return (
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Products, media, and stock now live in MongoDB and are editable from admin." />
       <BulkProductImportPanel
         onImported={() => {
-          queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+          // See updateValuesFromSheet: stale product pages elsewhere in the tab too.
+          queryClient.invalidateQueries();
         }}
       />
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Panel className="space-y-4">
-          <div className="flex items-center justify-between">
+        <Panel className="min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="lux-label">Products</p>
             <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+              <label className={sheetButton}>
                 Replace Best Sellers (Excel)
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={replaceBestSellers} />
               </label>
-              <label className="inline-flex cursor-pointer items-center border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
+              <label className={sheetButton}>
                 Update Values (Excel)
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={updateValuesFromSheet} />
               </label>
-              <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyProduct); }}>New Product</Button>
+              <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyProduct); setEditorOpen(true); }}>New Product</Button>
             </div>
           </div>
           <div className="relative">
@@ -1950,7 +2002,7 @@ export function AdminProductsPage() {
               className={`${textInput} pl-9`}
             />
           </div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
               <input
                 type="checkbox"
@@ -1989,7 +2041,7 @@ export function AdminProductsPage() {
               queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
             }}
           />
-          <div className="max-h-[780px] space-y-3 overflow-y-auto pr-1">
+          <div className="space-y-3 xl:max-h-[780px] xl:overflow-y-auto xl:pr-1">
             {filteredProducts.length === 0 && (
               <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">No products match “{search}”.</p>
             )}
@@ -2044,6 +2096,7 @@ export function AdminProductsPage() {
                     firstColor: product.firstColor || '',
                     firstView: product.firstView || '',
                   });
+                  setEditorOpen(true);
                 }}
               >
                 <Thumbnail asset={product.media?.[0]} alt={product.name} />
@@ -2066,22 +2119,25 @@ export function AdminProductsPage() {
           </div>
         </Panel>
 
-        <ProductEditor
-          form={form}
-          setForm={setForm}
-          onSave={saveProduct}
-          onDelete={editingId ? async () => {
-            await adminService.deleteProduct(editingId);
-            setEditingId(null);
-            setForm(emptyProduct);
-            queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-          } : null}
-          categories={config.categories || []}
-          subCategories={config.subCategories || []}
-          collections={config.collections || []}
-          metalOptions={config.metalOptions || []}
-          occasions={config.occasions || []}
-        />
+        <DetailSheet open={editorOpen} title={editingId ? form.styleCode : 'New product'} onClose={() => setEditorOpen(false)}>
+          <ProductEditor
+            form={form}
+            setForm={setForm}
+            onSave={saveProduct}
+            onDelete={editingId ? async () => {
+              await adminService.deleteProduct(editingId);
+              setEditingId(null);
+              setForm(emptyProduct);
+              setEditorOpen(false);
+              queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+            } : null}
+            categories={config.categories || []}
+            subCategories={config.subCategories || []}
+            collections={config.collections || []}
+            metalOptions={config.metalOptions || []}
+            occasions={config.occasions || []}
+          />
+        </DetailSheet>
       </div>
     </div>
   );
@@ -2156,153 +2212,155 @@ export function AdminOrdersPage() {
           ))}
         </Panel>
         {selectedOrder ? (
-          <Panel className="space-y-4">
-            <p className="lux-label">Order detail</p>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Buyer"><input className={textInput} value={selectedOrder.user?.name || ''} readOnly /></Field>
-              <Field label="Status">
-                <select
-                  key={selectedOrder.id}
-                  className={textInput}
-                  value={displayedStatusSelect}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    if (next === selectedOrder.status) {
-                      setStatusChangeFlow(null);
-                      return;
-                    }
-                    setStatusChangeFlow({ next });
-                  }}
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Reviewed">Reviewed</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Processing">Processing</option>
-                  <option value="Shipped">Shipped</option>
-                  <option value="Fulfilled">Fulfilled</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </Field>
-              <Field label="Created"><input className={textInput} value={new Date(selectedOrder.createdAt).toLocaleString('en-IN')} readOnly /></Field>
-            </div>
-            {statusChangeFlow ? (
-              <div className="space-y-3 rounded border border-[var(--color-border-active)] bg-[var(--color-surface-alt)] p-4">
-                <p className="text-sm text-[var(--color-text)]">
-                  Status goes from “{selectedOrder.status}” to “{statusChangeFlow.next}”. Choose how to notify the buyer, then save.
-                </p>
-                <Field label="Optional note for buyer (added to the notification)">
-                  <textarea
-                    className={textareaInput}
-                    value={statusNotifyOptionalNote}
-                    placeholder="Shipment tracking reference, ETA, pickup instructions..."
-                    rows={3}
-                    onChange={(event) => setStatusNotifyOptionalNote(event.target.value)}
-                  />
+          <DetailSheet open={Boolean(selectedOrderId)} title={selectedOrder.orderId} onClose={() => setSelectedOrderId(null)}>
+            <Panel className="space-y-4">
+              <p className="lux-label">Order detail</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Buyer"><input className={textInput} value={selectedOrder.user?.name || ''} readOnly /></Field>
+                <Field label="Status">
+                  <select
+                    key={selectedOrder.id}
+                    className={textInput}
+                    value={displayedStatusSelect}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      if (next === selectedOrder.status) {
+                        setStatusChangeFlow(null);
+                        return;
+                      }
+                      setStatusChangeFlow({ next });
+                    }}
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Reviewed">Reviewed</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Fulfilled">Fulfilled</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
                 </Field>
-                <div className="flex flex-wrap gap-2">
-                  <Button loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true, email: true })}>Notify WhatsApp + Email and save</Button>
-                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ email: true })}>Email only and save</Button>
-                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true })}>WhatsApp only and save</Button>
-                  <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({})}>Save without notifying</Button>
-                  <Button variant="ghost" disabled={statusSaving} onClick={() => setStatusChangeFlow(null)}>Cancel</Button>
-                </div>
+                <Field label="Created"><input className={textInput} value={new Date(selectedOrder.createdAt).toLocaleString('en-IN')} readOnly /></Field>
               </div>
-            ) : null}
-            <Field label="Notes">
-              <textarea
-                key={selectedOrder.id}
-                className={textareaInput}
-                value={notesDraft}
-                onChange={(event) => setNotesDraft(event.target.value)}
-                onBlur={async () => {
-                  if (notesDraft === (selectedOrder.notes || '')) return;
-                  const orderId = selectedOrder.id;
-                  try {
-                    await adminService.updateOrder(orderId, { notes: notesDraft });
-                    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-                  } catch (error) {
-                    toast.error(error?.response?.data?.message || error?.message || 'Could not save notes.');
-                  }
-                }}
-              />
-            </Field>
-            <div className="space-y-3">
-              <p className="text-sm text-[var(--color-text-muted)]">Line items</p>
-              {selectedOrder.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded border border-[var(--color-border)] p-3">
-                  {/* The colour that was ordered — two lines of one style must
-                      not show the same photo on the fulfilment screen. */}
-                  <Thumbnail
-                    asset={variantImage(item.product, item.customization) || item.product?.media?.[0]}
-                    alt={item.product?.name}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">
-                      {[item.customization?.goldColor, item.customization?.goldCarat, item.customization?.diamondQuality, item.customization?.size ? `Size ${item.customization.size}` : '']
-                        .filter(Boolean)
-                        .join(' • ')}
-                    </p>
-                    {item.customization?.note ? (
-                      <p className="mt-1 text-xs text-[var(--color-text)]">Custom request: {item.customization.note}</p>
-                    ) : null}
-                    {(item.changeRequests || []).map((cr) => (
-                      <div
-                        key={cr.id}
-                        className={`mt-2 flex items-start justify-between gap-2 border-l-2 px-3 py-2 ${cr.status === 'Open' ? 'border-amber-400 bg-amber-50' : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]'}`}
-                      >
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-700">Change request</p>
-                          <p className="text-xs text-[var(--color-text)]">{cr.message}</p>
-                        </div>
-                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                          <StatusBadge status={cr.status} />
-                          {cr.status === 'Open' ? (
-                            <Button
-                              variant="ghost"
-                              className="px-2 py-1 text-[10px]"
-                              onClick={async () => {
-                                try {
-                                  await adminService.resolveChangeRequest(selectedOrder.id, cr.id);
-                                  queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-                                  toast.success('Change request resolved.');
-                                } catch (error) {
-                                  toast.error(error?.response?.data?.message || error?.message || 'Could not resolve.');
-                                }
-                              }}
-                            >
-                              Mark resolved
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
+              {statusChangeFlow ? (
+                <div className="space-y-3 rounded border border-[var(--color-border-active)] bg-[var(--color-surface-alt)] p-4">
+                  <p className="text-sm text-[var(--color-text)]">
+                    Status goes from “{selectedOrder.status}” to “{statusChangeFlow.next}”. Choose how to notify the buyer, then save.
+                  </p>
+                  <Field label="Optional note for buyer (added to the notification)">
+                    <textarea
+                      className={textareaInput}
+                      value={statusNotifyOptionalNote}
+                      placeholder="Shipment tracking reference, ETA, pickup instructions..."
+                      rows={3}
+                      onChange={(event) => setStatusNotifyOptionalNote(event.target.value)}
+                    />
+                  </Field>
+                  <div className="flex flex-wrap gap-2">
+                    <Button loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true, email: true })}>Notify WhatsApp + Email and save</Button>
+                    <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ email: true })}>Email only and save</Button>
+                    <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true })}>WhatsApp only and save</Button>
+                    <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({})}>Save without notifying</Button>
+                    <Button variant="ghost" disabled={statusSaving} onClick={() => setStatusChangeFlow(null)}>Cancel</Button>
                   </div>
                 </div>
-              ))}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="col-span-2 rounded border border-[var(--color-border)] p-3">
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    Total Pieces
-                    <span className="ml-1">
-                      (across {(selectedOrder.items || []).length}{' '}
-                      {(selectedOrder.items || []).length === 1 ? 'variant' : 'variants'})
-                    </span>
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalPieces}</p>
-                </div>
-                <div className="rounded border border-[var(--color-border)] p-3">
-                  <p className="text-xs text-[var(--color-text-muted)]">Total Diamond Weight</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalDiamondWeight.toFixed(2)} ct</p>
-                </div>
-                <div className="rounded border border-[var(--color-border)] p-3">
-                  <p className="text-xs text-[var(--color-text-muted)]">Total Gold Weight</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalGoldWeight.toFixed(2)} g</p>
+              ) : null}
+              <Field label="Notes">
+                <textarea
+                  key={selectedOrder.id}
+                  className={textareaInput}
+                  value={notesDraft}
+                  onChange={(event) => setNotesDraft(event.target.value)}
+                  onBlur={async () => {
+                    if (notesDraft === (selectedOrder.notes || '')) return;
+                    const orderId = selectedOrder.id;
+                    try {
+                      await adminService.updateOrder(orderId, { notes: notesDraft });
+                      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+                    } catch (error) {
+                      toast.error(error?.response?.data?.message || error?.message || 'Could not save notes.');
+                    }
+                  }}
+                />
+              </Field>
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--color-text-muted)]">Line items</p>
+                {selectedOrder.items.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                    {/* The colour that was ordered — two lines of one style must
+                        not show the same photo on the fulfilment screen. */}
+                    <Thumbnail
+                      asset={variantImage(item.product, item.customization) || item.product?.media?.[0]}
+                      alt={item.product?.name}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">
+                        {[item.customization?.goldColor, item.customization?.goldCarat, item.customization?.diamondQuality, item.customization?.size ? `Size ${item.customization.size}` : '']
+                          .filter(Boolean)
+                          .join(' • ')}
+                      </p>
+                      {item.customization?.note ? (
+                        <p className="mt-1 text-xs text-[var(--color-text)]">Custom request: {item.customization.note}</p>
+                      ) : null}
+                      {(item.changeRequests || []).map((cr) => (
+                        <div
+                          key={cr.id}
+                          className={`mt-2 flex items-start justify-between gap-2 border-l-2 px-3 py-2 ${cr.status === 'Open' ? 'border-amber-400 bg-amber-50' : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]'}`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-700">Change request</p>
+                            <p className="text-xs text-[var(--color-text)]">{cr.message}</p>
+                          </div>
+                          <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                            <StatusBadge status={cr.status} />
+                            {cr.status === 'Open' ? (
+                              <Button
+                                variant="ghost"
+                                className="px-2 py-1 text-[10px]"
+                                onClick={async () => {
+                                  try {
+                                    await adminService.resolveChangeRequest(selectedOrder.id, cr.id);
+                                    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+                                    toast.success('Change request resolved.');
+                                  } catch (error) {
+                                    toast.error(error?.response?.data?.message || error?.message || 'Could not resolve.');
+                                  }
+                                }}
+                              >
+                                Mark resolved
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="col-span-2 rounded border border-[var(--color-border)] p-3">
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Total Pieces
+                      <span className="ml-1">
+                        (across {(selectedOrder.items || []).length}{' '}
+                        {(selectedOrder.items || []).length === 1 ? 'variant' : 'variants'})
+                      </span>
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalPieces}</p>
+                  </div>
+                  <div className="rounded border border-[var(--color-border)] p-3">
+                    <p className="text-xs text-[var(--color-text-muted)]">Total Diamond Weight</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalDiamondWeight.toFixed(2)} ct</p>
+                  </div>
+                  <div className="rounded border border-[var(--color-border)] p-3">
+                    <p className="text-xs text-[var(--color-text-muted)]">Total Gold Weight</p>
+                    <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalGoldWeight.toFixed(2)} g</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          </DetailSheet>
         ) : null}
       </div>
     </div>
@@ -2315,6 +2373,7 @@ export function AdminCataloguesPage() {
   const { data: users = [] } = useQuery({ queryKey: ['admin-users'], queryFn: adminService.users });
   const { data: products = [] } = useQuery({ queryKey: ['admin-products'], queryFn: adminService.products });
   const [editingId, setEditingId] = useState(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [form, setForm] = useState(emptyCatalogue);
@@ -2346,9 +2405,9 @@ export function AdminCataloguesPage() {
       <SectionHeading eyebrow="Catalogues" title="Build private buyer catalogues" description="Search products and buyers, preview thumbnails, and manage assignments without manual IDs." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="lux-label">Catalogues</p>
-            <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyCatalogue); }}>New Catalogue</Button>
+            <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyCatalogue); setSheetOpen(true); }}>New Catalogue</Button>
           </div>
           {catalogues.map((catalogue) => (
             <button key={catalogue.id} className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
@@ -2363,6 +2422,7 @@ export function AdminCataloguesPage() {
                 active: catalogue.active,
                 archived: catalogue.archived,
               });
+              setSheetOpen(true);
             }}>
               <Thumbnail asset={catalogue.coverImage || catalogue.products?.[0]?.media?.[0]} alt={catalogue.name} />
               <div>
@@ -2373,92 +2433,96 @@ export function AdminCataloguesPage() {
           ))}
         </Panel>
 
-        <Panel className="space-y-4">
-          <p className="lux-label">{editingId ? 'Edit Catalogue' : 'Create Catalogue'}</p>
-          <Field label="Name"><input className={textInput} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label="Description"><textarea className={textareaInput} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></Field>
-          <AssetField label="Cover image" value={form.coverImage} onChange={(coverImage) => setForm((current) => ({ ...current, coverImage }))} folder="dearte/catalogues" />
+        <DetailSheet open={sheetOpen} title={editingId ? form.name : 'New catalogue'} onClose={() => setSheetOpen(false)}>
+          <Panel className="space-y-4">
+            <p className="lux-label">{editingId ? 'Edit Catalogue' : 'Create Catalogue'}</p>
+            <Field label="Name"><input className={textInput} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+            <Field label="Description"><textarea className={textareaInput} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></Field>
+            <AssetField label="Cover image" value={form.coverImage} onChange={(coverImage) => setForm((current) => ({ ...current, coverImage }))} folder="dearte/catalogues" />
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-3">
-              <Field label="Search products">
-                <input className={textInput} value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Style code, name, category, collection" />
-              </Field>
-              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
-                {filteredProducts.map((product) => (
-                  <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
-                    <input
-                      type="checkbox"
-                      checked={form.productIds.includes(product.id)}
-                      onChange={() =>
-                        setForm((current) => ({
-                          ...current,
-                          productIds: current.productIds.includes(product.id)
-                            ? current.productIds.filter((id) => id !== product.id)
-                            : [...current.productIds, product.id],
-                        }))
-                      }
-                    />
-                    <Thumbnail asset={product.media?.[0]} alt={product.name} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[var(--color-text)]">{product.styleCode}</p>
-                      <p className="truncate text-xs text-[var(--color-text-muted)]">{product.name}</p>
-                    </div>
-                  </label>
-                ))}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-3">
+                <Field label="Search products">
+                  <input className={textInput} value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Style code, name, category, collection" />
+                </Field>
+                <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+                  {filteredProducts.map((product) => (
+                    <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                      <input
+                        type="checkbox"
+                        checked={form.productIds.includes(product.id)}
+                        onChange={() =>
+                          setForm((current) => ({
+                            ...current,
+                            productIds: current.productIds.includes(product.id)
+                              ? current.productIds.filter((id) => id !== product.id)
+                              : [...current.productIds, product.id],
+                          }))
+                        }
+                      />
+                      <Thumbnail asset={product.media?.[0]} alt={product.name} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--color-text)]">{product.styleCode}</p>
+                        <p className="truncate text-xs text-[var(--color-text-muted)]">{product.name}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Field label="Search buyers">
+                  <input className={textInput} value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Name, email, company" />
+                </Field>
+                <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+                  {filteredUsers.map((user) => (
+                    <label key={user.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                      <input
+                        type="checkbox"
+                        checked={form.assignedUserIds.includes(user.id)}
+                        onChange={() =>
+                          setForm((current) => ({
+                            ...current,
+                            assignedUserIds: current.assignedUserIds.includes(user.id)
+                              ? current.assignedUserIds.filter((id) => id !== user.id)
+                              : [...current.assignedUserIds, user.id],
+                          }))
+                        }
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-[var(--color-text)]">{user.name}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">{user.companyName || user.email}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Field label="Search buyers">
-                <input className={textInput} value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Name, email, company" />
-              </Field>
-              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
-                {filteredUsers.map((user) => (
-                  <label key={user.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
-                    <input
-                      type="checkbox"
-                      checked={form.assignedUserIds.includes(user.id)}
-                      onChange={() =>
-                        setForm((current) => ({
-                          ...current,
-                          assignedUserIds: current.assignedUserIds.includes(user.id)
-                            ? current.assignedUserIds.filter((id) => id !== user.id)
-                            : [...current.assignedUserIds, user.id],
-                        }))
-                      }
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-[var(--color-text)]">{user.name}</p>
-                      <p className="text-xs text-[var(--color-text-muted)]">{user.companyName || user.email}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-4 text-sm text-[var(--color-text-muted)]">
+              <label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={form.archived} onChange={(event) => setForm((current) => ({ ...current, archived: event.target.checked }))} /> Archived</label>
             </div>
-          </div>
 
-          <div className="flex flex-wrap gap-4 text-sm text-[var(--color-text-muted)]">
-            <label className="flex items-center gap-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={form.archived} onChange={(event) => setForm((current) => ({ ...current, archived: event.target.checked }))} /> Archived</label>
-          </div>
-
-          <div className="flex gap-3">
-            <Button onClick={async () => {
-              if (editingId) await adminService.updateCatalogue(editingId, form);
-              else await adminService.createCatalogue(form);
-              setEditingId(null);
-              setForm(emptyCatalogue);
-              queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
-            }}>{editingId ? 'Update Catalogue' : 'Create Catalogue'}</Button>
-            {editingId ? <Button variant="danger" onClick={async () => {
-              await adminService.deleteCatalogue(editingId);
-              setEditingId(null);
-              setForm(emptyCatalogue);
-              queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
-            }}>Delete</Button> : null}
-          </div>
-        </Panel>
+            <div className="flex gap-3">
+              <Button onClick={async () => {
+                if (editingId) await adminService.updateCatalogue(editingId, form);
+                else await adminService.createCatalogue(form);
+                setEditingId(null);
+                setForm(emptyCatalogue);
+                setSheetOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
+              }}>{editingId ? 'Update Catalogue' : 'Create Catalogue'}</Button>
+              {editingId ? <Button variant="danger" onClick={async () => {
+                await adminService.deleteCatalogue(editingId);
+                setEditingId(null);
+                setForm(emptyCatalogue);
+                setSheetOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
+              }}>Delete</Button> : null}
+            </div>
+          </Panel>
+        </DetailSheet>
       </div>
     </div>
   );
@@ -2473,6 +2537,7 @@ export function AdminCollectionsPage() {
   const [productSearch, setProductSearch] = useState('');
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState(emptyCollection);
 
   const categories = config?.categories || [];
@@ -2506,6 +2571,7 @@ export function AdminCollectionsPage() {
     setForm(emptyCollection);
     setProductSearch('');
     setSelectedOnly(false);
+    setSheetOpen(false);
   };
 
   const refresh = () => {
@@ -2530,9 +2596,9 @@ export function AdminCollectionsPage() {
       <SectionHeading eyebrow="Collections" title="Curate collections and their products" description="Create a collection, then search the catalogue and tick the exact styles that belong to it." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="lux-label">Collections</p>
-            <Button variant="secondary" onClick={startNew}>New Collection</Button>
+            <Button variant="secondary" onClick={() => { startNew(); setSheetOpen(true); }}>New Collection</Button>
           </div>
           {collections.map((collection) => (
             <button
@@ -2552,6 +2618,7 @@ export function AdminCollectionsPage() {
                   active: collection.active !== false,
                   productIds: collection.productIds || [],
                 });
+                setSheetOpen(true);
               }}
             >
               <Thumbnail asset={collection.image} alt={collection.name} />
@@ -2568,116 +2635,178 @@ export function AdminCollectionsPage() {
           {collections.length ? null : <p className="text-sm text-[var(--color-text-muted)]">No collections yet.</p>}
         </Panel>
 
-        <Panel className="space-y-4">
-          <p className="lux-label">{editingId ? 'Edit Collection' : 'Create Collection'}</p>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Name"><input className={textInput} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-            <Field label="Slug"><input className={textInput} value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="Left blank, generated from the name" /></Field>
-            <Field label="Category">
-              <select className={textInput} value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value, subCategoryId: '' }))}>
-                <option value="">All categories (brand collection)</option>
-                {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Sub-category">
-              <select className={textInput} value={form.subCategoryId} onChange={(event) => setForm((current) => ({ ...current, subCategoryId: event.target.value }))}>
-                <option value="">All sub-categories</option>
-                {subCategories.filter((item) => !form.categoryId || item.categoryId === form.categoryId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-            </Field>
-          </div>
-          <AssetField label="Collection image" value={form.image} onChange={(image) => setForm((current) => ({ ...current, image }))} folder="dearte/site/collections" />
-
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <p className="lux-label">Products in this collection ({form.productIds.length})</p>
-              <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-                <input type="checkbox" checked={selectedOnly} onChange={(event) => setSelectedOnly(event.target.checked)} /> Show selected only
-              </label>
+        <DetailSheet open={sheetOpen} title={editingId ? form.name : 'New collection'} onClose={() => setSheetOpen(false)}>
+          <Panel className="space-y-4">
+            <p className="lux-label">{editingId ? 'Edit Collection' : 'Create Collection'}</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Name"><input className={textInput} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+              <Field label="Slug"><input className={textInput} value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} placeholder="Left blank, generated from the name" /></Field>
+              <Field label="Category">
+                <select className={textInput} value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value, subCategoryId: '' }))}>
+                  <option value="">All categories (brand collection)</option>
+                  {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Sub-category">
+                <select className={textInput} value={form.subCategoryId} onChange={(event) => setForm((current) => ({ ...current, subCategoryId: event.target.value }))}>
+                  <option value="">All sub-categories</option>
+                  {subCategories.filter((item) => !form.categoryId || item.categoryId === form.categoryId).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </Field>
             </div>
-            <Field label="Search products">
-              <input className={textInput} value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Style code, name, SKU, category, collection" />
-            </Field>
-            <div className="max-h-[380px] space-y-2 overflow-y-auto pr-1">
-              {filteredProducts.map((product) => {
-                const elsewhere = product.collectionId && product.collectionId !== editingId ? product.collection : '';
-                return (
-                  <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
-                    <input type="checkbox" checked={form.productIds.includes(product.id)} onChange={() => toggleProduct(product.id)} />
-                    <Thumbnail asset={product.media?.[0]} alt={product.name} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[var(--color-text)]">{product.styleCode}</p>
-                      <p className="truncate text-xs text-[var(--color-text-muted)]">
-                        {product.name}
-                        {elsewhere ? ` • currently in ${elsewhere}` : ''}
-                      </p>
-                    </div>
-                  </label>
-                );
-              })}
-              {filteredProducts.length ? null : <p className="text-sm text-[var(--color-text-muted)]">No products match this search.</p>}
+            <AssetField label="Collection image" value={form.image} onChange={(image) => setForm((current) => ({ ...current, image }))} folder="dearte/site/collections" />
+
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <p className="lux-label">Products in this collection ({form.productIds.length})</p>
+                <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                  <input type="checkbox" checked={selectedOnly} onChange={(event) => setSelectedOnly(event.target.checked)} /> Show selected only
+                </label>
+              </div>
+              <Field label="Search products">
+                <input className={textInput} value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Style code, name, SKU, category, collection" />
+              </Field>
+              <div className="max-h-[380px] space-y-2 overflow-y-auto pr-1">
+                {filteredProducts.map((product) => {
+                  const elsewhere = product.collectionId && product.collectionId !== editingId ? product.collection : '';
+                  return (
+                    <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                      <input type="checkbox" checked={form.productIds.includes(product.id)} onChange={() => toggleProduct(product.id)} />
+                      <Thumbnail asset={product.media?.[0]} alt={product.name} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--color-text)]">{product.styleCode}</p>
+                        <p className="truncate text-xs text-[var(--color-text-muted)]">
+                          {product.name}
+                          {elsewhere ? ` • currently in ${elsewhere}` : ''}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+                {filteredProducts.length ? null : <p className="text-sm text-[var(--color-text-muted)]">No products match this search.</p>}
+              </div>
+              {movingCount ? (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {movingCount} selected {movingCount === 1 ? 'product belongs' : 'products belong'} to another collection and will be moved here on save.
+                </p>
+              ) : null}
             </div>
-            {movingCount ? (
-              <p className="text-xs text-[var(--color-text-muted)]">
-                {movingCount} selected {movingCount === 1 ? 'product belongs' : 'products belong'} to another collection and will be moved here on save.
-              </p>
-            ) : null}
-          </div>
 
-          <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
-            <input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active
-          </label>
+            <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+              <input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active
+            </label>
 
-          <div className="flex gap-3">
-            <Button
-              disabled={saving}
-              onClick={async () => {
-                if (!form.name.trim()) {
-                  toast.error('Collection name is required');
-                  return;
-                }
-                setSaving(true);
-                try {
-                  if (editingId) await adminService.updateCollection(editingId, form);
-                  else await adminService.createCollection(form);
-                  toast.success(editingId ? 'Collection updated' : 'Collection created');
-                  startNew();
-                  refresh();
-                } catch (error) {
-                  toast.error(error?.response?.data?.message || 'Could not save collection');
-                } finally {
-                  setSaving(false);
-                }
-              }}
-            >
-              {editingId ? 'Update Collection' : 'Create Collection'}
-            </Button>
-            {editingId ? (
+            <div className="flex gap-3">
               <Button
-                variant="danger"
                 disabled={saving}
                 onClick={async () => {
-                  if (!window.confirm(`Delete "${form.name}"? Its ${form.productIds.length} product(s) stay in the catalogue without a collection.`)) return;
+                  if (!form.name.trim()) {
+                    toast.error('Collection name is required');
+                    return;
+                  }
                   setSaving(true);
                   try {
-                    await adminService.deleteCollection(editingId);
-                    toast.success('Collection deleted');
+                    if (editingId) await adminService.updateCollection(editingId, form);
+                    else await adminService.createCollection(form);
+                    toast.success(editingId ? 'Collection updated' : 'Collection created');
                     startNew();
                     refresh();
                   } catch (error) {
-                    toast.error(error?.response?.data?.message || 'Could not delete collection');
+                    toast.error(error?.response?.data?.message || 'Could not save collection');
                   } finally {
                     setSaving(false);
                   }
                 }}
               >
-                Delete
+                {editingId ? 'Update Collection' : 'Create Collection'}
               </Button>
-            ) : null}
-          </div>
-        </Panel>
+              {editingId ? (
+                <Button
+                  variant="danger"
+                  disabled={saving}
+                  onClick={async () => {
+                    if (!window.confirm(`Delete "${form.name}"? Its ${form.productIds.length} product(s) stay in the catalogue without a collection.`)) return;
+                    setSaving(true);
+                    try {
+                      await adminService.deleteCollection(editingId);
+                      toast.success('Collection deleted');
+                      startNew();
+                      refresh();
+                    } catch (error) {
+                      toast.error(error?.response?.data?.message || 'Could not delete collection');
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              ) : null}
+            </div>
+          </Panel>
+        </DetailSheet>
       </div>
     </div>
+  );
+}
+
+// A notification on the phone of everyone who installed the app and allowed
+// notifications (components/layout/AppInstallPrompt.jsx asks them to).
+function PushBroadcastPanel() {
+  const queryClient = useQueryClient();
+  const { data: status } = useQuery({ queryKey: ['admin-push-status'], queryFn: adminService.pushStatus });
+  const [draft, setDraft] = useState({ title: '', body: '', url: '' });
+  const [sending, setSending] = useState(false);
+  const edit = (key) => (event) => setDraft((current) => ({ ...current, [key]: event.target.value }));
+
+  const send = async () => {
+    if (!draft.title.trim() || !draft.body.trim()) {
+      toast.error('Enter a title and a message.');
+      return;
+    }
+    if (!window.confirm(`Send this notification to ${status.subscribers} device(s)?`)) return;
+    setSending(true);
+    try {
+      const { totals } = await adminService.pushBroadcast(draft);
+      toast.success(`Sent to ${totals.sent} device(s)${totals.failed ? `, ${totals.failed} failed` : ''}.`);
+      setDraft({ title: '', body: '', url: '' });
+      queryClient.invalidateQueries({ queryKey: ['admin-push-status'] });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not send the notification.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <>
+      <SectionHeading
+        eyebrow="App notifications"
+        title="Notify app users"
+        description="Appears on the phone of everyone who installed the DeArte app and allowed notifications, like a message from any other app. Tapping it opens the page you link inside the app."
+      />
+      <Panel className="space-y-4">
+        <p className="text-sm text-[var(--color-text-muted)]">
+          {!status
+            ? 'Checking set-up…'
+            : status.configured
+              ? `${status.subscribers} device(s) will receive it.`
+              : `Not ready: set ${status.missing.join(' and ')} on the server (node server/scripts/vapid-keys.mjs makes the pair).`}
+        </p>
+        <Field label="Title">
+          <input className={textInput} maxLength={80} value={draft.title} onChange={edit('title')} placeholder="New: the Aurora collection" />
+        </Field>
+        <Field label="Message">
+          <textarea className={textareaInput} rows={3} maxLength={240} value={draft.body} onChange={edit('body')} placeholder="Twenty new lab-grown diamond styles, live in the catalogue now." />
+        </Field>
+        <Field label="Opens (optional, a page of this site)">
+          <input className={textInput} value={draft.url} onChange={edit('url')} placeholder="/collections" />
+        </Field>
+        <Button loading={sending} onClick={send} disabled={!status?.configured || !status?.subscribers}>
+          Send notification
+        </Button>
+      </Panel>
+    </>
   );
 }
 
@@ -2808,6 +2937,8 @@ export function AdminWhatsAppPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
+      <PushBroadcastPanel />
+
       <SectionHeading
         eyebrow="WhatsApp"
         title="Cloud API broadcasts"
@@ -2839,11 +2970,14 @@ export function AdminWhatsAppPage() {
         {audience === 'selected' ? (
           <div className="max-h-[280px] space-y-2 overflow-y-auto rounded border border-[var(--color-border)] p-3">
             {buyerSearchList.map((user) => (
-              <label key={user.id} className="flex cursor-pointer items-center gap-3 text-sm">
-                <input type="checkbox" checked={selectedBuyerIds.has(user.id)} onChange={() => toggleBuyer(user.id)} />
-                <span className="font-medium text-[var(--color-text)]">{user.name}</span>
-                <span className="text-[var(--color-text-muted)]">{user.email || 'No email'}</span>
-                <span className="text-[var(--color-text-muted)]">· {user.mobile || 'No mobile'}</span>
+              <label key={user.id} className="flex cursor-pointer items-start gap-3 text-sm">
+                <input type="checkbox" className="mt-1" checked={selectedBuyerIds.has(user.id)} onChange={() => toggleBuyer(user.id)} />
+                <span className="min-w-0">
+                  <span className="block font-medium text-[var(--color-text)]">{user.name}</span>
+                  <span className="block text-[var(--color-text-muted)] wrap-anywhere">
+                    {user.email || 'No email'} · {user.mobile || 'No mobile'}
+                  </span>
+                </span>
               </label>
             ))}
           </div>
@@ -3315,6 +3449,7 @@ export function AdminTestimonialsPage() {
   const queryClient = useQueryClient();
   const { data = [], isLoading } = useQuery({ queryKey: ['admin-testimonials'], queryFn: adminService.testimonials });
   const [editingId, setEditingId] = useState(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState(emptyTestimonial);
 
   if (isLoading) return <LoadingBlock />;
@@ -3326,12 +3461,13 @@ export function AdminTestimonialsPage() {
         <Panel className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="lux-label">Testimonials</p>
-            <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyTestimonial); }}>New</Button>
+            <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyTestimonial); setSheetOpen(true); }}>New</Button>
           </div>
           {data.map((testimonial) => (
             <button key={testimonial.id} className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
               setEditingId(testimonial.id);
               setForm({ ...testimonial, avatar: normalizeAsset(testimonial.avatar) });
+              setSheetOpen(true);
             }}>
               <Thumbnail asset={testimonial.avatar} alt={testimonial.name} />
               <div>
@@ -3342,36 +3478,40 @@ export function AdminTestimonialsPage() {
           ))}
         </Panel>
 
-        <Panel className="space-y-4">
-          <p className="lux-label">{editingId ? 'Edit Testimonial' : 'Create Testimonial'}</p>
-          <Field label="Name"><input className={textInput} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label="Company"><input className={textInput} value={form.company} onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))} /></Field>
-          <Field label="Rating"><input type="number" min="1" max="5" className={textInput} value={form.rating} onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))} /></Field>
-          <Field label="Status">
-            <select className={textInput} value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Disapproved">Disapproved</option>
-            </select>
-          </Field>
-          <Field label="Review"><textarea className={textareaInput} value={form.review} onChange={(event) => setForm((current) => ({ ...current, review: event.target.value }))} /></Field>
-          <AssetField label="Avatar" value={form.avatar} onChange={(avatar) => setForm((current) => ({ ...current, avatar }))} folder="dearte/testimonials" />
-          <div className="flex gap-3">
-            <Button onClick={async () => {
-              if (editingId) await adminService.updateTestimonial(editingId, form);
-              else await adminService.createTestimonial(form);
-              setEditingId(null);
-              setForm(emptyTestimonial);
-              queryClient.invalidateQueries({ queryKey: ['admin-testimonials'] });
-            }}>{editingId ? 'Update Testimonial' : 'Create Testimonial'}</Button>
-            {editingId ? <Button variant="danger" onClick={async () => {
-              await adminService.deleteTestimonial(editingId);
-              setEditingId(null);
-              setForm(emptyTestimonial);
-              queryClient.invalidateQueries({ queryKey: ['admin-testimonials'] });
-            }}>Delete</Button> : null}
-          </div>
-        </Panel>
+        <DetailSheet open={sheetOpen} title={editingId ? form.name : 'New testimonial'} onClose={() => setSheetOpen(false)}>
+          <Panel className="space-y-4">
+            <p className="lux-label">{editingId ? 'Edit Testimonial' : 'Create Testimonial'}</p>
+            <Field label="Name"><input className={textInput} value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+            <Field label="Company"><input className={textInput} value={form.company} onChange={(event) => setForm((current) => ({ ...current, company: event.target.value }))} /></Field>
+            <Field label="Rating"><input type="number" min="1" max="5" className={textInput} value={form.rating} onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))} /></Field>
+            <Field label="Status">
+              <select className={textInput} value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Disapproved">Disapproved</option>
+              </select>
+            </Field>
+            <Field label="Review"><textarea className={textareaInput} value={form.review} onChange={(event) => setForm((current) => ({ ...current, review: event.target.value }))} /></Field>
+            <AssetField label="Avatar" value={form.avatar} onChange={(avatar) => setForm((current) => ({ ...current, avatar }))} folder="dearte/testimonials" />
+            <div className="flex gap-3">
+              <Button onClick={async () => {
+                if (editingId) await adminService.updateTestimonial(editingId, form);
+                else await adminService.createTestimonial(form);
+                setEditingId(null);
+                setForm(emptyTestimonial);
+                setSheetOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['admin-testimonials'] });
+              }}>{editingId ? 'Update Testimonial' : 'Create Testimonial'}</Button>
+              {editingId ? <Button variant="danger" onClick={async () => {
+                await adminService.deleteTestimonial(editingId);
+                setEditingId(null);
+                setForm(emptyTestimonial);
+                setSheetOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['admin-testimonials'] });
+              }}>Delete</Button> : null}
+            </div>
+          </Panel>
+        </DetailSheet>
       </div>
     </div>
   );

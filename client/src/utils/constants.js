@@ -43,7 +43,7 @@ export const ADMIN_LINKS = [
   { label: 'Users', to: '/admin/users', icon: Users },
   { label: 'Products', to: '/admin/products', icon: Package },
   { label: 'Orders', to: '/admin/orders', icon: ShoppingBag },
-  { label: 'WhatsApp', to: '/admin/whatsapp', icon: MessageCircle },
+  { label: 'Broadcasts', to: '/admin/whatsapp', icon: MessageCircle },
   { label: 'Catalogues', to: '/admin/catalogues', icon: ScrollText },
   { label: 'Collections', to: '/admin/collections', icon: Gem },
   { label: 'Configuration', to: '/admin/config', icon: Settings },
