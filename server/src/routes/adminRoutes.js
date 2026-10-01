@@ -37,8 +37,10 @@ import {
   notifyWhatsappOrderStatus,
 } from '../services/orderWhatsappNotifications.js';
 import { getEmailConfigStatus } from '../services/email/transport.js';
+import { getPushConfigStatus, sendPush } from '../services/webPush.js';
+import { PushSubscription } from '../models/PushSubscription.js';
 import { invalidateGuestCatalogueCache } from '../utils/guestCatalogue.js';
-import { parseBulkUpdateRows, syncWeightSpecifications } from '../utils/bulkUpdate.js';
+import { importUpdateFields, parseBulkUpdateRows, syncWeightSpecifications } from '../utils/bulkUpdate.js';
 import {
   normalizeHeader,
   normalizeMetalColorName,
@@ -323,22 +325,18 @@ function buildBulkImportPayloads(rows = [], options = {}) {
     }
     const { color, view } = parsed;
 
+    // No URL is fine: a sheet re-sent without its images updates the values of
+    // styles that already exist (a new style is turned away in the route).
     const secureUrl = String(
       pickFirstDefined(row, ['cloudinaryurl', 'imagelink', 'imageurl', 'url', 'secureurl']),
     ).trim() || joinCloudinaryBaseUrl(options.cloudinaryBaseUrl, fileName);
-    if (!secureUrl) {
-      errors.push({
-        row: rowNumber,
-        styleCode,
-        reason: 'No image URL: provide a Cloudinary base URL or an image URL column',
-      });
-      return;
-    }
 
     const weights = readWeights(row);
+    // Blank here means "not in the sheet": the route fills create defaults (name and
+    // SKU = style code, Active, unflagged) and leaves an existing style's own values.
     const current = productsByStyle.get(styleCode) || {
       styleCode,
-      name: String(pickFirstDefined(row, ['productname', 'name'])).trim() || styleCode,
+      name: String(pickFirstDefined(row, ['productname', 'name'])).trim(),
       description: '',
       metalType: String(pickFirstDefined(row, ['metaltype'])).trim(),
       metal: String(pickFirstDefined(row, ['metal'])).trim(),
@@ -346,13 +344,11 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       occasions: readOccasions(row),
       diamondQuality: DIAMOND_QUALITY,
       settingType: String(pickFirstDefined(row, ['settingtype'])).trim(),
-      sku: String(pickFirstDefined(row, ['sku'])).trim() || styleCode,
-      // Bulk-imported products should be purchasable immediately. The UI no
-      // longer collects a per-import quantity, so default to an effectively
-      // unlimited count rather than 0 (which would mark every style out of stock).
-      status: options.status || 'Active',
-      isNewArrival: parseBoolean(options.isNewArrival, false),
-      isBestSeller: parseBoolean(options.isBestSeller, false),
+      sku: String(pickFirstDefined(row, ['sku'])).trim(),
+      status: options.status,
+      // An unticked box means "don't touch", not "unflag every style in the sheet".
+      isNewArrival: parseBoolean(options.isNewArrival, false) || undefined,
+      isBestSeller: parseBoolean(options.isBestSeller, false) || undefined,
       colorVariantsMap: new Map(),
       // Taxonomy is per row in this sheet; the first row for a style wins.
       rawCategory: String(pickFirstDefined(row, ['category'])).trim(),
@@ -372,12 +368,14 @@ function buildBulkImportPayloads(rows = [], options = {}) {
     const rowFirstView = normalizeViewName(pickFirstDefined(row, ['1stview', 'firstview']));
     if (rowFirstView && !current.firstView) current.firstView = rowFirstView;
 
-    const views = current.colorVariantsMap.get(color) || new Map();
-    views.set(view, {
-      view,
-      asset: createCloudinaryAsset({ secureUrl, alt: `${styleCode} ${color} ${view}` }),
-    });
-    current.colorVariantsMap.set(color, views);
+    if (secureUrl) {
+      const views = current.colorVariantsMap.get(color) || new Map();
+      views.set(view, {
+        view,
+        asset: createCloudinaryAsset({ secureUrl, alt: `${styleCode} ${color} ${view}` }),
+      });
+      current.colorVariantsMap.set(color, views);
+    }
 
     productsByStyle.set(styleCode, current);
   });
@@ -426,31 +424,23 @@ function buildBulkImportPayloads(rows = [], options = {}) {
       firstView: item.firstView,
       media: buildPrimaryMedia(colorVariants),
       colorVariants,
-      customizationOptions: {
-        // The sheet supplies images per colour, not the colours the style is
-        // sold in — keep the full offering so every colour stays orderable.
-        goldColors: dedupeStrings([
-          item.firstColor,
-          ...colorVariants.map((variant) => variant.color),
-          'Yellow Gold',
-          'Rose Gold',
-          'White Gold',
-        ]),
-        goldCarats: ['9K', '14K', '18K'],
-        diamondQualities: [...DIAMOND_QUALITIES],
-      },
-      specifications: [
-        ['Gross Wt (18kt)', weights.gross.k18],
-        ['Gross Wt (14kt)', weights.gross.k14],
-        ['Gross Wt (9kt)', weights.gross.k9],
-        ['Net Wt (18kt)', weights.net.k18],
-        ['Net Wt (14kt)', weights.net.k14],
-        ['Net Wt (9kt)', weights.net.k9],
-        ['Diamond Wt (ct)', weights.diamond],
-        ['Colour Stone Wt (ct)', weights.colourStone],
-      ]
-        .filter(([, value]) => value > 0)
-        .map(([attribute, value]) => ({ attribute, value: String(value) })),
+      // Without images there is nothing to say about colours; the style keeps its own.
+      customizationOptions: colorVariants.length
+        ? {
+            // The sheet supplies images per colour, not the colours the style is
+            // sold in — keep the full offering so every colour stays orderable.
+            goldColors: dedupeStrings([
+              item.firstColor,
+              ...colorVariants.map((variant) => variant.color),
+              'Yellow Gold',
+              'Rose Gold',
+              'White Gold',
+            ]),
+            goldCarats: ['9K', '14K', '18K'],
+            diamondQualities: [...DIAMOND_QUALITIES],
+          }
+        : undefined,
+      specifications: syncWeightSpecifications([], weights),
     };
   });
 
@@ -720,6 +710,46 @@ async function serializePromotionsPayload() {
 }
 
 router.get('/whatsapp/status', (_req, res) => sendSuccess(res, getWhatsappConfigStatus()));
+
+router.get('/push/status', async (_req, res) => {
+  const { configured, missing } = getPushConfigStatus();
+  return sendSuccess(res, { configured, missing, subscribers: await PushSubscription.countDocuments() });
+});
+
+// A notification to every phone that installed the app and allowed notifications.
+router.post('/push/broadcast', async (req, res) => {
+  if (!getPushConfigStatus().configured) {
+    return sendError(res, 'Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY on the server first', 400);
+  }
+  const title = asString(req.body?.title, { maxLength: 80 });
+  const body = asString(req.body?.body, { maxLength: 240 });
+  const url = asString(req.body?.url, { maxLength: 300 }) || '/';
+  if (!title || !body) return sendError(res, 'A title and a message are required', 400);
+  // Tapping the notification opens the app, so only a page of this site.
+  if (!/^\/(?!\/)/.test(url)) return sendError(res, 'The link must be a page of this site, starting with /', 400);
+
+  const subscriptions = await PushSubscription.find().lean();
+  const totals = { sent: 0, failed: 0, removed: 0 };
+  const gone = [];
+  // ponytail: every phone is sent from this one request, 10 at a time. Fine for a
+  // trade audience of hundreds; move it to a queue if it nears the function timeout.
+  await mapWithConcurrency(subscriptions, 10, async (subscription) => {
+    try {
+      const status = await sendPush(subscription, { title, body, url });
+      // 404/410: the phone uninstalled the app or turned notifications off.
+      if (status === 404 || status === 410) gone.push(subscription._id);
+      else if (status >= 200 && status < 300) totals.sent += 1;
+      else totals.failed += 1;
+    } catch {
+      totals.failed += 1;
+    }
+  });
+  if (gone.length) {
+    await PushSubscription.deleteMany({ _id: { $in: gone } });
+    totals.removed = gone.length;
+  }
+  return sendSuccess(res, { totals }, `Sent to ${totals.sent} device(s)`);
+});
 
 router.post('/whatsapp/broadcast', async (req, res) => {
   const {
@@ -1130,13 +1160,24 @@ router.post('/products/bulk-import', async (req, res) => {
         const current = existingByStyleCode.get(resolved.styleCode);
 
         if (current) {
-          Object.assign(current, sanitizeProductPayload(resolved, current));
+          Object.assign(current, sanitizeProductPayload(importUpdateFields(resolved, current.specifications), current));
           await current.save();
           written[index] = { action: 'updated', product: current };
+        } else if (!resolved.colorVariants.length) {
+          errors.push({
+            styleCode: resolved.styleCode,
+            reason: 'New style with no images: upload the image folder or give a Cloudinary base URL',
+          });
         } else {
           written[index] = {
             action: 'created',
-            product: await Product.create(sanitizeProductPayload(resolved)),
+            product: await Product.create(
+              sanitizeProductPayload({
+                ...resolved,
+                name: resolved.name || resolved.styleCode,
+                sku: resolved.sku || resolved.styleCode,
+              }),
+            ),
           };
         }
       } catch (error) {

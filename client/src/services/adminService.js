@@ -67,4 +67,6 @@ export const adminService = {
   whatsappBroadcast: (payload) => unwrap(api.post('/admin/whatsapp/broadcast', payload)),
   emailStatus: () => unwrap(api.get('/admin/email/status')),
   emailBroadcast: (payload) => unwrap(api.post('/admin/email/broadcast', payload)),
+  pushStatus: () => unwrap(api.get('/admin/push/status')),
+  pushBroadcast: (payload) => unwrap(api.post('/admin/push/broadcast', payload)),
 };

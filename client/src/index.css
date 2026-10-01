@@ -447,11 +447,47 @@ a {
   bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+/* Admin on phones. iOS zooms the page into any form field set below 16px and
+   leaves it zoomed after, so the console no longer fits the screen. Unlayered on
+   purpose: it has to beat the `text-sm` the admin inputs carry. */
+@media (max-width: 639px) {
+  .admin-shell :is(input:not([type='checkbox'], [type='radio']), select, textarea) {
+    font-size: 16px;
+  }
+}
+
+/* The admin menu drawer (a native <dialog>): slides in, and the page behind it
+   stops scrolling while it is open. */
+.admin-drawer[open] {
+  animation: drawerIn 260ms var(--ease-lux);
+}
+
+html:has(.admin-drawer[open]) {
+  overflow: hidden;
+}
+
+/* Same for a list page's detail sheet, which only covers the screen below xl. */
+@media (max-width: 1279px) {
+  html:has(.admin-sheet) {
+    overflow: hidden;
+  }
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 
+  .admin-drawer[open],
   .animate-page-enter,
   .animate-hero-entry,
   .animate-hero-line,

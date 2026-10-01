@@ -76,3 +76,39 @@ async function storeAsset(request, response) {
 function isHtml(response) {
   return (response.headers.get('content-type') || '').includes('text/html');
 }
+
+/*
+ * Notifications sent from Admin → Broadcasts (server/src/services/webPush.js).
+ * Every push must show a notification: iOS withdraws push from an app that
+ * receives one silently.
+ */
+self.addEventListener('push', (event) => {
+  let message = {};
+  try {
+    message = event.data ? event.data.json() : {};
+  } catch {
+    message = { body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(message.title || 'DeArte Jewellery', {
+      body: message.body || '',
+      icon: '/icon-192.png',
+      data: { url: message.url || '/' },
+    }),
+  );
+});
+
+// Opens the page the notification links to, in the app window if one is open.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/', self.location.origin);
+  const url = target.origin === self.location.origin ? target.href : `${self.location.origin}/`;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((client) => 'navigate' in client);
+      return open
+        ? open.focus().then((client) => client.navigate(url)).catch(() => self.clients.openWindow(url))
+        : self.clients.openWindow(url);
+    }),
+  );
+});

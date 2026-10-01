@@ -21,6 +21,8 @@ import {
   serializeTrustedBrand,
 } from '../utils/serializers.js';
 import { sanitizeSiteSettingsForPublic } from '../utils/siteSettingsPublic.js';
+import { PushSubscription } from '../models/PushSubscription.js';
+import { getPushConfigStatus, validSubscription } from '../services/webPush.js';
 import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { productAccessFilter } from '../utils/catalogAccess.js';
 import { getGuestCatalogue } from '../utils/guestCatalogue.js';
@@ -546,6 +548,24 @@ router.get('/education/:slug', (req, res) => {
   }
 
   return sendSuccess(res, seedData.education[slug]);
+});
+
+// Notifications for the installed app (services/webPush.js). The key is public by
+// design: the phone needs it to subscribe. Blank means push is not set up yet.
+router.get('/push/key', (_req, res) => sendSuccess(res, { publicKey: getPushConfigStatus().publicKey }));
+
+// The app re-sends its subscription on every start. Upserting by endpoint keeps
+// one row per phone, and a later sign-in links that phone to the buyer. Endpoints
+// a push service has dropped are deleted by the next broadcast.
+router.post('/push/subscribe', async (req, res) => {
+  const subscription = validSubscription(req.body);
+  if (!subscription) return sendError(res, 'Invalid push subscription', 400);
+  await PushSubscription.updateOne(
+    { endpoint: subscription.endpoint },
+    { $set: { keys: subscription.keys, ...(req.user ? { user: req.user._id } : {}) } },
+    { upsert: true },
+  );
+  return sendSuccess(res, null, 'Subscribed');
 });
 
 export default router;

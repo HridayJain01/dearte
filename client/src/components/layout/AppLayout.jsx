@@ -9,6 +9,7 @@ import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
 import { Button } from '../ui/Primitives';
 import { PageBoundary } from './PageBoundary';
+import { AppInstallPrompt } from './AppInstallPrompt';
 import { useSiteSettings, whatsappHref } from '../../hooks/useSiteSettings';
 
 // Single source of truth for nav typography so the desktop links, the Occasions
@@ -634,6 +635,8 @@ export function AppLayout() {
           </div>
         </div>
       </footer>
+
+      <AppInstallPrompt />
 
       <a
         href={settings.whatsapp ? whatsappHref(settings.whatsapp) : undefined}
