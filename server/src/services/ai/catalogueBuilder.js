@@ -110,6 +110,19 @@ export function diversify(items, count, groupOf) {
   return picked;
 }
 
+/**
+ * Closest matches first: everything found before any filter was loosened goes
+ * in, and each loosening (`round`) only tops up what the stricter ones left.
+ */
+export function closestFirst(ranked, count, groupOf) {
+  const picked = [];
+  const rounds = [...new Set(ranked.map((entry) => entry.round))].sort((a, b) => a - b);
+  for (const round of rounds) {
+    picked.push(...diversify(ranked.filter((entry) => entry.round === round), count - picked.length, groupOf));
+  }
+  return picked;
+}
+
 // Whole words, singular or plural: "rings" must not match inside "earrings".
 const mentions = (text, name) => new RegExp(`\\b${escapeRegex(name.toLowerCase().replace(/s$/, ''))}s?\\b`, 'i').test(text);
 
@@ -179,15 +192,18 @@ export async function buildCatalogue(brief, user) {
       .map((doc) => ({ doc, product: serializeProduct(doc) }))
       .filter((entry) => primaryImage(entry.product));
 
-  // Loosen the least important filters until enough styles match.
+  // Loosen the least important filters until enough styles match. Styles a
+  // stricter search found stay in; a looser one only adds to them.
   const relaxed = [];
-  let found = await find();
+  let found = (await find()).map((entry) => ({ ...entry, round: 0 }));
   for (const step of RELAX_STEPS) {
     if (found.length >= MIN_ITEMS) break;
     if (!step.fields.some((field) => isSet(params, field))) continue;
     for (const field of step.fields) params[field] = Array.isArray(params[field]) ? [] : EMPTY_VALUES[field];
     relaxed.push(step.label);
-    found = await find();
+    const seen = new Set(found.map((entry) => entry.product.id));
+    const added = (await find()).filter((entry) => !seen.has(entry.product.id));
+    found = [...found, ...added.map((entry) => ({ ...entry, round: relaxed.length }))];
   }
 
   const index = tags.length
@@ -195,8 +211,9 @@ export async function buildCatalogue(brief, user) {
     : [];
   const tagsByProduct = new Map(index.map((entry) => [String(entry.product), entry.tags]));
   const ranked = preferenceOrder(
-    found.map(({ doc, product }) => ({
+    found.map(({ doc, product, round }) => ({
       product,
+      round,
       styleCode: product.styleCode,
       tags: tagsByProduct.get(product.id) || [],
       isBestSeller: doc.isBestSeller,
@@ -205,7 +222,7 @@ export async function buildCatalogue(brief, user) {
     })),
     tags,
   );
-  const items = diversify(ranked, count, (entry) => entry.product.subCategory || entry.product.category || '').map((entry) => entry.product);
+  const items = closestFirst(ranked, count, (entry) => entry.product.subCategory || entry.product.category || '').map((entry) => entry.product);
 
   return {
     ...sanitizeCopy(raw, text),

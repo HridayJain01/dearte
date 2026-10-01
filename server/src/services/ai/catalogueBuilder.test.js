@@ -1,7 +1,7 @@
 // node --test server/src/services/ai/catalogueBuilder.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { diversify, missingKinds, preferenceOrder, sanitizeCopy } from './catalogueBuilder.js';
+import { closestFirst, diversify, missingKinds, preferenceOrder, sanitizeCopy } from './catalogueBuilder.js';
 
 test('picks take turns across sub-categories, best first', () => {
   const items = [
@@ -15,6 +15,23 @@ test('picks take turns across sub-categories, best first', () => {
   assert.deepEqual(ids(diversify(items, 4, (item) => item.group)), ['stud-1', 'hoop-1', 'drop-1', 'stud-2']);
   assert.deepEqual(ids(diversify(items, 10, (item) => item.group)).length, 5);
   assert.deepEqual(diversify([], 5, (item) => item.group), []);
+});
+
+test('a loosened search only tops up the exact matches, never pushes them out', () => {
+  // Five rose gold earrings asked for; metal colour loosened to fill the book.
+  const ranked = [
+    { id: 'white-halo', group: 'Halo', round: 1 },
+    { id: 'white-stud', group: 'Studs', round: 1 },
+    { id: 'white-hoop', group: 'Hoops', round: 1 },
+    { id: 'rose-halo-1', group: 'Halo', round: 0 },
+    { id: 'rose-halo-2', group: 'Halo', round: 0 },
+    { id: 'rose-halo-3', group: 'Halo', round: 0 },
+    { id: 'rose-stud', group: 'Studs', round: 0 },
+    { id: 'rose-hoop', group: 'Hoops', round: 0 },
+  ];
+  const ids = closestFirst(ranked, 6, (item) => item.group).map((item) => item.id);
+  assert.deepEqual(ids, ['rose-halo-1', 'rose-stud', 'rose-hoop', 'rose-halo-2', 'rose-halo-3', 'white-halo']);
+  assert.deepEqual(closestFirst(ranked, 2, (item) => item.group).map((item) => item.id), ['rose-halo-1', 'rose-stud']);
 });
 
 test('shared style tags outrank best-seller flags', () => {
