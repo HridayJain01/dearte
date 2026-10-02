@@ -2,7 +2,7 @@ import { ChevronDown, Gem, Heart, Home, Menu, Search, ShoppingBag, User, Message
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { EDUCATION_ROUTES, NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
-import { useCollections, useNavCategories, useOccasions } from '../../hooks/useProducts';
+import { useCollections, useNavCategories } from '../../hooks/useProducts';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
@@ -12,7 +12,7 @@ import { PageBoundary } from './PageBoundary';
 import { AppInstallPrompt } from './AppInstallPrompt';
 import { useSiteSettings, whatsappHref } from '../../hooks/useSiteSettings';
 
-// Single source of truth for nav typography so the desktop links, the Occasions
+// Single source of truth for nav typography so the desktop links, the Collections
 // button, its dropdown items and the mobile menu all render identically.
 const NAV_TEXT = 'text-[13px] font-medium uppercase tracking-[0.1em]';
 
@@ -25,7 +25,7 @@ const navLinkClass = ({ isActive }) =>
   `${NAV_TEXT} transition ${isActive ? 'text-[var(--color-primary)] underline decoration-[var(--color-accent)] underline-offset-4' : 'text-[var(--color-text)] hover:text-[var(--color-primary)]'}`;
 
 // Desktop nav item that links to its landing page and reveals a quick-pick
-// dropdown on hover (Occasions, Collections). Items are fetched rather than
+// dropdown on hover (Collections). Items are fetched rather than
 // hardcoded so newly added ones show up without a code change.
 function QuickNavMenu({ label, to, items }) {
   const [open, setOpen] = useState(false);
@@ -367,19 +367,13 @@ export function AppLayout() {
   const { user, isAuthenticated, logout } = useAuth();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
-  const { data: occasions } = useOccasions();
   const { data: navCategories } = useNavCategories();
   // /collections is buyer-only, so guests would just 401 in a loop.
   const { data: collections } = useCollections({ enabled: isAuthenticated });
   const settings = useSiteSettings();
   const categoryList = navCategories || [];
+  const navLinks = NAV_LINKS.filter((link) => !link.requiresAuth || isAuthenticated);
   const quickMenuItems = (link) => {
-    if (link.occasionMenu) {
-      return (occasions || []).map((occasion) => ({
-        name: occasion.name,
-        href: `/products?occasion=${encodeURIComponent(occasion.name)}`,
-      }));
-    }
     if (link.collectionMenu) {
       return (collections || []).map((collection) => ({
         name: collection.name,
@@ -425,7 +419,7 @@ export function AppLayout() {
           </Link>
 
           <nav className="hidden items-center gap-6 lg:flex">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const quickItems = quickMenuItems(link);
               if (quickItems) {
                 return <QuickNavMenu key={link.label} label={link.label} to={link.to} items={quickItems} />;
@@ -511,7 +505,7 @@ export function AppLayout() {
           // Capped and scrollable, since an expanded category tree is taller
           // than the viewport and the page behind it should not scroll.
           <div className="safe-bottom-pad flex max-h-[calc(100svh-3.5rem)] flex-col divide-y divide-[var(--color-border)]/70 overflow-y-auto border-t border-[var(--color-accent)]/40 bg-[var(--color-surface)] px-5 py-1 shadow-[var(--shadow-lifted)] lg:hidden">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const quickItems = quickMenuItems(link);
 
               if (link.categoryMenu) {

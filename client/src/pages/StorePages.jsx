@@ -1689,6 +1689,7 @@ export function CataloguePage() {
     queryKey: ['catalogues'],
     queryFn: orderService.catalogues,
   });
+  const [openId, setOpenId] = useState(null);
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading private catalogues..." /></div>;
@@ -1705,20 +1706,41 @@ export function CataloguePage() {
       <SectionHeading as="h1" eyebrow="Catalogues" title="Catalogues shared with you" description="Picked for you by your sales representative." />
       <CatalogueBuilder />
       <div className="grid gap-6 lg:grid-cols-2">
-        {data.map((catalogue) => (
-          <Panel key={catalogue.id}>
-            <div className="mb-4 grid grid-cols-3 gap-3">
-              {catalogue.products.slice(0, 3).map((product) => (
-                <img key={product.id} src={cdnImage(product.images[0], 400)} alt={productDisplayName(product)} className="h-32 w-full object-cover" loading="lazy" decoding="async" />
-              ))}
-            </div>
-            <h3 className="text-2xl font-semibold text-[var(--color-text)]">{catalogue.name}</h3>
-            <p className="mt-2 text-sm text-[var(--color-text-muted)]">{catalogue.description}</p>
-            <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-              {formatDate(catalogue.createdAt)} • {catalogue.productIds.length} Items
-            </p>
-          </Panel>
-        ))}
+        {data.map((catalogue) => {
+          const open = openId === catalogue.id;
+          return (
+            <Panel key={catalogue.id} className={open ? 'lg:col-span-2' : ''}>
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : catalogue.id)}
+                aria-expanded={open}
+                className="block w-full text-left"
+              >
+                <div className="mb-4 grid grid-cols-3 gap-3">
+                  {catalogue.products.slice(0, 3).map((product) => (
+                    <img key={product.id} src={cdnImage(product.images[0], 400)} alt={productDisplayName(product)} className="h-32 w-full object-cover" loading="lazy" decoding="async" />
+                  ))}
+                </div>
+                <h3 className="text-2xl font-semibold text-[var(--color-text)]">{catalogue.name}</h3>
+                <p className="mt-2 text-sm text-[var(--color-text-muted)]">{catalogue.description}</p>
+                <p className="mt-3 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                  <span>{formatDate(catalogue.createdAt)} • {catalogue.productIds.length} Items</span>
+                  <span className="flex items-center gap-1 text-[var(--color-primary)]">
+                    {open ? 'Hide pieces' : 'View all pieces'}
+                    <ChevronDown className={`h-4 w-4 transition ${open ? 'rotate-180' : ''}`} />
+                  </span>
+                </p>
+              </button>
+              {open ? (
+                <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+                  {catalogue.products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              ) : null}
+            </Panel>
+          );
+        })}
       </div>
     </section>
   );
@@ -1913,6 +1935,10 @@ export function ProfilePage() {
       <SectionHeading as="h1" eyebrow="Account" title="Your account and orders" />
       {/* Renders nothing unless restock suggestions are on and something is due. */}
       <RestockPanel />
+      <Link to="/catalogue" className="mb-4 flex items-center justify-between gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-accent)] sm:mb-6">
+        <span><span className="font-medium">My Catalogues</span> — pieces shared with you and the AI catalogue builder</span>
+        <span className="text-[var(--color-primary)]">Open →</span>
+      </Link>
       <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
           <p className="lux-label mb-3 text-[11px] sm:mb-4 sm:text-xs">My Profile</p>

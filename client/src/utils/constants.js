@@ -23,9 +23,9 @@ export const NAV_LINKS = [
   // Links to the collections landing page; AppLayout also adds a quick-pick
   // dropdown on hover with options from /api/collections.
   { label: 'Collections', to: '/collections', collectionMenu: true },
-  // Links to the "Shop by Occasion" page; AppLayout also adds a quick-pick
-  // dropdown on hover with options from /api/occasions.
-  { label: 'Occasions', to: '/occasions', occasionMenu: true },
+  // Catalogues shared with the signed-in buyer, plus the AI catalogue builder.
+  // Buyer-only, so AppLayout hides it from guests.
+  { label: 'Catalogues', to: '/catalogue', requiresAuth: true },
   { label: 'Best Sellers', to: '/products?sort=best-sellers' },
   { label: 'About Us', to: '/about' },
 ];
