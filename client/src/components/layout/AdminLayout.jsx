@@ -1,6 +1,8 @@
 import { ExternalLink, LogOut, Menu, MoreHorizontal, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { adminService } from '../../services/adminService';
 import { ADMIN_LINKS } from '../../utils/constants';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,25 +13,47 @@ import { Button } from '../ui/Primitives';
 const TAB_PATHS = ['/admin/dashboard', '/admin/products', '/admin/orders', '/admin/users'];
 const TABS = TAB_PATHS.map((to) => ADMIN_LINKS.find((item) => item.to === to)).filter(Boolean);
 
+const GROUPS = [...new Set(ADMIN_LINKS.map((item) => item.group))];
+
+// What is waiting: pending orders and buyers to approve, from the dashboard
+// counts (the same query the dashboard page uses, so it is shared, not doubled).
+function useWaitingCounts() {
+  const { data } = useQuery({ queryKey: ['admin-dashboard'], queryFn: adminService.dashboard });
+  return data?.stats || {};
+}
+
+function Badge({ count, className = '' }) {
+  return count ? <span className={`bg-primary px-1.5 text-[11px] leading-5 text-white ${className}`}>{count}</span> : null;
+}
+
 function AdminNav({ onNavigate }) {
+  const waiting = useWaitingCounts();
   return (
-    <nav aria-label="Admin sections" className="grid gap-1">
-      {ADMIN_LINKS.map((item) => {
-        const Icon = item.icon;
-        return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex min-h-11 items-center gap-3 px-4 py-2.5 text-sm transition ${isActive ? 'border-l-2 border-primary bg-surface-alt font-medium text-primary' : 'text-text-muted hover:bg-surface-alt hover:text-text'}`
-            }
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {item.label}
-          </NavLink>
-        );
-      })}
+    <nav aria-label="Admin sections" className="space-y-4">
+      {GROUPS.map((group) => (
+        <div key={group}>
+          <p className="mb-1 px-4 text-[11px] uppercase tracking-[0.14em] text-text-muted">{group}</p>
+          <div className="grid gap-0.5">
+            {ADMIN_LINKS.filter((item) => item.group === group).map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center gap-3 px-4 py-2 text-sm transition ${isActive ? 'border-l-2 border-primary bg-surface-alt font-medium text-primary' : 'text-text-muted hover:bg-surface-alt hover:text-text'}`
+                  }
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                  <Badge count={waiting[item.badge]} />
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
   );
 }
@@ -38,6 +62,7 @@ export function AdminLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const menuRef = useRef(null);
+  const waiting = useWaitingCounts();
   const current = ADMIN_LINKS.find((item) => location.pathname.startsWith(item.to));
 
   useEffect(() => {
@@ -124,10 +149,11 @@ export function AdminLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] uppercase tracking-[0.08em] ${isActive ? 'text-primary' : 'text-text-muted'}`
+                `relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] uppercase tracking-[0.08em] ${isActive ? 'text-primary' : 'text-text-muted'}`
               }
             >
               <Icon className="h-5 w-5" />
+              <Badge count={waiting[item.badge]} className="absolute left-1/2 top-1.5 ml-1.5" />
               {item.label}
             </NavLink>
           );

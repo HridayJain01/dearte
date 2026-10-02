@@ -37,21 +37,22 @@ export const EDUCATION_ROUTES = [
   { slug: 'size-guide', title: 'Size Guide' },
 ];
 
+// Grouped by the job: selling day to day, the catalogue, marketing, then setup.
 export const ADMIN_LINKS = [
-  { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Promotions', to: '/admin/promotions', icon: Sparkles },
-  { label: 'Users', to: '/admin/users', icon: Users },
-  { label: 'Products', to: '/admin/products', icon: Package },
-  { label: 'Orders', to: '/admin/orders', icon: ShoppingBag },
-  { label: 'Broadcasts', to: '/admin/whatsapp', icon: MessageCircle },
-  { label: 'Catalogues', to: '/admin/catalogues', icon: ScrollText },
-  { label: 'Collections', to: '/admin/collections', icon: Gem },
-  { label: 'Configuration', to: '/admin/config', icon: Settings },
-  { label: 'Testimonials', to: '/admin/testimonials', icon: MessageSquareQuote },
-  { label: 'Roles', to: '/admin/roles', icon: ShieldCheck },
-  { label: 'Reports', to: '/admin/reports', icon: FileClock },
-  { label: 'AI Studio', to: '/admin/ai', icon: WandSparkles },
-  { label: 'Blog', to: '/admin/blog', icon: Newspaper },
+  { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard, group: 'Sell' },
+  { label: 'Orders', to: '/admin/orders', icon: ShoppingBag, group: 'Sell', badge: 'pendingOrders' },
+  { label: 'Users', to: '/admin/users', icon: Users, group: 'Sell', badge: 'pendingBuyers' },
+  { label: 'Products', to: '/admin/products', icon: Package, group: 'Catalogue' },
+  { label: 'Collections', to: '/admin/collections', icon: Gem, group: 'Catalogue' },
+  { label: 'Catalogues', to: '/admin/catalogues', icon: ScrollText, group: 'Catalogue' },
+  { label: 'Promotions', to: '/admin/promotions', icon: Sparkles, group: 'Marketing' },
+  { label: 'Broadcasts', to: '/admin/whatsapp', icon: MessageCircle, group: 'Marketing' },
+  { label: 'Testimonials', to: '/admin/testimonials', icon: MessageSquareQuote, group: 'Marketing' },
+  { label: 'Blog', to: '/admin/blog', icon: Newspaper, group: 'Marketing' },
+  { label: 'AI Studio', to: '/admin/ai', icon: WandSparkles, group: 'Marketing' },
+  { label: 'Settings', to: '/admin/config', icon: Settings, group: 'Setup' },
+  { label: 'Reports', to: '/admin/reports', icon: FileClock, group: 'Setup' },
+  { label: 'Roles', to: '/admin/roles', icon: ShieldCheck, group: 'Setup' },
 ];
 
 export const TRUST_LINKS = [

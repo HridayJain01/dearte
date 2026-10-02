@@ -356,6 +356,7 @@ export function AdminAiStudioPage() {
   return (
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading
+        compact
         eyebrow="AI Studio"
         title="AI features and automation"
         description="Every feature starts as a staff preview. Try it on the live site signed in as admin, then switch it to Everyone."
@@ -625,6 +626,7 @@ export function AdminBlogPage() {
   return (
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading
+        compact
         eyebrow="Blog"
         title="Automated journal"
         description="A post is written, checked, reviewed and published on schedule. Anything that fails a check is held here for you instead."

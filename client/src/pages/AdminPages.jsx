@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { Link, useSearchParams } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { adminService } from '../services/adminService';
-import { Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
-import { ArrowLeft, ChevronDown, Download, Plus, Search, Trash2 } from 'lucide-react';
+import { BottomSheet, Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
+import { ArrowLeft, ArrowRight, ChevronDown, Download, MessageCircle, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
 import { DIAMOND_QUALITY } from '../utils/constants';
-import { cdnImage } from '../utils/formatters';
+import { cdnImage, formatWhen } from '../utils/formatters';
+import { whatsappHref } from '../hooks/useSiteSettings';
 import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader, parseImageFileName } from '../utils/importChunks';
 
 const textInput =
@@ -1274,96 +1276,145 @@ function BulkProductImportPanel({ onImported }) {
   );
 }
 
-function TaxonomyManager({ title, items, onSave, onDelete, children, onEdit, onNew, saveLabel }) {
+/*
+ * A list you tap to edit. The form opens in a sheet (centred on desktop), so the
+ * page is just the list: no always-open form under it, no "New" beside a
+ * "Create" that did different things.
+ */
+function TaxonomyManager({ title, noun, items, editingName, onSave, onDelete, children, onEdit, onNew }) {
+  const sheetRef = useRef(null);
+  const [filter, setFilter] = useState('');
+  const [busy, setBusy] = useState(false);
+  const term = filter.trim().toLowerCase();
+  const shown = term ? items.filter((item) => item.name?.toLowerCase().includes(term)) : items;
+
+  const run = async (action, done) => {
+    setBusy(true);
+    try {
+      await action();
+      sheetRef.current?.close();
+      toast.success(done);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || 'Could not save.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    // Fixed height with one inner scroll on wide screens. On a phone the list
-    // gets a short scroll of its own and the form follows it in the page, so a
-    // tapped item's fields appear right below it.
-    <Panel className="flex flex-col space-y-4 lg:h-[540px]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
-        <p className="lux-label">{title}</p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={onNew}>New</Button>
-          <Button onClick={onSave}>{saveLabel}</Button>
-          {onDelete ? <Button variant="danger" onClick={onDelete}>Delete</Button> : null}
-        </div>
+    <Panel className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="lux-label">
+          {title} <span className="text-[var(--color-text-muted)]">({items.length})</span>
+        </p>
+        <Button
+          icon={Plus}
+          onClick={() => {
+            onNew();
+            sheetRef.current?.showModal();
+          }}
+        >
+          Add
+        </Button>
       </div>
-      <div className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
-        <div className="space-y-2 max-lg:max-h-72 max-lg:overflow-y-auto">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] px-3 py-2 text-left hover:border-[var(--color-border-active)]"
-              onClick={() => onEdit(item)}
-            >
-                <Thumbnail asset={item.logo || item.image || item.swatch} alt={item.name} />
-              <div>
-                <p className="text-sm font-medium text-[var(--color-text)]">{item.name}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">{item.slug || item.group || item.sector || ''}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-        {children}
+      {items.length > 10 ? (
+        <input type="search" className={textInput} value={filter} placeholder={`Find a ${noun}`} onChange={(event) => setFilter(event.target.value)} />
+      ) : null}
+      <div className="divide-y divide-[var(--color-border)] border border-[var(--color-border)] lg:max-h-[26rem] lg:overflow-y-auto">
+        {shown.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-[var(--color-surface-alt)]"
+            onClick={() => {
+              onEdit(item);
+              sheetRef.current?.showModal();
+            }}
+          >
+            <Thumbnail asset={item.logo || item.image || item.swatch} alt={item.name} size="h-10 w-10" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-[var(--color-text)]">{item.name}</p>
+              <p className="truncate text-xs text-[var(--color-text-muted)]">{item.slug || item.group || item.sector || ''}</p>
+            </div>
+          </button>
+        ))}
+        {shown.length ? null : <p className="px-3 py-4 text-sm text-[var(--color-text-muted)]">Nothing here yet.</p>}
       </div>
+      <BottomSheet
+        sheetRef={sheetRef}
+        title={editingName ? `Edit ${editingName}` : `New ${noun}`}
+        footer={
+          <div className="flex gap-2">
+            {editingName && onDelete ? (
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() => window.confirm(`Delete ${editingName}? This cannot be undone.`) && run(onDelete, `${editingName} deleted`)}
+              >
+                Delete
+              </Button>
+            ) : null}
+            <Button className="flex-1" loading={busy} disabled={busy} onClick={() => run(onSave, editingName ? 'Changes saved' : `${noun[0].toUpperCase()}${noun.slice(1)} added`)}>
+              {editingName ? 'Save changes' : `Add ${noun}`}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">{children}</div>
+      </BottomSheet>
     </Panel>
+  );
+}
+
+// A stat that is also the way in: each card opens the list it counts.
+function StatLink({ to, ...props }) {
+  return (
+    <Link to={to} className="block transition-transform duration-300 hover:-translate-y-0.5">
+      <StatCard {...props} />
+    </Link>
   );
 }
 
 export function AdminDashboardPage() {
   const { data, isLoading } = useQuery({ queryKey: ['admin-dashboard'], queryFn: adminService.dashboard });
-  const [downloadingOrderId, setDownloadingOrderId] = useState(null);
   if (isLoading) return <LoadingBlock />;
 
   const stats = data?.stats || {};
 
-  const handleDownloadOrder = async (order) => {
-    try {
-      setDownloadingOrderId(order.id || order.orderId);
-      await downloadDeArteOrderPdf({ order, user: order.user || {} });
-      toast.success(`Downloaded ${order.orderId}`);
-    } catch (error) {
-      toast.error(error?.message || 'Could not generate PDF');
-    } finally {
-      setDownloadingOrderId(null);
-    }
-  };
-
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Dashboard" title="Admin overview" description="Buyers, products, orders and catalogues at a glance." />
+      <SectionHeading compact eyebrow="Dashboard" title="Today" />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <StatCard title="Buyers" value={stats.buyers || 0} detail={`${stats.pendingBuyers || 0} pending activation`} />
-        <StatCard title="Products" value={stats.products || 0} detail={`${stats.newProducts || 0} marked new`} />
-        <StatCard title="Orders" value={stats.orders || 0} detail="Placed by buyers" />
-        <StatCard title="Catalogues" value={stats.catalogues || 0} detail="Private buyer collections" />
+        <StatLink to="/admin/orders?status=Pending" title="Orders to review" value={stats.pendingOrders || 0} detail={`of ${stats.orders || 0} orders`} />
+        <StatLink to="/admin/users" title="Buyers waiting" value={stats.pendingBuyers || 0} detail={`of ${stats.buyers || 0} buyers`} />
+        <StatLink to="/admin/products" title="Products" value={stats.products || 0} detail={`${stats.newProducts || 0} marked new`} />
+        <StatLink to="/admin/catalogues" title="Catalogues" value={stats.catalogues || 0} detail="Shared with buyers" />
       </div>
-      <Panel>
-        <p className="lux-label mb-4">Recent orders</p>
-        <DataTable
-          columns={[
-            { key: 'orderId', label: 'Order ID' },
-            { key: 'user', label: 'Buyer', render: (value) => value?.name || '-' },
-            { key: 'status', label: 'Status', render: (value) => <StatusBadge status={value} /> },
-            { key: 'createdAt', label: 'Created', render: (value) => new Date(value).toLocaleString('en-IN') },
-            {
-              key: 'download',
-              label: 'PDF',
-              render: (_value, row) => (
-                <Button
-                  variant="ghost"
-                  className="px-3 py-2 text-[11px]"
-                  icon={Download}
-                  loading={downloadingOrderId === (row.id || row.orderId)}
-                  onClick={() => handleDownloadOrder(row)}
-                >
-                  Download
-                </Button>
-              ),
-            },
-          ]}
-          rows={data?.recentOrders || []}
-        />
+      <Panel className="p-0 sm:p-0">
+        <div className="flex items-center justify-between px-3 pt-3 sm:px-6 sm:pt-5">
+          <p className="lux-label">Recent orders</p>
+          <Link to="/admin/orders" className="text-xs uppercase tracking-[0.1em] text-[var(--color-primary)] underline underline-offset-4">
+            All orders
+          </Link>
+        </div>
+        <div className="mt-2 divide-y divide-[var(--color-border)]">
+          {(data?.recentOrders || []).map((order) => (
+            <Link
+              key={order.id}
+              to={`/admin/orders?order=${order.id}`}
+              className="flex items-center gap-3 px-3 py-3 transition hover:bg-[var(--color-surface-alt)] sm:px-6"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-[var(--color-text)]">{order.user?.name || 'Buyer removed'}</p>
+                <p className="truncate text-xs text-[var(--color-text-muted)]">
+                  {formatWhen(order.createdAt)} · {totalPieces(order.items)} pcs · {order.orderId}
+                </p>
+              </div>
+              <StatusBadge status={order.status} />
+            </Link>
+          ))}
+          {data?.recentOrders?.length ? null : <p className="px-3 py-6 text-sm text-[var(--color-text-muted)] sm:px-6">No orders yet.</p>}
+        </div>
       </Panel>
     </div>
   );
@@ -1390,7 +1441,7 @@ export function AdminPromotionsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Promotions" title="Manage banners, popups, and events" description="Home page banners, the welcome popup and events." />
+      <SectionHeading compact eyebrow="Promotions" title="Manage banners, popups, and events" description="Home page banners, the welcome popup and events." />
 
       <Panel className="space-y-3">
         <p className="lux-label">Banner order</p>
@@ -1705,10 +1756,51 @@ export function AdminUsersPage() {
   if (isLoading) return <LoadingBlock />;
 
   const editingUser = data.find((user) => user.id === editingUserId) || null;
+  // New registrations start Inactive; the dashboard counts the same set.
+  const waiting = data.filter((user) => user.role === 'buyer' && user.status === 'Inactive');
+
+  // Role and status used to save the moment a dropdown moved, with no word
+  // back: one stray tap could switch a buyer off. Now each change is confirmed.
+  const changeUser = async (user, patch, question, done) => {
+    if (question && !window.confirm(question)) return;
+    try {
+      await adminService.updateUser(user.id, patch);
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+      toast.success(done);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || 'Could not update this account.');
+    }
+  };
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Users" title="Buyer account management" description="Approve accounts, set sales roles, and control which categories or collections each buyer can view." />
+      <SectionHeading compact eyebrow="Users" title="Buyers" description="Approve new accounts, set roles and choose what each buyer can see." />
+
+      {waiting.length ? (
+        <Panel className="space-y-3">
+          <p className="lux-label">Waiting for approval ({waiting.length})</p>
+          <div className="divide-y divide-[var(--color-border)]">
+            {waiting.map((user) => (
+              <div key={user.id} className="flex flex-wrap items-center gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-[var(--color-text)]">
+                    {user.name} <span className="font-normal text-[var(--color-text-muted)]">· {user.companyName || 'No company'}</span>
+                  </p>
+                  <p className="truncate text-xs text-[var(--color-text-muted)]">
+                    {[user.email, user.mobile, user.city, user.gstNumber && `GST ${user.gstNumber}`, user.registeredAt && `Registered ${formatWhen(user.registeredAt)}`]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
+                <Button onClick={() => changeUser(user, { status: 'Active' }, null, `${user.name} is approved and can sign in.`)}>
+                  Approve
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
 
       {editingUser ? (
         <DetailSheet open title={editingUser.name} onClose={() => setEditingUserId(null)}>
@@ -1729,9 +1821,10 @@ export function AdminUsersPage() {
                 <select
                   className={textInput}
                   value={value === 'sales' ? 'sales' : 'buyer'}
-                  onChange={async (event) => {
-                    await adminService.updateUser(row.id, { role: event.target.value });
-                    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                  onChange={(event) => {
+                    const role = event.target.value;
+                    const label = role === 'sales' ? 'Sales' : 'Buyer';
+                    changeUser(row, { role }, `Make ${row.name} a ${label} account?`, `${row.name} is now a ${label} account.`);
                   }}
                 >
                   <option value="buyer">Buyer</option>
@@ -1756,9 +1849,10 @@ export function AdminUsersPage() {
                 <select
                   className={textInput}
                   value={value}
-                  onChange={async (event) => {
-                    await adminService.updateUser(row.id, { status: event.target.value });
-                    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                  onChange={(event) => {
+                    const status = event.target.value;
+                    const question = status === 'Inactive' ? `Switch off ${row.name}? They won't be able to sign in.` : `Activate ${row.name}?`;
+                    changeUser(row, { status }, question, status === 'Inactive' ? `${row.name} is switched off.` : `${row.name} is active.`);
                   }}
                 >
                   <option value="Active">Active</option>
@@ -1861,6 +1955,7 @@ export function AdminProductsPage() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [bestSellersOnly, setBestSellersOnly] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   // Shared query key with AdminCataloguesPage, so opening this page after that
   // one costs nothing.
@@ -1869,9 +1964,14 @@ export function AdminProductsPage() {
   if (isLoading || !config) return <LoadingBlock />;
 
   const query = search.trim().toLowerCase();
+  const categoryCounts = products.reduce((tally, product) => {
+    if (product.category) tally[product.category] = (tally[product.category] || 0) + 1;
+    return tally;
+  }, {});
   const filteredProducts = products.filter(
     (product) =>
       (!bestSellersOnly || product.isBestSeller) &&
+      (!categoryFilter || product.category === categoryFilter) &&
       (!query ||
         [product.styleCode, product.name, product.sku, product.category, product.collection]
           .filter(Boolean)
@@ -1970,7 +2070,7 @@ export function AdminProductsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Add styles, edit photos and weights, or update many at once from Excel." />
+      <SectionHeading compact eyebrow="Inventory" title="Create and manage products" description="Add styles, edit photos and weights, or update many at once from Excel." />
       <BulkProductImportPanel
         onImported={() => {
           // See updateValuesFromSheet: stale product pages elsewhere in the tab too.
@@ -1982,6 +2082,7 @@ export function AdminProductsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="lux-label">Products</p>
             <div className="flex flex-wrap gap-2">
+              <Button icon={Plus} onClick={() => { setEditingId(null); setForm(emptyProduct); setEditorOpen(true); }}>New product</Button>
               <label className={sheetButton}>
                 Replace Best Sellers (Excel)
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={replaceBestSellers} />
@@ -1990,7 +2091,6 @@ export function AdminProductsPage() {
                 Update Values (Excel)
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={updateValuesFromSheet} />
               </label>
-              <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyProduct); setEditorOpen(true); }}>New Product</Button>
             </div>
           </div>
           <div className="relative">
@@ -2002,6 +2102,23 @@ export function AdminProductsPage() {
               placeholder="Search by style code, name, SKU, category…"
               className={`${textInput} pl-9`}
             />
+          </div>
+          <div className="snap-rail -mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+            {[['', 'All', products.length], ...Object.entries(categoryCounts).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => [name, name, count])].map(([value, label, count]) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={categoryFilter === value}
+                onClick={() => setCategoryFilter(value)}
+                className={`min-h-9 shrink-0 snap-start border px-3 text-[12px] uppercase tracking-[0.08em] ${
+                  categoryFilter === value
+                    ? 'border-[var(--color-border-active)] bg-[var(--color-primary)] text-white'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+                }`}
+              >
+                {label} <span className="opacity-70">{count}</span>
+              </button>
+            ))}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
@@ -2030,26 +2147,14 @@ export function AdminProductsPage() {
               {filteredProducts.length} of {products.length} products
             </p>
           </div>
-          <ProductBulkBar
-            selectedIds={selectedIds}
-            onClear={() => setSelectedIds([])}
-            config={config}
-            catalogues={catalogues}
-            onDone={() => {
-              setEditingId(null);
-              setForm(emptyProduct);
-              queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-              queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
-            }}
-          />
-          <div className="space-y-3 xl:max-h-[780px] xl:overflow-y-auto xl:pr-1">
+          <div className="space-y-2 xl:max-h-[780px] xl:overflow-y-auto xl:pr-1">
             {filteredProducts.length === 0 && (
               <p className="py-6 text-center text-sm text-[var(--color-text-muted)]">No products match “{search}”.</p>
             )}
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className={`flex items-center gap-3 border p-4 transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
+                className={`flex items-center gap-3 border px-3 py-2 transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
               >
               <input
                 type="checkbox"
@@ -2105,12 +2210,15 @@ export function AdminProductsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-semibold text-[var(--color-text)]">
                       {product.styleCode}
-                      {product.isBestSeller && <span className="ml-2 text-[11px] uppercase tracking-[0.12em] text-amber-700">★ Best seller</span>}
+                      {product.isBestSeller && <span className="ml-2 whitespace-nowrap text-[11px] uppercase tracking-[0.12em] text-amber-700">★ Best seller</span>}
                     </p>
                     <StatusBadge status={product.status} />
                   </div>
-                  <p className="truncate text-sm text-[var(--color-text-muted)]">{product.name}</p>
-                  <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
+                  {/* Imported styles use the code as their name; don't print it twice. */}
+                  {product.name && product.name !== product.styleCode ? (
+                    <p className="truncate text-sm text-[var(--color-text-muted)]">{product.name}</p>
+                  ) : null}
+                  <p className="truncate text-xs text-[var(--color-text-muted)]">
                     {[product.category, product.collection].filter(Boolean).join(' › ') || 'No collection'}
                   </p>
                 </div>
@@ -2118,6 +2226,23 @@ export function AdminProductsPage() {
               </div>
             ))}
           </div>
+          {/* After the list, sticky: it rides the bottom edge while boxes are ticked. */}
+          {selectedIds.length ? (
+            <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 lg:bottom-4">
+              <ProductBulkBar
+                selectedIds={selectedIds}
+                onClear={() => setSelectedIds([])}
+                config={config}
+                catalogues={catalogues}
+                onDone={() => {
+                  setEditingId(null);
+                  setForm(emptyProduct);
+                  queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-catalogues'] });
+                }}
+              />
+            </div>
+          ) : null}
         </Panel>
 
         <DetailSheet open={editorOpen} title={editingId ? form.styleCode : 'New product'} onClose={() => setEditorOpen(false)}>
@@ -2144,149 +2269,158 @@ export function AdminProductsPage() {
   );
 }
 
-export function AdminOrdersPage() {
+// Pending → Reviewed → … → Fulfilled. Cancelled sits off the path and is
+// reached through "Set another status".
+const ORDER_FLOW = ['Pending', 'Reviewed', 'Approved', 'Processing', 'Shipped', 'Fulfilled'];
+const ORDER_STATUSES = [...ORDER_FLOW, 'Cancelled'];
+const NEXT_STEP_LABEL = {
+  Reviewed: 'Mark reviewed',
+  Approved: 'Approve order',
+  Processing: 'Start processing',
+  Shipped: 'Mark shipped',
+  Fulfilled: 'Mark fulfilled',
+};
+
+// Buyers register with a 10-digit Indian mobile; wa.me needs the country code.
+const buyerWhatsapp = (mobile) => {
+  const digits = String(mobile || '').replace(/\D/g, '');
+  return whatsappHref(digits.length === 10 ? `91${digits}` : digits);
+};
+
+function OrderDetail({ order }) {
   const queryClient = useQueryClient();
-  const { data = [], isLoading } = useQuery({ queryKey: ['admin-orders'], queryFn: adminService.orders });
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
-  const selectedOrder = data.find((item) => item.id === selectedOrderId) || data[0];
-  // Shared with the buyer's cart summary and both PDFs — admin must never see a
-  // different figure from the one the buyer approved.
-  const orderTotalDiamondWeight = totalDiamondWeight(selectedOrder?.items);
-  const orderTotalGoldWeight = totalGoldWeight(selectedOrder?.items);
-  const orderTotalPieces = totalPieces(selectedOrder?.items);
-  const [statusChangeFlow, setStatusChangeFlow] = useState(null);
-  const [statusNotifyOptionalNote, setStatusNotifyOptionalNote] = useState('');
-  const [statusSaving, setStatusSaving] = useState(false);
-  const [notesDraft, setNotesDraft] = useState('');
+  const [notify, setNotify] = useState({ whatsapp: true, email: true });
+  const [buyerNote, setBuyerNote] = useState('');
+  const [otherStatus, setOtherStatus] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(order.notes || '');
+  const at = ORDER_FLOW.indexOf(order.status);
+  const next = at >= 0 ? ORDER_FLOW[at + 1] : undefined;
+  const mobile = order.user?.mobile;
 
-  useEffect(() => {
-    setStatusChangeFlow(null);
-    setStatusNotifyOptionalNote('');
-    setNotesDraft(selectedOrder?.notes || '');
-  }, [selectedOrder?.id]);
-
-  if (isLoading) return <LoadingBlock />;
-
-  const displayedStatusSelect = statusChangeFlow?.next ?? selectedOrder?.status ?? 'Pending';
-
-  const applyOrderStatusChange = async ({ whatsapp = false, email = false } = {}) => {
-    if (!selectedOrder || !statusChangeFlow?.next || statusSaving) return;
+  const setStatus = async (status) => {
+    if (saving) return;
+    setSaving(true);
     try {
-      setStatusSaving(true);
-      await adminService.updateOrder(selectedOrder.id, {
-        status: statusChangeFlow.next,
-        notifyCustomerViaWhatsapp: whatsapp,
-        notifyCustomerViaEmail: email,
-        notifyCustomerMessage: statusNotifyOptionalNote,
+      await adminService.updateOrder(order.id, {
+        status,
+        notifyCustomerViaWhatsapp: notify.whatsapp,
+        notifyCustomerViaEmail: notify.email,
+        notifyCustomerMessage: buyerNote,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-      setStatusChangeFlow(null);
-      setStatusNotifyOptionalNote('');
-      const channels = [whatsapp && 'WhatsApp', email && 'email'].filter(Boolean).join(' & ');
-      toast.success(channels ? `Order saved and ${channels} sent (if buyer details on file).` : 'Order saved.');
+      setBuyerNote('');
+      setOtherStatus('');
+      const told = [notify.whatsapp && 'WhatsApp', notify.email && 'email'].filter(Boolean).join(' and ');
+      toast.success(`Order marked ${status}.${told ? ` Buyer told by ${told} where their details are on file.` : ''}`);
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || 'Could not update order.';
-      toast.error(msg);
+      toast.error(error.response?.data?.message || error.message || 'Could not update the order.');
     } finally {
-      setStatusSaving(false);
+      setSaving(false);
+    }
+  };
+
+  const download = async () => {
+    try {
+      setDownloading(true);
+      await downloadDeArteOrderPdf({ order, user: order.user || {} });
+    } catch (error) {
+      toast.error(error?.message || 'Could not generate PDF');
+    } finally {
+      setDownloading(false);
     }
   };
 
   return (
-    <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Orders" title="Review and edit buyer orders" description="Change an order's status and choose whether the buyer hears about it by WhatsApp or email." />
-      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Panel className="space-y-2">
-          {data.map((order) => (
-            <button
-              key={order.id}
-              className={`w-full border p-4 text-left transition hover:border-[var(--color-border-active)] ${selectedOrderId === order.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
-              onClick={() => setSelectedOrderId(order.id)}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-semibold text-[var(--color-text)]">{order.orderId}</p>
-                <StatusBadge status={order.status} />
-              </div>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{order.user?.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">{new Date(order.createdAt).toLocaleString('en-IN')}</p>
-            </button>
-          ))}
-        </Panel>
-        {selectedOrder ? (
-          <DetailSheet open={Boolean(selectedOrderId)} title={selectedOrder.orderId} onClose={() => setSelectedOrderId(null)}>
-            <Panel className="space-y-4">
-              <p className="lux-label">Order detail</p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Buyer"><input className={textInput} value={selectedOrder.user?.name || ''} readOnly /></Field>
-                <Field label="Status">
-                  <select
-                    key={selectedOrder.id}
-                    className={textInput}
-                    value={displayedStatusSelect}
-                    onChange={(event) => {
-                      const next = event.target.value;
-                      if (next === selectedOrder.status) {
-                        setStatusChangeFlow(null);
-                        return;
-                      }
-                      setStatusChangeFlow({ next });
-                    }}
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Reviewed">Reviewed</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Processing">Processing</option>
-                    <option value="Shipped">Shipped</option>
-                    <option value="Fulfilled">Fulfilled</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </Field>
-                <Field label="Created"><input className={textInput} value={new Date(selectedOrder.createdAt).toLocaleString('en-IN')} readOnly /></Field>
-              </div>
-              {statusChangeFlow ? (
-                <div className="space-y-3 rounded border border-[var(--color-border-active)] bg-[var(--color-surface-alt)] p-4">
-                  <p className="text-sm text-[var(--color-text)]">
-                    Status goes from “{selectedOrder.status}” to “{statusChangeFlow.next}”. Choose how to notify the buyer, then save.
-                  </p>
-                  <Field label="Optional note for buyer (added to the notification)">
-                    <textarea
-                      className={textareaInput}
-                      value={statusNotifyOptionalNote}
-                      placeholder="Shipment tracking reference, ETA, pickup instructions..."
-                      rows={3}
-                      onChange={(event) => setStatusNotifyOptionalNote(event.target.value)}
-                    />
-                  </Field>
-                  <div className="flex flex-wrap gap-2">
-                    <Button loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true, email: true })}>Notify WhatsApp + Email and save</Button>
-                    <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ email: true })}>Email only and save</Button>
-                    <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({ whatsapp: true })}>WhatsApp only and save</Button>
-                    <Button variant="secondary" loading={statusSaving} onClick={() => applyOrderStatusChange({})}>Save without notifying</Button>
-                    <Button variant="ghost" disabled={statusSaving} onClick={() => setStatusChangeFlow(null)}>Cancel</Button>
-                  </div>
-                </div>
-              ) : null}
-              <Field label="Notes">
-                <textarea
-                  key={selectedOrder.id}
-                  className={textareaInput}
-                  value={notesDraft}
-                  onChange={(event) => setNotesDraft(event.target.value)}
-                  onBlur={async () => {
-                    if (notesDraft === (selectedOrder.notes || '')) return;
-                    const orderId = selectedOrder.id;
-                    try {
-                      await adminService.updateOrder(orderId, { notes: notesDraft });
-                      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-                    } catch (error) {
-                      toast.error(error?.response?.data?.message || error?.message || 'Could not save notes.');
-                    }
-                  }}
-                />
-              </Field>
+    <Panel className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={order.status} />
+            <span className="text-xs text-[var(--color-text-muted)]">Placed {formatWhen(order.createdAt)}</span>
+          </div>
+          <p className="mt-2 text-base font-semibold text-[var(--color-text)]">{order.user?.name || 'Buyer removed'}</p>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {[order.user?.companyName, order.user?.city].filter(Boolean).join(' · ')}
+          </p>
+          <p className="mt-1 text-sm text-[var(--color-text)]">
+            {totalPieces(order.items)} pieces · {totalDiamondWeight(order.items).toFixed(2)} ct · {totalGoldWeight(order.items).toFixed(2)} g
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {mobile ? (
+            <>
+              <Button as="a" href={`tel:${mobile}`} variant="ghost" icon={Phone}>Call</Button>
+              <Button as="a" href={buyerWhatsapp(mobile)} target="_blank" rel="noreferrer" variant="ghost" icon={MessageCircle}>WhatsApp</Button>
+            </>
+          ) : null}
+          <Button variant="ghost" icon={Download} loading={downloading} onClick={download}>PDF</Button>
+        </div>
+      </div>
+
+      <div className="space-y-3 border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-3 sm:p-4">
+        <p className="lux-label">Update status</p>
+        <div className="flex flex-wrap gap-x-5 text-sm text-[var(--color-text)]">
+          <label className="flex min-h-10 items-center gap-2">
+            <input type="checkbox" checked={notify.whatsapp} onChange={(event) => setNotify((value) => ({ ...value, whatsapp: event.target.checked }))} />
+            Tell buyer on WhatsApp
+          </label>
+          <label className="flex min-h-10 items-center gap-2">
+            <input type="checkbox" checked={notify.email} onChange={(event) => setNotify((value) => ({ ...value, email: event.target.checked }))} />
+            Email buyer
+          </label>
+        </div>
+        <textarea
+          className={`${textInput} min-h-[64px]`}
+          value={buyerNote}
+          rows={2}
+          placeholder="Note for the buyer (optional): tracking number, ETA, pickup details"
+          onChange={(event) => setBuyerNote(event.target.value)}
+        />
+        {next ? (
+          <Button className="w-full sm:w-auto" icon={ArrowRight} loading={saving} disabled={saving} onClick={() => setStatus(next)}>
+            {NEXT_STEP_LABEL[next]}
+          </Button>
+        ) : (
+          <p className="text-sm text-[var(--color-text-muted)]">This order is {order.status.toLowerCase()}.</p>
+        )}
+        <div className="flex items-center gap-2">
+          <select className={`${textInput} min-w-0 flex-1`} value={otherStatus} onChange={(event) => setOtherStatus(event.target.value)}>
+            <option value="">Set another status…</option>
+            {ORDER_STATUSES.filter((status) => status !== order.status && status !== next).map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+          {otherStatus ? (
+            <Button variant="secondary" disabled={saving} onClick={() => setStatus(otherStatus)}>
+              Save
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <Field label="Order notes">
+        <textarea
+          className={`${textInput} min-h-[72px]`}
+          value={notesDraft}
+          onChange={(event) => setNotesDraft(event.target.value)}
+          onBlur={async () => {
+            if (notesDraft === (order.notes || '')) return;
+            try {
+              await adminService.updateOrder(order.id, { notes: notesDraft });
+              queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+              toast.success('Notes saved');
+            } catch (error) {
+              toast.error(error?.response?.data?.message || error?.message || 'Could not save notes.');
+            }
+          }}
+        />
+      </Field>
+
               <div className="space-y-3">
                 <p className="text-sm text-[var(--color-text-muted)]">Line items</p>
-                {selectedOrder.items.map((item) => (
+                {order.items.map((item) => (
                   <div key={item.id} className="flex items-center gap-3 rounded border border-[var(--color-border)] p-3">
                     {/* The colour that was ordered — two lines of one style must
                         not show the same photo on the fulfilment screen. */}
@@ -2322,7 +2456,7 @@ export function AdminOrdersPage() {
                                 className="px-2 py-1 text-[12px]"
                                 onClick={async () => {
                                   try {
-                                    await adminService.resolveChangeRequest(selectedOrder.id, cr.id);
+                                    await adminService.resolveChangeRequest(order.id, cr.id);
                                     queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
                                     toast.success('Change request resolved.');
                                   } catch (error) {
@@ -2339,28 +2473,94 @@ export function AdminOrdersPage() {
                     </div>
                   </div>
                 ))}
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="col-span-2 rounded border border-[var(--color-border)] p-3">
-                    <p className="text-xs text-[var(--color-text-muted)]">
-                      Total Pieces
-                      <span className="ml-1">
-                        (across {(selectedOrder.items || []).length}{' '}
-                        {(selectedOrder.items || []).length === 1 ? 'variant' : 'variants'})
-                      </span>
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalPieces}</p>
-                  </div>
-                  <div className="rounded border border-[var(--color-border)] p-3">
-                    <p className="text-xs text-[var(--color-text-muted)]">Total Diamond Weight</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalDiamondWeight.toFixed(2)} ct</p>
-                  </div>
-                  <div className="rounded border border-[var(--color-border)] p-3">
-                    <p className="text-xs text-[var(--color-text-muted)]">Total Gold Weight</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--color-text)]">{orderTotalGoldWeight.toFixed(2)} g</p>
-                  </div>
-                </div>
               </div>
-            </Panel>
+    </Panel>
+  );
+}
+
+export function AdminOrdersPage() {
+  const { data = [], isLoading } = useQuery({ queryKey: ['admin-orders'], queryFn: adminService.orders });
+  const [searchParams] = useSearchParams();
+  // The dashboard links straight to a filter (?status=) or one order (?order=).
+  const [selectedOrderId, setSelectedOrderId] = useState(() => searchParams.get('order'));
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'All');
+  const [search, setSearch] = useState('');
+
+  const counts = useMemo(
+    () => data.reduce((tally, order) => ({ ...tally, [order.status]: (tally[order.status] || 0) + 1 }), {}),
+    [data],
+  );
+
+  if (isLoading) return <LoadingBlock />;
+
+  const term = search.trim().toLowerCase();
+  const visible = data.filter(
+    (order) =>
+      (statusFilter === 'All' || order.status === statusFilter) &&
+      (!term || [order.orderId, order.user?.name, order.user?.companyName].some((value) => value?.toLowerCase().includes(term))),
+  );
+  const selectedOrder = data.find((item) => item.id === selectedOrderId) || visible[0];
+  const chips = ['All', ...ORDER_STATUSES.filter((status) => counts[status]), ...Object.keys(counts).filter((status) => !ORDER_STATUSES.includes(status))];
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <SectionHeading compact eyebrow="Orders" title="Buyer orders" />
+      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr] xl:items-start">
+        <div className="min-w-0 space-y-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search order ID, buyer or company"
+              aria-label="Search orders"
+              className={`${textInput} pl-9`}
+            />
+          </div>
+          <div className="snap-rail -mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+            {chips.map((status) => (
+              <button
+                key={status}
+                type="button"
+                aria-pressed={statusFilter === status}
+                onClick={() => setStatusFilter(status)}
+                className={`min-h-10 shrink-0 snap-start border px-3 text-[12px] uppercase tracking-[0.08em] ${
+                  statusFilter === status
+                    ? 'border-[var(--color-border-active)] bg-[var(--color-primary)] text-white'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+                }`}
+              >
+                {status} <span className="opacity-70">{status === 'All' ? data.length : counts[status]}</span>
+              </button>
+            ))}
+          </div>
+          <Panel className="divide-y divide-[var(--color-border)] p-0 sm:p-0">
+            {visible.length ? (
+              visible.map((order) => (
+                <button
+                  key={order.id}
+                  type="button"
+                  className={`flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-[var(--color-surface-alt)] sm:px-4 ${selectedOrder?.id === order.id ? 'xl:bg-[var(--color-surface-alt)]' : ''}`}
+                  onClick={() => setSelectedOrderId(order.id)}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-[var(--color-text)]">{order.user?.name || 'Buyer removed'}</p>
+                    <p className="truncate text-xs text-[var(--color-text-muted)]">
+                      {formatWhen(order.createdAt)} · {totalPieces(order.items)} pcs · {order.orderId}
+                    </p>
+                  </div>
+                  <StatusBadge status={order.status} />
+                </button>
+              ))
+            ) : (
+              <p className="px-4 py-6 text-sm text-[var(--color-text-muted)]">No orders match.</p>
+            )}
+          </Panel>
+        </div>
+        {selectedOrder ? (
+          <DetailSheet open={Boolean(selectedOrderId)} title={selectedOrder.orderId} onClose={() => setSelectedOrderId(null)}>
+            <OrderDetail key={selectedOrder.id} order={selectedOrder} />
           </DetailSheet>
         ) : null}
       </div>
@@ -2403,7 +2603,7 @@ export function AdminCataloguesPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Catalogues" title="Build private buyer catalogues" description="Pick the products in a catalogue and the buyers who can see it." />
+      <SectionHeading compact eyebrow="Catalogues" title="Build private buyer catalogues" description="Pick the products in a catalogue and the buyers who can see it." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2594,7 +2794,7 @@ export function AdminCollectionsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Collections" title="Curate collections and their products" description="Create a collection, then search the catalogue and tick the exact styles that belong to it." />
+      <SectionHeading compact eyebrow="Collections" title="Curate collections and their products" description="Create a collection, then search the catalogue and tick the exact styles that belong to it." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2782,6 +2982,7 @@ function PushBroadcastPanel() {
   return (
     <>
       <SectionHeading
+        compact
         eyebrow="App notifications"
         title="Notify app users"
         description="Appears on the phone of everyone who installed the DeArte app and allowed notifications, like a message from any other app. Tapping it opens the page you link inside the app."
@@ -2941,6 +3142,7 @@ export function AdminWhatsAppPage() {
       <PushBroadcastPanel />
 
       <SectionHeading
+        compact
         eyebrow="WhatsApp"
         title="Cloud API broadcasts"
         description="Send trade updates with optional CDN-hosted media (image, video, or document link). Recipient phones must accept messages from your business number and use international format on profiles."
@@ -3013,6 +3215,7 @@ export function AdminWhatsAppPage() {
       </Panel>
 
       <SectionHeading
+        compact
         eyebrow="Email"
         title="Promotional email broadcasts"
         description="Send a branded email to the audience selected above. Uses the same buyer selection as the WhatsApp panel."
@@ -3181,8 +3384,8 @@ function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collec
       </div>
 
       <div className="flex items-center gap-4">
-        <Button onClick={onSave}>Save Guest Catalogue</Button>
-        <span className="text-sm text-gray-500">
+        {onSave ? <Button onClick={onSave}>Save Guest Catalogue</Button> : null}
+        <span className="text-sm text-[var(--color-text-muted)]">
           {totalSelected} taxonomy rule{totalSelected === 1 ? '' : 's'} selected
           {flagRules.length ? ` + ${flagRules.join(', ')}` : ''}
           {!totalSelected && !flagRules.length ? ' — guests see nothing' : ''}
@@ -3191,6 +3394,13 @@ function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collec
     </Panel>
   );
 }
+
+const CONFIG_TABS = [
+  ['taxonomy', 'Categories'],
+  ['brands', 'Trusted brands'],
+  ['site', 'Site details'],
+  ['access', 'Guest access'],
+];
 
 export function AdminConfigPage() {
   const queryClient = useQueryClient();
@@ -3201,6 +3411,8 @@ export function AdminConfigPage() {
   const [metalForm, setMetalForm] = useState(emptyMetalOption);
   const [brandForm, setBrandForm] = useState(emptyTrustedBrand);
   const siteSettings = siteSettingsDraft || data?.siteSettings || emptySiteSettings;
+  const [tab, setTab] = useState('taxonomy');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   if (isLoading) return <LoadingBlock />;
 
@@ -3210,11 +3422,158 @@ export function AdminConfigPage() {
     queryClient.invalidateQueries({ queryKey: ['trusted-by'] });
   };
 
-  return (
-    <div className="flex flex-col gap-5 sm:gap-8">
-      <SectionHeading eyebrow="Configuration" title="Site settings" description="Site details, guest access, categories, metals and trusted brands. Collections have their own page." />
+  // Site details, guest access and the guest catalogue are one settings
+  // record, so one bar saves all of it (it used to be three Save buttons).
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await adminService.updateConfig({ siteSettings });
+      toast.success('Settings saved');
+      setSiteSettingsDraft(null);
+      refresh();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || 'Could not save settings.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
-      <Panel className="order-3 space-y-4">
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <SectionHeading compact eyebrow="Configuration" title="Settings" />
+      <div role="tablist" aria-label="Settings sections" className="snap-rail -mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        {CONFIG_TABS.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`min-h-10 shrink-0 snap-start border px-3 text-[12px] uppercase tracking-[0.08em] ${
+              tab === key
+                ? 'border-[var(--color-border-active)] bg-[var(--color-primary)] text-white'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'taxonomy' ? (
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-2">
+        <TaxonomyManager
+          title="Categories"
+          items={data.categories || []}
+          onEdit={(item) => setCategoryForm({ ...item, image: normalizeAsset(item.image) })}
+          onNew={() => setCategoryForm(emptyCategory)}
+          onSave={async () => {
+            if (categoryForm.id) await adminService.updateCategory(categoryForm.id, categoryForm);
+            else await adminService.createCategory(categoryForm);
+            setCategoryForm(emptyCategory);
+            refresh();
+          }}
+          onDelete={categoryForm.id ? async () => {
+            await adminService.deleteCategory(categoryForm.id);
+            setCategoryForm(emptyCategory);
+            refresh();
+          } : null}
+          noun="category"
+          editingName={categoryForm.id ? categoryForm.name || 'item' : null}
+        >
+          <Field label="Name"><input className={textInput} value={categoryForm.name} onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+          <Field label="Slug"><input className={textInput} value={categoryForm.slug} onChange={(event) => setCategoryForm((current) => ({ ...current, slug: event.target.value }))} /></Field>
+          <AssetField label="Category image" value={categoryForm.image} onChange={(image) => setCategoryForm((current) => ({ ...current, image }))} folder="dearte/site/categories" />
+        </TaxonomyManager>
+
+        <TaxonomyManager
+          title="Sub-categories"
+          items={data.subCategories || []}
+          onEdit={(item) => setSubCategoryForm({ ...item, image: normalizeAsset(item.image) })}
+          onNew={() => setSubCategoryForm(emptySubCategory)}
+          onSave={async () => {
+            if (subCategoryForm.id) await adminService.updateSubCategory(subCategoryForm.id, subCategoryForm);
+            else await adminService.createSubCategory(subCategoryForm);
+            setSubCategoryForm(emptySubCategory);
+            refresh();
+          }}
+          onDelete={subCategoryForm.id ? async () => {
+            await adminService.deleteSubCategory(subCategoryForm.id);
+            setSubCategoryForm(emptySubCategory);
+            refresh();
+          } : null}
+          noun="sub-category"
+          editingName={subCategoryForm.id ? subCategoryForm.name || 'item' : null}
+        >
+          <Field label="Name"><input className={textInput} value={subCategoryForm.name} onChange={(event) => setSubCategoryForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+          <Field label="Slug"><input className={textInput} value={subCategoryForm.slug} onChange={(event) => setSubCategoryForm((current) => ({ ...current, slug: event.target.value }))} /></Field>
+          <Field label="Category">
+            <select className={textInput} value={subCategoryForm.categoryId} onChange={(event) => setSubCategoryForm((current) => ({ ...current, categoryId: event.target.value }))}>
+              <option value="">Select category</option>
+              {(data.categories || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </Field>
+          <AssetField label="Sub-category image" value={subCategoryForm.image} onChange={(image) => setSubCategoryForm((current) => ({ ...current, image }))} folder="dearte/site/subcategories" />
+        </TaxonomyManager>
+
+        <TaxonomyManager
+          title="Metal options"
+          items={data.metalOptions || []}
+          onEdit={(item) => setMetalForm({ ...item, swatch: normalizeAsset(item.swatch) })}
+          onNew={() => setMetalForm(emptyMetalOption)}
+          onSave={async () => {
+            if (metalForm.id) await adminService.updateMetalOption(metalForm.id, metalForm);
+            else await adminService.createMetalOption(metalForm);
+            setMetalForm(emptyMetalOption);
+            refresh();
+          }}
+          onDelete={metalForm.id ? async () => {
+            await adminService.deleteMetalOption(metalForm.id);
+            setMetalForm(emptyMetalOption);
+            refresh();
+          } : null}
+          noun="metal option"
+          editingName={metalForm.id ? metalForm.name || 'item' : null}
+        >
+          <Field label="Name"><input className={textInput} value={metalForm.name} onChange={(event) => setMetalForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+          <Field label="Group"><input className={textInput} value={metalForm.group} onChange={(event) => setMetalForm((current) => ({ ...current, group: event.target.value }))} /></Field>
+          <AssetField label="Swatch" value={metalForm.swatch} onChange={(swatch) => setMetalForm((current) => ({ ...current, swatch }))} folder="dearte/site/metal-options" />
+        </TaxonomyManager>
+
+      </div>
+      ) : null}
+
+      {tab === 'brands' ? (
+        <TaxonomyManager
+          title="Trusted by brands"
+          items={data.trustedBrands || []}
+          onEdit={(item) => setBrandForm({ ...item, logo: normalizeAsset(item.logo) })}
+          onNew={() => setBrandForm(emptyTrustedBrand)}
+          onSave={async () => {
+            if (brandForm.id) await adminService.updateTrustedBrand(brandForm.id, brandForm);
+            else await adminService.createTrustedBrand(brandForm);
+            setBrandForm(emptyTrustedBrand);
+            refresh();
+          }}
+          onDelete={brandForm.id ? async () => {
+            await adminService.deleteTrustedBrand(brandForm.id);
+            setBrandForm(emptyTrustedBrand);
+            refresh();
+          } : null}
+          noun="brand"
+          editingName={brandForm.id ? brandForm.name || 'item' : null}
+        >
+          <Field label="Brand Name"><input className={textInput} value={brandForm.name} onChange={(event) => setBrandForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+          <Field label="Sector"><input className={textInput} value={brandForm.sector} onChange={(event) => setBrandForm((current) => ({ ...current, sector: event.target.value }))} /></Field>
+          <Field label="Website URL"><input className={textInput} value={brandForm.websiteUrl} onChange={(event) => setBrandForm((current) => ({ ...current, websiteUrl: event.target.value }))} /></Field>
+          <Field label="Sort Order"><input type="number" className={textInput} value={brandForm.sortOrder} onChange={(event) => setBrandForm((current) => ({ ...current, sortOrder: Number(event.target.value) }))} /></Field>
+          <AssetField label="Brand logo" value={brandForm.logo} onChange={(logo) => setBrandForm((current) => ({ ...current, logo }))} folder="dearte/trusted-brands" />
+          <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]"><input type="checkbox" checked={brandForm.active} onChange={(event) => setBrandForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
+        </TaxonomyManager>
+      ) : null}
+
+      {tab === 'site' ? (
+      <Panel className="space-y-4">
         <p className="lux-label">Site settings</p>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Company Name"><input className={textInput} value={siteSettings.companyName} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), companyName: event.target.value }))} /></Field>
@@ -3232,18 +3591,15 @@ export function AdminConfigPage() {
         <Field label="Maps Embed"><input className={textInput} value={siteSettings.mapsEmbed} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), mapsEmbed: event.target.value }))} /></Field>
         <Field label="Announcement bar (blank hides it)"><input className={textInput} maxLength={200} value={siteSettings.announcement || ''} placeholder="e.g. Diwali orders close 15 Oct" onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), announcement: event.target.value }))} /></Field>
         <Field label="Newsletter blurb"><textarea className={textareaInput} value={siteSettings.newsletterBlurb} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), newsletterBlurb: event.target.value }))} /></Field>
-        <Button onClick={async () => {
-          await adminService.updateConfig({ siteSettings });
-          toast.success('Site settings updated');
-          setSiteSettingsDraft(null);
-          refresh();
-        }}>Save Site Settings</Button>
       </Panel>
+      ) : null}
 
-      <Panel className="order-4 space-y-4">
+      {tab === 'access' ? (
+        <div className="space-y-4 sm:space-y-6">
+      <Panel className="space-y-4">
         <div>
           <p className="lux-label">General Access (Home Page)</p>
-          <p className="text-sm text-gray-500 mb-4 mt-1">Select which sections should be visible to guests (users who are not signed in).</p>
+          <p className="mb-4 mt-1 text-sm text-[var(--color-text-muted)]">Select which sections should be visible to guests (users who are not signed in).</p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {[
@@ -3282,7 +3638,7 @@ export function AdminConfigPage() {
 
         <div className="mt-6">
           <p className="lux-label">General Access (Full Pages)</p>
-          <p className="text-sm text-gray-500 mb-4 mt-1">Select which entire pages should be accessible to guests. If unchecked, guests will be redirected to the login page.</p>
+          <p className="mb-4 mt-1 text-sm text-[var(--color-text-muted)]">Select which entire pages should be accessible to guests. If unchecked, guests will be redirected to the login page.</p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {[
@@ -3312,14 +3668,7 @@ export function AdminConfigPage() {
             </label>
           ))}
         </div>
-        <Button onClick={async () => {
-          await adminService.updateConfig({ siteSettings });
-          toast.success('Site settings updated');
-          setSiteSettingsDraft(null);
-          refresh();
-        }}>Save General Access Settings</Button>
       </Panel>
-
       <GuestCataloguePanel
         guestCatalogue={siteSettings?.guestCatalogue || emptySiteSettings.guestCatalogue}
         categories={data.categories || []}
@@ -3332,116 +3681,17 @@ export function AdminConfigPage() {
             guestCatalogue: next,
           }))
         }
-        onSave={async () => {
-          await adminService.updateConfig({ siteSettings });
-          toast.success('Guest catalogue updated');
-          setSiteSettingsDraft(null);
-          refresh();
-        }}
       />
+        </div>
+      ) : null}
 
-      <div className="order-1 grid gap-6 xl:grid-cols-2">
-        <TaxonomyManager
-          title="Categories"
-          items={data.categories || []}
-          onEdit={(item) => setCategoryForm({ ...item, image: normalizeAsset(item.image) })}
-          onNew={() => setCategoryForm(emptyCategory)}
-          onSave={async () => {
-            if (categoryForm.id) await adminService.updateCategory(categoryForm.id, categoryForm);
-            else await adminService.createCategory(categoryForm);
-            setCategoryForm(emptyCategory);
-            refresh();
-          }}
-          onDelete={categoryForm.id ? async () => {
-            await adminService.deleteCategory(categoryForm.id);
-            setCategoryForm(emptyCategory);
-            refresh();
-          } : null}
-          saveLabel={categoryForm.id ? 'Update Category' : 'Create Category'}
-        >
-          <Field label="Name"><input className={textInput} value={categoryForm.name} onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label="Slug"><input className={textInput} value={categoryForm.slug} onChange={(event) => setCategoryForm((current) => ({ ...current, slug: event.target.value }))} /></Field>
-          <AssetField label="Category image" value={categoryForm.image} onChange={(image) => setCategoryForm((current) => ({ ...current, image }))} folder="dearte/site/categories" />
-        </TaxonomyManager>
-
-        <TaxonomyManager
-          title="Sub-categories"
-          items={data.subCategories || []}
-          onEdit={(item) => setSubCategoryForm({ ...item, image: normalizeAsset(item.image) })}
-          onNew={() => setSubCategoryForm(emptySubCategory)}
-          onSave={async () => {
-            if (subCategoryForm.id) await adminService.updateSubCategory(subCategoryForm.id, subCategoryForm);
-            else await adminService.createSubCategory(subCategoryForm);
-            setSubCategoryForm(emptySubCategory);
-            refresh();
-          }}
-          onDelete={subCategoryForm.id ? async () => {
-            await adminService.deleteSubCategory(subCategoryForm.id);
-            setSubCategoryForm(emptySubCategory);
-            refresh();
-          } : null}
-          saveLabel={subCategoryForm.id ? 'Update Sub-category' : 'Create Sub-category'}
-        >
-          <Field label="Name"><input className={textInput} value={subCategoryForm.name} onChange={(event) => setSubCategoryForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label="Slug"><input className={textInput} value={subCategoryForm.slug} onChange={(event) => setSubCategoryForm((current) => ({ ...current, slug: event.target.value }))} /></Field>
-          <Field label="Category">
-            <select className={textInput} value={subCategoryForm.categoryId} onChange={(event) => setSubCategoryForm((current) => ({ ...current, categoryId: event.target.value }))}>
-              <option value="">Select category</option>
-              {(data.categories || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </Field>
-          <AssetField label="Sub-category image" value={subCategoryForm.image} onChange={(image) => setSubCategoryForm((current) => ({ ...current, image }))} folder="dearte/site/subcategories" />
-        </TaxonomyManager>
-
-        <TaxonomyManager
-          title="Metal options"
-          items={data.metalOptions || []}
-          onEdit={(item) => setMetalForm({ ...item, swatch: normalizeAsset(item.swatch) })}
-          onNew={() => setMetalForm(emptyMetalOption)}
-          onSave={async () => {
-            if (metalForm.id) await adminService.updateMetalOption(metalForm.id, metalForm);
-            else await adminService.createMetalOption(metalForm);
-            setMetalForm(emptyMetalOption);
-            refresh();
-          }}
-          onDelete={metalForm.id ? async () => {
-            await adminService.deleteMetalOption(metalForm.id);
-            setMetalForm(emptyMetalOption);
-            refresh();
-          } : null}
-          saveLabel={metalForm.id ? 'Update Metal Option' : 'Create Metal Option'}
-        >
-          <Field label="Name"><input className={textInput} value={metalForm.name} onChange={(event) => setMetalForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label="Group"><input className={textInput} value={metalForm.group} onChange={(event) => setMetalForm((current) => ({ ...current, group: event.target.value }))} /></Field>
-          <AssetField label="Swatch" value={metalForm.swatch} onChange={(swatch) => setMetalForm((current) => ({ ...current, swatch }))} folder="dearte/site/metal-options" />
-        </TaxonomyManager>
-
-        <TaxonomyManager
-          title="Trusted by brands"
-          items={data.trustedBrands || []}
-          onEdit={(item) => setBrandForm({ ...item, logo: normalizeAsset(item.logo) })}
-          onNew={() => setBrandForm(emptyTrustedBrand)}
-          onSave={async () => {
-            if (brandForm.id) await adminService.updateTrustedBrand(brandForm.id, brandForm);
-            else await adminService.createTrustedBrand(brandForm);
-            setBrandForm(emptyTrustedBrand);
-            refresh();
-          }}
-          onDelete={brandForm.id ? async () => {
-            await adminService.deleteTrustedBrand(brandForm.id);
-            setBrandForm(emptyTrustedBrand);
-            refresh();
-          } : null}
-          saveLabel={brandForm.id ? 'Update Brand' : 'Create Brand'}
-        >
-          <Field label="Brand Name"><input className={textInput} value={brandForm.name} onChange={(event) => setBrandForm((current) => ({ ...current, name: event.target.value }))} /></Field>
-          <Field label="Sector"><input className={textInput} value={brandForm.sector} onChange={(event) => setBrandForm((current) => ({ ...current, sector: event.target.value }))} /></Field>
-          <Field label="Website URL"><input className={textInput} value={brandForm.websiteUrl} onChange={(event) => setBrandForm((current) => ({ ...current, websiteUrl: event.target.value }))} /></Field>
-          <Field label="Sort Order"><input type="number" className={textInput} value={brandForm.sortOrder} onChange={(event) => setBrandForm((current) => ({ ...current, sortOrder: Number(event.target.value) }))} /></Field>
-          <AssetField label="Brand logo" value={brandForm.logo} onChange={(logo) => setBrandForm((current) => ({ ...current, logo }))} folder="dearte/trusted-brands" />
-          <label className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]"><input type="checkbox" checked={brandForm.active} onChange={(event) => setBrandForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>
-        </TaxonomyManager>
-      </div>
+      {siteSettingsDraft ? (
+        <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-3 flex items-center gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-3 py-2.5 backdrop-blur sm:mx-0 sm:border sm:px-4 lg:bottom-4">
+          <p className="min-w-0 flex-1 text-sm text-[var(--color-text)]">Unsaved changes</p>
+          <Button variant="ghost" disabled={savingSettings} onClick={() => setSiteSettingsDraft(null)}>Discard</Button>
+          <Button loading={savingSettings} disabled={savingSettings} onClick={saveSettings}>Save changes</Button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3457,7 +3707,7 @@ export function AdminTestimonialsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Testimonials" title="Moderate and curate social proof" description="Choose which buyer reviews appear on the site." />
+      <SectionHeading compact eyebrow="Testimonials" title="Moderate and curate social proof" description="Choose which buyer reviews appear on the site." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
           <div className="flex items-center justify-between">
@@ -3524,7 +3774,7 @@ export function AdminRolesPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Roles" title="Reference roles" description="What each role is meant to cover. These are for reference and don't change anyone's access yet." />
+      <SectionHeading compact eyebrow="Roles" title="Reference roles" description="What each role is meant to cover. These are for reference and don't change anyone's access yet." />
       <Panel>
         <DataTable
           columns={[
@@ -3538,33 +3788,144 @@ export function AdminRolesPage() {
   );
 }
 
+const REPORTS = [
+  ['product-wise', 'Products'],
+  ['category-wise', 'Categories'],
+  ['login-log', 'Sign-ins'],
+  ['user-orders', 'Buyer orders'],
+];
+const REPORT_ROWS = 20;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T/;
+
+const reportCell = (value) => {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'string' && ISO_DATE.test(value)) return formatWhen(value);
+  return String(value);
+};
+
+/*
+ * One dense, sortable table per report instead of a six-line card per row
+ * (the product report ran to twelve phone screens). The first column stays put
+ * while the numbers scroll sideways on a phone.
+ */
 export function AdminReportsPage() {
   const [reportType, setReportType] = useState('product-wise');
+  const [sort, setSort] = useState(null);
+  const [showAll, setShowAll] = useState(false);
   const { data = [], isLoading } = useQuery({
     queryKey: ['admin-reports', reportType],
     queryFn: () => adminService.reports(reportType),
   });
 
-  if (isLoading) return <LoadingBlock />;
+  // Columns that only repeat an earlier one (the product name is the style code
+  // for imported styles) are dropped.
+  const columns = useMemo(() => {
+    if (!data.length) return [];
+    const keys = Object.keys(data[0]);
+    return keys
+      .filter((key, index) => !keys.slice(0, index).some((earlier) => data.every((row) => String(row[earlier]) === String(row[key]))))
+      .map((key) => ({
+        key,
+        label: key.replace(/([A-Z])/g, ' $1'),
+        numeric: data.every((row) => row[key] == null || typeof row[key] === 'number'),
+      }));
+  }, [data]);
 
-  const columns = data.length
-    ? Object.keys(data[0]).map((key) => ({ key, label: key.replace(/([A-Z])/g, ' $1') }))
-    : [];
+  const rows = useMemo(() => {
+    if (!sort) return data;
+    const direction = sort.dir === 'desc' ? -1 : 1;
+    return [...data].sort((a, b) => {
+      const left = a[sort.key] ?? '';
+      const right = b[sort.key] ?? '';
+      return (typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right))) * direction;
+    });
+  }, [data, sort]);
+
+  const pickReport = (type) => {
+    setReportType(type);
+    setSort(null);
+    setShowAll(false);
+  };
+  const toggleSort = (column) =>
+    setSort((current) =>
+      current?.key === column.key ? { key: column.key, dir: current.dir === 'desc' ? 'asc' : 'desc' } : { key: column.key, dir: column.numeric ? 'desc' : 'asc' },
+    );
+  const exportSheet = () => {
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), 'Report');
+    XLSX.writeFile(book, `dearte-${reportType}.xlsx`);
+  };
+  const shown = showAll ? rows : rows.slice(0, REPORT_ROWS);
 
   return (
-    <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Reports" title="Reports" description="Product views, cart adds and orders, plus category, sign-in and buyer activity." />
-      <Panel className="space-y-4">
-        <Field label="Report">
-          <select className={textInput} value={reportType} onChange={(event) => setReportType(event.target.value)}>
-            <option value="product-wise">Product wise</option>
-            <option value="category-wise">Category wise</option>
-            <option value="login-log">Login log</option>
-            <option value="user-orders">User orders</option>
-          </select>
-        </Field>
-        <DataTable columns={columns} rows={data} />
+    <div className="space-y-4 sm:space-y-6">
+      <SectionHeading compact eyebrow="Reports" title="Reports" />
+      <div className="flex flex-wrap items-center gap-2">
+        {REPORTS.map(([type, label]) => (
+          <button
+            key={type}
+            type="button"
+            aria-pressed={reportType === type}
+            onClick={() => pickReport(type)}
+            className={`min-h-10 border px-3 text-[12px] uppercase tracking-[0.08em] ${
+              reportType === type
+                ? 'border-[var(--color-border-active)] bg-[var(--color-primary)] text-white'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <Button variant="ghost" icon={Download} className="ml-auto" disabled={!rows.length} onClick={exportSheet}>
+          Excel
+        </Button>
+      </div>
+      <Panel className="p-0 sm:p-0">
+        {isLoading ? (
+          <LoadingBlock />
+        ) : rows.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max text-left text-[13px] sm:text-sm">
+              <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+                <tr>
+                  {columns.map((column, index) => (
+                    <th
+                      key={column.key}
+                      className={`whitespace-nowrap px-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)] ${column.numeric ? 'text-right' : ''} ${index === 0 ? 'sticky left-0 bg-[var(--color-surface-alt)]' : ''}`}
+                    >
+                      <button type="button" onClick={() => toggleSort(column)} className="inline-flex min-h-10 items-center gap-1 uppercase">
+                        {column.label}
+                        {sort?.key === column.key ? <span aria-hidden>{sort.dir === 'desc' ? '↓' : '↑'}</span> : null}
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((row, rowIndex) => (
+                  <tr key={row.id || rowIndex} className="border-b border-[var(--color-border)] last:border-b-0">
+                    {columns.map((column, index) => (
+                      <td
+                        key={column.key}
+                        className={`whitespace-nowrap px-3 py-2 ${column.numeric ? 'text-right tabular-nums' : ''} ${index === 0 ? 'sticky left-0 bg-[var(--color-surface)] font-medium text-[var(--color-text)]' : 'text-[var(--color-text)]'}`}
+                      >
+                        {reportCell(row[column.key])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-4 py-6 text-sm text-[var(--color-text-muted)]">Nothing to report yet.</p>
+        )}
       </Panel>
+      {rows.length > REPORT_ROWS ? (
+        <Button variant="secondary" className="w-full" onClick={() => setShowAll((value) => !value)}>
+          {showAll ? 'Show top 20' : `Show all ${rows.length}`}
+        </Button>
+      ) : null}
     </div>
   );
 }

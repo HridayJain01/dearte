@@ -902,7 +902,7 @@ router.post('/email/broadcast', async (req, res) => {
 });
 
 router.get('/dashboard', async (_req, res) => {
-  const [buyers, products, orders, catalogues, pendingBuyers, newProducts, recentOrders] =
+  const [buyers, products, orders, catalogues, pendingBuyers, newProducts, recentOrders, pendingOrders] =
     await Promise.all([
       User.countDocuments({ role: 'buyer' }),
       Product.countDocuments(),
@@ -914,6 +914,7 @@ router.get('/dashboard', async (_req, res) => {
         .sort({ createdAt: -1 })
         .limit(5)
         .populate(orderPopulate),
+      Order.countDocuments({ status: 'Pending' }),
     ]);
 
   return sendSuccess(res, {
@@ -923,6 +924,7 @@ router.get('/dashboard', async (_req, res) => {
       orders,
       catalogues,
       pendingBuyers,
+      pendingOrders,
       newProducts,
     },
     recentOrders: recentOrders.map(serializeOrder),

@@ -44,14 +44,16 @@ export function Button({
 // `as` exists so a page can promote its own heading to the single <h1> a
 // document is supposed to have, without changing how it looks — the size lives
 // in the class, not in the tag.
-export function SectionHeading({ eyebrow, title, description, action, as = 'h2' }) {
+// `compact` is the admin size: one short line, so the work starts near the top.
+// On a phone the admin top bar already names the page, so the eyebrow goes.
+export function SectionHeading({ eyebrow, title, description, action, as = 'h2', compact = false }) {
   const Heading = as;
 
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:gap-4 md:flex-row md:items-end md:justify-between">
+    <div className={`flex flex-col gap-3 md:flex-row md:items-end md:justify-between ${compact ? 'mb-1 sm:mb-2' : 'mb-5 sm:mb-8 sm:gap-4'}`}>
       <div className="max-w-2xl">
-        {eyebrow ? <p className="lux-label mb-2 text-[11px] sm:mb-3 sm:text-xs">{eyebrow}</p> : null}
-        <Heading className="lux-heading text-2xl sm:text-4xl md:text-6xl">{title}</Heading>
+        {eyebrow ? <p className={`lux-label mb-2 text-[11px] sm:mb-3 sm:text-xs ${compact ? 'max-lg:hidden' : ''}`}>{eyebrow}</p> : null}
+        <Heading className={`lux-heading ${compact ? 'text-2xl sm:text-3xl' : 'text-2xl sm:text-4xl md:text-6xl'}`}>{title}</Heading>
         {description ? (
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-sm md:text-base">
             {description}
