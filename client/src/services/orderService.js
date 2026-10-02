@@ -7,4 +7,6 @@ export const orderService = {
   submitChangeRequests: (orderId, requests) =>
     unwrap(api.post(`/orders/${orderId}/change-requests`, { requests })),
   catalogues: () => unwrap(api.get('/catalogues')),
+  saveCatalogue: (payload) => unwrap(api.post('/catalogues', payload)),
+  deleteCatalogue: (id) => unwrap(api.delete(`/catalogues/${id}`)),
 };

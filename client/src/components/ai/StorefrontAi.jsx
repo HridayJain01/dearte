@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Camera, Download, LoaderCircle, Sparkles, X } from 'lucide-react';
+import { BookmarkPlus, Camera, Download, LoaderCircle, Sparkles, X } from 'lucide-react';
 import { Button, Panel } from '../ui/Primitives';
 import { ProductCard } from '../product/ProductCard';
 import { useAiFeatures } from '../../hooks/useAiFeatures';
@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { aiErrorMessage, aiService } from '../../services/aiService';
 import { userService } from '../../services/userService';
+import { orderService } from '../../services/orderService';
 import { cdnImage } from '../../utils/formatters';
 import { productDisplayName } from '../../utils/productTitle';
 import { formatDate } from '../../utils/formatters';
@@ -252,7 +253,26 @@ export function CatalogueBuilder() {
   const [busy, setBusy] = useState(false);
   const [book, setBook] = useState(null);
   const [downloading, setDownloading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   if (!features.catalogueBuilder) return null;
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await orderService.saveCatalogue({
+        name: book.title?.trim() || 'My lookbook',
+        description: book.intro || '',
+        productIds: book.items.map((item) => item.id),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['catalogues'] });
+      toast.success('Saved to My Catalogues');
+    } catch (error) {
+      toast.error(aiErrorMessage(error, 'Could not save the lookbook. Please try again.'));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const build = async (event) => {
     event.preventDefault();
@@ -286,7 +306,7 @@ export function CatalogueBuilder() {
       <div>
         <p className="lux-label text-[11px] sm:text-xs">Build a lookbook with AI</p>
         <p className="mt-1 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
-          Describe the selection you need. Remove pieces and edit the wording, then download it as a PDF.
+          Describe the selection you need. Remove pieces and edit the wording, then download it as a PDF or save it to your catalogues.
         </p>
       </div>
       <form onSubmit={build} className="flex flex-col gap-3 sm:flex-row">
@@ -342,6 +362,9 @@ export function CatalogueBuilder() {
           <div className="flex flex-wrap gap-3">
             <Button icon={Download} loading={downloading} disabled={downloading || !book.items.length} onClick={download}>
               Download PDF
+            </Button>
+            <Button variant="secondary" icon={BookmarkPlus} loading={saving} disabled={saving || !book.items.length} onClick={save}>
+              Save to My Catalogues
             </Button>
             <Button variant="ghost" onClick={() => setBook(null)}>
               Clear

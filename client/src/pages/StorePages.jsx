@@ -1690,6 +1690,17 @@ export function CataloguePage() {
     queryFn: orderService.catalogues,
   });
   const [openId, setOpenId] = useState(null);
+  const queryClient = useQueryClient();
+  const removeSaved = async (catalogue) => {
+    if (!window.confirm(`Delete "${catalogue.name}" from your catalogues?`)) return;
+    try {
+      await orderService.deleteCatalogue(catalogue.id);
+      await queryClient.invalidateQueries({ queryKey: ['catalogues'] });
+      toast.success('Catalogue deleted');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not delete the catalogue.'));
+    }
+  };
 
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading private catalogues..." /></div>;
@@ -1731,6 +1742,14 @@ export function CataloguePage() {
                   </span>
                 </p>
               </button>
+              {catalogue.savedByBuyer ? (
+                <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]">
+                  <span>Saved by you</span>
+                  <button type="button" onClick={() => removeSaved(catalogue)} className="flex items-center gap-1 hover:text-[var(--color-primary)]">
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                </div>
+              ) : null}
               {open ? (
                 <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
                   {catalogue.products.map((product) => (

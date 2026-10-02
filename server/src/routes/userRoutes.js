@@ -13,6 +13,7 @@ import { notifyEmailOrderPlaced, notifyEmailOrderChangeRequest } from '../servic
 import { defaultSizeFor, isValidSize, resolveSizeChart } from '../data/sizeMaster.js';
 import { DIAMOND_QUALITY } from '../data/taxonomy.js';
 import { asString, isObjectId } from '../utils/validation.js';
+import { visibleProductsByIds } from '../services/ai/catalogue.js';
 
 const router = express.Router();
 
@@ -672,6 +673,35 @@ router.get('/catalogues', async (req, res) => {
     ]);
 
   return sendSuccess(res, catalogues.map((catalogue) => serializeCatalogue(catalogue, { includeAssignedUsers: false })));
+});
+
+// Saves an AI-built lookbook as one of the buyer's own catalogues. Only pieces
+// the buyer can already see are kept, so this never widens their access.
+router.post('/catalogues', async (req, res) => {
+  const name = asString(req.body?.name).trim().slice(0, 80);
+  const description = asString(req.body?.description, { maxLength: 500 }).trim().slice(0, 500);
+  const rawIds = Array.isArray(req.body?.productIds) ? req.body.productIds : [];
+  const ids = [...new Set(rawIds.map(String).filter(isObjectId))].slice(0, 200);
+  if (!name) return sendError(res, 'Give the catalogue a name.', 400);
+  const visible = await visibleProductsByIds(ids, req.user);
+  if (!visible.length) return sendError(res, 'None of these pieces are available to save.', 400);
+
+  const catalogue = await Catalogue.create({
+    name,
+    description,
+    products: visible.map((product) => product.id),
+    assignedUsers: [req.user._id],
+    createdBy: req.user._id,
+  });
+  await catalogue.populate([{ path: 'products', populate: productPopulate }]);
+  return sendSuccess(res, serializeCatalogue(catalogue, { includeAssignedUsers: false }), 'Saved to your catalogues');
+});
+
+router.delete('/catalogues/:id', async (req, res) => {
+  if (!isObjectId(req.params.id)) return sendError(res, 'Catalogue not found', 404);
+  const deleted = await Catalogue.findOneAndDelete({ _id: req.params.id, createdBy: req.user._id });
+  if (!deleted) return sendError(res, 'Catalogue not found', 404);
+  return sendSuccess(res, { id: req.params.id }, 'Catalogue deleted');
 });
 
 export default router;

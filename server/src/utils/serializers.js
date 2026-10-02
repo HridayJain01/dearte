@@ -264,6 +264,7 @@ export function serializeCatalogue(doc, { includeAssignedUsers = true } = {}) {
     productIds: (doc.products || []).map((item) => String(item._id || item)),
     active: doc.active,
     archived: doc.archived,
+    savedByBuyer: Boolean(doc.createdBy),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

@@ -8,6 +8,9 @@ const catalogueSchema = new mongoose.Schema(
     coverImage: { type: assetSchema, default: () => ({}) },
     products: { type: [mongoose.Schema.Types.ObjectId], ref: 'Product', default: [] },
     assignedUsers: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
+    // Set when a buyer saved this from the AI lookbook builder; such a catalogue
+    // belongs to that buyer alone and they may delete it.
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     active: { type: Boolean, default: true },
     archived: { type: Boolean, default: false },
   },
