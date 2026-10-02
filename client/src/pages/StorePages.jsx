@@ -42,11 +42,12 @@ import {
 import { useCollections, useOccasions } from '../hooks/useProducts';
 
 function ShopCategoryDiamondIcon({ className }) {
+  // Strokes inherit currentColor so the icon stays inside the token system.
   return (
     <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M24 6L41 18.5L24 42L7 18.5L24 6Z" stroke="#002130" strokeWidth="1.35" strokeLinejoin="round" />
-      <path d="M7 18.5H41" stroke="#002130" strokeWidth="1.35" />
-      <path d="M13.5 18.5L24 6L34.5 18.5" stroke="#002130" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M24 6L41 18.5L24 42L7 18.5L24 6Z" stroke="currentColor" strokeWidth="1.35" strokeLinejoin="round" />
+      <path d="M7 18.5H41" stroke="currentColor" strokeWidth="1.35" />
+      <path d="M13.5 18.5L24 6L34.5 18.5" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
     </svg>
   );
 }
@@ -57,7 +58,7 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, to }) {
   return (
     <Link
       to={target}
-      className={`group relative isolate block overflow-hidden bg-neutral-200 ${className ?? ''}`}
+      className={`group relative isolate block overflow-hidden bg-[var(--color-surface-alt)] ${className ?? ''}`}
     >
       <img
         src={imageSrc}
@@ -93,8 +94,6 @@ const PRODUCT_CATEGORY_TILES = [
 export function CollectionsPage() {
   const { data, isLoading } = useCollections();
 
-  const navy = '#002130';
-
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading collections..." /></div>;
   }
@@ -120,16 +119,14 @@ export function CollectionsPage() {
       />
 
       <header className="mb-6 text-center sm:mb-12 md:mb-14">
-        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
+        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 text-[var(--color-accent)] sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
         <h1
-          className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] sm:mt-5 sm:text-[2rem] md:text-[2.25rem]"
-          style={{ color: navy }}
+          className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-[var(--color-primary)] sm:mt-5 sm:text-[2rem] md:text-[2.25rem]"
         >
           Shop by Collection
         </h1>
         <p
-          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed sm:text-lg"
-          style={{ color: `${navy}CC` }}
+          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed text-[var(--color-text-muted)] sm:text-lg"
         >
           Browse the curated collection families that shape each story, mood, and launch.
         </p>
@@ -170,8 +167,6 @@ export function CollectionsPage() {
 export function OccasionsPage() {
   const { data, isLoading } = useOccasions();
 
-  const navy = '#002130';
-
   if (isLoading) {
     return <div className="page-shell py-10 sm:py-16"><LoadingBlock label="Loading occasions..." /></div>;
   }
@@ -199,16 +194,14 @@ export function OccasionsPage() {
       />
 
       <header className="mb-6 text-center sm:mb-12 md:mb-14">
-        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
+        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 text-[var(--color-accent)] sm:h-12 sm:w-12 md:h-[52px] md:w-[52px]" />
         <h1
-          className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] sm:mt-5 sm:text-[2rem] md:text-[2.25rem]"
-          style={{ color: navy }}
+          className="mt-4 text-[1.5rem] font-semibold leading-tight tracking-[-0.02em] text-[var(--color-primary)] sm:mt-5 sm:text-[2rem] md:text-[2.25rem]"
         >
           Shop by Occasion
         </h1>
         <p
-          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed sm:text-lg"
-          style={{ color: `${navy}CC` }}
+          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed text-[var(--color-text-muted)] sm:text-lg"
         >
           Find the piece made for the moment — bridal vows, everyday shine, or the perfect gift.
         </p>
@@ -223,7 +216,7 @@ export function OccasionsPage() {
               className="group overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] transition duration-300 hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-lg"
             >
               <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--color-primary-bg)] via-[var(--color-surface-alt)] to-[var(--color-surface)]">
-                <ShopCategoryDiamondIcon className="h-14 w-14 opacity-60 transition duration-500 group-hover:scale-[1.08] group-hover:opacity-90 sm:h-16 sm:w-16" />
+                <ShopCategoryDiamondIcon className="h-14 w-14 text-[var(--color-primary)] opacity-60 transition duration-500 group-hover:scale-[1.08] group-hover:opacity-90 sm:h-16 sm:w-16" />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/25 via-black/5 to-transparent" />
               </div>
               <div className="space-y-1 p-2.5 sm:space-y-2 sm:p-5">
@@ -590,14 +583,14 @@ export function ProductListPage() {
                 {activeChips.map((chip) => (
                   <span
                     key={chip.key}
-                    className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-0.5 pl-2.5 pr-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.08em]"
+                    className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] pl-2.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.08em]"
                   >
                     {chip.label}
                     <button
                       type="button"
                       onClick={chip.onRemove}
                       aria-label={`Remove filter ${chip.label}`}
-                      className="flex h-7 w-7 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                      className="flex h-10 w-10 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -606,7 +599,7 @@ export function ProductListPage() {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="min-h-9 px-1 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
+                  className="min-h-10 px-1 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
                 >
                   Clear all
                 </button>
@@ -938,7 +931,7 @@ export function ProductDetailPage() {
                   .map((crumb, index) => (
                     <li key={crumb.to} className="flex items-center gap-1.5">
                       {index > 0 ? <span aria-hidden>&gt;</span> : null}
-                      <Link to={crumb.to} className="transition hover:text-[var(--color-primary)]">
+                      <Link to={crumb.to} className="tap-area transition hover:text-[var(--color-primary)]">
                         {crumb.label}
                       </Link>
                     </li>
@@ -1055,7 +1048,7 @@ export function ProductDetailPage() {
 
           <div className="flex flex-wrap items-center gap-3 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
             <button
-              className="inline-flex items-center gap-2 transition hover:text-[var(--color-primary)]"
+              className="inline-flex min-h-10 items-center gap-2 transition hover:text-[var(--color-primary)]"
               onClick={async () => {
                 // Phones open the OS share sheet (WhatsApp, Messages...); desktops copy.
                 if (navigator.share) {
@@ -1075,7 +1068,7 @@ export function ProductDetailPage() {
             </button>
             {settings.whatsapp ? (
               <a
-                className="inline-flex items-center gap-2 transition hover:text-[var(--color-primary)]"
+                className="inline-flex min-h-10 items-center gap-2 transition hover:text-[var(--color-primary)]"
                 href={(() => {
                   // Style code and the combination being viewed, so the sales team
                   // can answer without asking which piece the buyer means.
@@ -1201,7 +1194,7 @@ function CartLine({ item, onUpdate, onRemove }) {
         <div className="relative">
           <img
             src={cdnImage(image, 240)}
-            alt={`${product.name}${customization.goldColor ? ` in ${customization.goldColor}` : ''}`}
+            alt={`${productDisplayName(product)}${customization.goldColor ? ` in ${customization.goldColor}` : ''}`}
             className="h-16 w-16 object-cover sm:h-28 sm:w-28"
           />
           {customization.goldColor ? (
@@ -1503,7 +1496,7 @@ function downloadWishlistCsv(items, collectionName, fileName) {
     ...items.map((item) => [
       collectionName(item.collectionId),
       item.product.styleCode,
-      item.product.name,
+      productDisplayName(item.product),
       item.product.category || '',
       diamondWeightFor(item.product) || '',
       (item.product.customizationOptions?.goldColors || []).join(' / '),
@@ -1520,7 +1513,7 @@ function downloadWishlistCsv(items, collectionName, fileName) {
 }
 
 const WISHLIST_TAB =
-  'whitespace-nowrap border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
+  'min-h-10 whitespace-nowrap border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
 
 export function WishlistPage() {
   const { wishlist, removeFromWishlist, createWishlistCollection, error: wishlistError, refreshWishlist } = useWishlist();
@@ -1643,7 +1636,7 @@ export function WishlistPage() {
               <Link to={`/products/${item.product.styleCode}`}>
                 <img
                   src={cdnImage(item.product.images[0], 640)}
-                  alt={item.product.name}
+                  alt={productDisplayName(item.product)}
                   className="mb-2.5 h-36 w-full object-cover transition duration-300 hover:opacity-90 sm:mb-4 sm:h-72"
                   loading="lazy"
                   decoding="async"
@@ -1656,7 +1649,7 @@ export function WishlistPage() {
                 {item.product.styleCode}
               </p>
               <h3 className="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-xl">
-                {item.product.name}
+                {productDisplayName(item.product)}
               </h3>
               <div className="mt-2.5 flex flex-col gap-1.5 sm:mt-5 sm:flex-row sm:gap-3">
                 {needsSize ? (
@@ -1716,7 +1709,7 @@ export function CataloguePage() {
           <Panel key={catalogue.id}>
             <div className="mb-4 grid grid-cols-3 gap-3">
               {catalogue.products.slice(0, 3).map((product) => (
-                <img key={product.id} src={cdnImage(product.images[0], 400)} alt={product.name} className="h-32 w-full object-cover" loading="lazy" decoding="async" />
+                <img key={product.id} src={cdnImage(product.images[0], 400)} alt={productDisplayName(product)} className="h-32 w-full object-cover" loading="lazy" decoding="async" />
               ))}
             </div>
             <h3 className="text-2xl font-semibold text-[var(--color-text)]">{catalogue.name}</h3>
@@ -1844,14 +1837,15 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
                 <div key={item.id} className="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 sm:flex-row">
                   <img
                     src={cdnImage(variantImage(item.product, item.customization) || item.product?.media?.[0]?.secureUrl, 96)}
-                    alt={item.product?.name || 'Product'}
+                    alt={productDisplayName(item.product) || 'Product'}
                     className="h-12 w-12 flex-shrink-0 border border-[var(--color-border)] object-cover"
                     loading="lazy"
                     decoding="async"
                   />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div>
-                      <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
+                      {/* Imported styles carry the code as their name; the code is on the next line. */}
+                      <p className="text-sm font-medium text-[var(--color-text)]">{productDisplayName(item.product)}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
                       {/* The ordered combination, so a buyer can tell two lines of
                           the same style apart when raising a change request. */}

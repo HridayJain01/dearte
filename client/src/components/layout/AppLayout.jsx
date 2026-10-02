@@ -204,7 +204,7 @@ function CategoryNavMenu({ label, to, categories }) {
 // deeper rows wash out against the pale background.
 const MOBILE_NAV_TEXT = 'font-sans text-[12px] font-medium uppercase tracking-[0.1em] leading-none';
 const MOBILE_MENU_ACTION =
-  'min-h-9 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.08em] transition';
+  'min-h-10 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.08em] transition';
 
 // Rows sit on the white sheet, so full-strength text throughout; only the open
 // parent shifts to the brand colour to mark where you are in the tree.
@@ -251,7 +251,7 @@ function MobileNavItem({ to, onNavigate, depth = 0, children }) {
     <Link
       to={to}
       onClick={onNavigate}
-      className={`flex min-h-9 items-center py-2 transition hover:text-[var(--color-primary)] ${MOBILE_NAV_TEXT} ${rowTone(
+      className={`flex min-h-10 items-center py-2 transition hover:text-[var(--color-primary)] ${MOBILE_NAV_TEXT} ${rowTone(
         depth,
       )}`}
     >
@@ -419,7 +419,7 @@ export function AppLayout() {
         className={`sticky top-0 z-50 transition duration-300 ${scrolled || menuOpen ? 'border-b border-border bg-[var(--color-surface)]' : 'border-transparent bg-transparent'}`}
       >
         <div className="page-shell flex items-center justify-between gap-2 py-2 sm:gap-4 sm:py-5">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/" className="flex min-h-10 items-center gap-3">
             {/* Site header: always above the fold, so never deferred. */}
             <img src={brandLogoUrl} alt={brandLogoAlt} className="h-8 w-auto sm:h-12" loading="eager" decoding="async" />
           </Link>
@@ -634,9 +634,9 @@ export function AppLayout() {
 
           <div>
             <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Explore</p>
-            <div className="space-y-1.5 text-xs text-white/60 sm:space-y-3 sm:text-sm">
+            <div className="text-xs text-white/60 sm:space-y-3 sm:text-sm">
               {TRUST_LINKS.map((item) => (
-                <Link key={item.to} to={item.to} className="block hover:text-white">
+                <Link key={item.to} to={item.to} className="block py-2 hover:text-white sm:py-0">
                   {item.label}
                 </Link>
               ))}
@@ -649,9 +649,9 @@ export function AppLayout() {
               barely worth ranking, however good it is. */}
           <div>
             <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Guides</p>
-            <div className="space-y-1.5 text-xs text-white/60 sm:space-y-3 sm:text-sm">
+            <div className="text-xs text-white/60 sm:space-y-3 sm:text-sm">
               {EDUCATION_ROUTES.map((item) => (
-                <Link key={item.slug} to={`/education/${item.slug}`} className="block hover:text-white">
+                <Link key={item.slug} to={`/education/${item.slug}`} className="block py-2 hover:text-white sm:py-0">
                   {item.title}
                 </Link>
               ))}
@@ -660,16 +660,16 @@ export function AppLayout() {
 
           <div>
             <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Connect</p>
-            <div className="space-y-1.5 text-xs text-white/60 sm:space-y-3 sm:text-sm">
+            <div className="text-xs text-white/60 sm:space-y-3 sm:text-sm">
               {/* Only admin-set details render: placeholder contacts and bare
                   social homepages read as a fake business. */}
-              {settings.email ? <a href={`mailto:${settings.email}`} className="block break-words hover:text-white">{settings.email}</a> : null}
-              {settings.phone ? <a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className="block hover:text-white">{settings.phone}</a> : null}
-              {settings.address ? <p>{settings.address}</p> : null}
-              <div className="flex gap-3 pt-1 text-white/80 sm:pt-2">
+              {settings.email ? <a href={`mailto:${settings.email}`} className="block break-words py-2 hover:text-white sm:py-0">{settings.email}</a> : null}
+              {settings.phone ? <a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className="block py-2 hover:text-white sm:py-0">{settings.phone}</a> : null}
+              {settings.address ? <p className="py-2 sm:py-0">{settings.address}</p> : null}
+              <div className="-mx-2.5 flex pt-2.5 text-white/80 sm:-mx-3 sm:pt-2">
                 {[['instagram', 'IG', 'Instagram'], ['linkedin', 'IN', 'LinkedIn'], ['facebook', 'FB', 'Facebook']].map(([key, short, name]) =>
                   settings[key] ? (
-                    <a key={key} href={settings[key]} target="_blank" rel="noreferrer" aria-label={`DeArte on ${name}`} className="inline-flex h-5 min-w-5 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:text-xs">{short}</a>
+                    <a key={key} href={settings[key]} target="_blank" rel="noreferrer" aria-label={`DeArte on ${name}`} className="-my-2.5 inline-flex h-10 min-w-10 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:-my-3 sm:h-11 sm:min-w-11 sm:text-xs">{short}</a>
                   ) : null,
                 )}
               </div>
@@ -708,7 +708,7 @@ export function AppLayout() {
         aria-label="Chat on WhatsApp"
         // WhatsApp's teal rather than its bright green: white on #25D366 is 2:1.
         // Above the tab bar on phones; out of the way of a page's action bar.
-        className={`fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom))] right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#128C7E] text-white shadow-xl transition hover:bg-[#075E54] md:bottom-6 md:right-6 md:h-14 md:w-14 ${actionBarPage ? 'max-md:hidden' : ''}`}
+        className={`fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom))] right-3 z-40 inline-flex h-11 w-11 items-center justify-center bg-[#128C7E] text-white shadow-[var(--shadow-lifted)] transition hover:bg-[#075E54] md:bottom-6 md:right-6 md:h-14 md:w-14 ${actionBarPage ? 'max-md:hidden' : ''}`}
       >
         <span className="sr-only">WhatsApp</span>
         <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true">

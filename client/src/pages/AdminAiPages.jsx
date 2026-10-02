@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Eye, Play, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
-import { Button, ErrorState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
+import { Button, ErrorState, LoadingBlock, Panel, SectionHeading, StatusBadge } from '../components/ui/Primitives';
 import { aiErrorMessage, aiService } from '../services/aiService';
 import { adminService } from '../services/adminService';
 import { cdnImage } from '../utils/formatters';
@@ -39,8 +39,8 @@ function Pill({ ok, children }) {
   return (
     <span
       className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] ${ok
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : 'border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]'}`}
+        ? 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
+        : 'border-dashed border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)]'}`}
     >
       {ok ? '✓' : '—'} {children}
     </span>
@@ -268,7 +268,7 @@ function AskPanel({ enabled }) {
             type="button"
             disabled={!enabled || busy}
             onClick={() => ask(example)}
-            className="border border-[var(--color-border)] px-2.5 py-1 text-left text-xs text-[var(--color-text-muted)] transition hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-10 border border-[var(--color-border)] px-2.5 py-1 text-left text-xs text-[var(--color-text-muted)] transition hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {example}
           </button>
@@ -441,7 +441,7 @@ export function AdminAiStudioPage() {
               key: 'ok',
               label: 'Result',
               render: (value, row) => (
-                <span className={value ? 'text-emerald-700' : 'text-[var(--color-primary)]'}>
+                <span className={value ? 'text-[var(--color-text)]' : 'text-[var(--color-primary)]'}>
                   {value ? row.summary : row.error || (row.finishedAt ? 'Failed' : 'Running…')}
                 </span>
               ),
@@ -456,19 +456,15 @@ export function AdminAiStudioPage() {
 }
 
 const POST_STATUS = {
-  published: { label: 'Published', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-  draft: { label: 'Draft', className: 'border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]' },
-  needs_review: { label: 'Needs review', className: 'border-amber-200 bg-amber-50 text-amber-700' },
-  unpublished: { label: 'Unpublished', className: 'border-gray-200 bg-gray-50 text-gray-500' },
+  published: { label: 'Published', tone: 'done' },
+  draft: { label: 'Draft', tone: 'moving' },
+  needs_review: { label: 'Needs review', tone: 'waiting' },
+  unpublished: { label: 'Unpublished', tone: 'stopped' },
 };
 
 function PostStatus({ status }) {
-  const style = POST_STATUS[status] || POST_STATUS.draft;
-  return (
-    <span className={`inline-flex whitespace-nowrap border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${style.className}`}>
-      {style.label}
-    </span>
-  );
+  const { label, tone } = POST_STATUS[status] || POST_STATUS.draft;
+  return <StatusBadge status={label} tone={tone} />;
 }
 
 // The whole draft, as it will read on the site, for a decision before publishing.
@@ -481,12 +477,12 @@ function PostPreview({ post, onClose }) {
           <h3 className="lux-heading mt-2 text-2xl sm:text-3xl">{post.title}</h3>
           <p className="mt-2 text-xs text-[var(--color-text-muted)]">Search snippet: {post.metaDescription}</p>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close preview" className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+        <button type="button" onClick={onClose} aria-label="Close preview" className="inline-flex h-10 w-10 shrink-0 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
           <X className="h-5 w-5" />
         </button>
       </div>
       {post.quality?.issues?.length ? (
-        <div className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="border border-[var(--color-accent)] bg-[var(--color-accent)]/10 p-3 text-sm text-[var(--color-text)]">
           <p className="font-medium">Checks and reviewer notes{post.quality.score ? ` (score ${post.quality.score}/10)` : ' (not reviewed)'}</p>
           <ul className="mt-1 list-disc pl-5">
             {post.quality.issues.map((issue, index) => <li key={index}>{issue}</li>)}
@@ -773,7 +769,7 @@ export function AdminBlogPage() {
                 type="button"
                 aria-label={`Remove ${topic.title}`}
                 onClick={() => setQueue(queue.filter((_, itemIndex) => itemIndex !== index))}
-                className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                className="-m-2 inline-flex h-10 w-10 shrink-0 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
               >
                 <X className="h-4 w-4" />
               </button>

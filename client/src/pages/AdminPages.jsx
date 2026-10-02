@@ -12,6 +12,7 @@ import { DIAMOND_QUALITY } from '../utils/constants';
 import { cdnImage, formatWhen } from '../utils/formatters';
 import { whatsappHref } from '../hooks/useSiteSettings';
 import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader, parseImageFileName } from '../utils/importChunks';
+import { productDisplayName } from '../utils/productTitle';
 
 const textInput =
   'w-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--color-border-active)]';
@@ -285,12 +286,12 @@ async function uploadFiles(files, folder, onProgress) {
 function Thumbnail({ asset, alt = '', size = 'h-12 w-12' }) {
   const src = typeof asset === 'string' ? asset : asset?.secureUrl;
   if (!src) {
-    return <div className={`${size} rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]`} />;
+    return <div className={`${size} border border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]`} />;
   }
 
   // Lazy: the product list can run to thousands of rows, and on a phone it is
   // one long page rather than a short scroll box.
-  return <img src={cdnImage(src, 160)} alt={alt} loading="lazy" decoding="async" className={`${size} shrink-0 rounded object-cover`} />;
+  return <img src={cdnImage(src, 160)} alt={alt} loading="lazy" decoding="async" className={`${size} shrink-0 object-cover`} />;
 }
 
 // Below md each row becomes a card, label beside value, rather than a table to
@@ -393,14 +394,14 @@ function AssetField({ label, value, onChange, folder }) {
   return (
     <div className="space-y-3">
       <Field label={label}>
-        <div className="flex items-center gap-3 rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-3">
+        <div className="flex items-center gap-3 border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-3">
           <Thumbnail asset={asset} alt={asset.alt} />
           <div className="flex-1 space-y-2">
             <div className="text-xs text-[var(--color-text-muted)] break-all">
               {asset.secureUrl || 'No asset uploaded yet'}
             </div>
             <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center rounded border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
+              <label className="inline-flex min-h-10 cursor-pointer items-center border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
                 {uploading ? 'Uploading...' : 'Upload'}
                 <input type="file" className="hidden" onChange={handleUpload} />
               </label>
@@ -460,7 +461,7 @@ function ColorVariantGallery({ colorVariants, onChange }) {
   };
 
   return (
-    <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
+    <div className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="font-medium text-[var(--color-text)]">Imported color mapping</p>
         <p className="text-sm text-[var(--color-text-muted)]">
@@ -477,7 +478,7 @@ function ColorVariantGallery({ colorVariants, onChange }) {
               key={variant.color}
               type="button"
               onClick={() => setActiveColor(variant.color)}
-              className={`rounded border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition ${
+              className={`border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition ${
                 isActive
                   ? 'border-[var(--color-text)] bg-[var(--color-text)] text-[var(--color-surface)]'
                   : 'border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-text)]'
@@ -496,7 +497,7 @@ function ColorVariantGallery({ colorVariants, onChange }) {
             // across colours, which leaves the previous colour's image on screen.
             <figure
               key={`${active.color}-${item.view}`}
-              className="overflow-hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)]"
+              className="overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)]"
             >
               <img
                 src={cdnImage(item.asset?.secureUrl, 400)}
@@ -510,7 +511,7 @@ function ColorVariantGallery({ colorVariants, onChange }) {
                   <button
                     type="button"
                     onClick={() => removeView(item.view)}
-                    className="shrink-0 text-red-600 hover:underline"
+                    className="shrink-0 text-[var(--color-primary)] hover:underline"
                   >
                     Remove
                   </button>
@@ -559,14 +560,14 @@ function MediaField({ value, onChange, folder }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-[var(--color-text-muted)]">Media</p>
-        <label className="inline-flex cursor-pointer items-center rounded border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
+        <label className="inline-flex min-h-10 cursor-pointer items-center border border-[var(--color-border)] px-3 py-2 text-xs uppercase tracking-[0.12em] text-[var(--color-text)]">
           {uploading ? 'Uploading...' : 'Upload images'}
           <input type="file" multiple className="hidden" onChange={handleUpload} />
         </label>
       </div>
       <div className="space-y-3">
         {media.length ? media.map((asset, index) => (
-          <div key={asset.publicId || asset.secureUrl || index} className="flex items-center gap-3 rounded border border-[var(--color-border)] p-3">
+          <div key={asset.publicId || asset.secureUrl || index} className="flex items-center gap-3 border border-[var(--color-border)] p-3">
             <Thumbnail asset={asset} alt={asset.alt} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-[var(--color-text)]">{asset.alt || `Image ${index + 1}`}</p>
@@ -594,7 +595,7 @@ function MediaField({ value, onChange, folder }) {
             </div>
           </div>
         )) : (
-          <div className="rounded border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
+          <div className="border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
             No product media uploaded yet.
           </div>
         )}
@@ -932,7 +933,7 @@ function ProductEditor({
                   type="button"
                   onClick={() => removeSpecification(index)}
                   aria-label="Remove specification"
-                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500"
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -1208,7 +1209,7 @@ function BulkProductImportPanel({ onImported }) {
         </label>
       </div>
 
-      <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
+      <div className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 text-sm text-[var(--color-text-muted)]">
         <p>File: {importFileName || 'No spreadsheet loaded yet'}</p>
         <p>Sheet: {sheetName || '-'}</p>
         <p>Rows: {parsedRows.length}</p>
@@ -1218,14 +1219,14 @@ function BulkProductImportPanel({ onImported }) {
       </div>
 
       {sheetFileSummary.missingCount ? (
-        <div className="border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="border border-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-3 text-sm text-[var(--color-text)]">
           Missing {sheetFileSummary.missingCount} sheet image file(s) from the uploaded folder.
           {sheetFileSummary.missing[0] ? ` First missing file: ${sheetFileSummary.missing[0]}` : ''}
         </div>
       ) : null}
 
       {importErrors.length ? (
-        <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <div className="border border-[var(--color-primary)] bg-[var(--color-surface-alt)] px-4 py-3 text-sm text-[var(--color-primary)]">
           <p className="font-medium">
             {importErrors.length} row(s) were skipped. Fix these in the sheet and re-upload:
           </p>
@@ -1240,7 +1241,7 @@ function BulkProductImportPanel({ onImported }) {
       ) : null}
 
       {summaryRows.length ? (
-        <div className="max-h-[320px] overflow-y-auto rounded border border-[var(--color-border)]">
+        <div className="max-h-[320px] overflow-y-auto border border-[var(--color-border)]">
           <DataTable
             columns={[
               { key: 'styleCode', label: 'Style Code' },
@@ -1256,7 +1257,7 @@ function BulkProductImportPanel({ onImported }) {
           />
         </div>
       ) : (
-        <div className="rounded border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
+        <div className="border border-dashed border-[var(--color-border)] px-4 py-6 text-sm text-[var(--color-text-muted)]">
           Upload the Excel first. Required columns are `Style No`, `Category`, `File Name`, and the six Gross/Net weight columns (18kt, 14kt, 9kt). Colour and view are read from the File Name (`Style.View.Setting-Metal_WM.jpg`), not from the `Colour` and `View` columns. `Sub Category`, `Collection`, `Occasion 1-4` and `Colour Stone Wt` may be left blank. Category, sub-category and collection are read from each row and created automatically if they do not exist yet. If you upload an image folder too, the importer will match by filename and upload those images to Cloudinary for you. A Style No that already exists is updated with the sheet's values: a sheet sent without images keeps its photos, and its name, description, status and best-seller / new-arrival flags are left alone unless the sheet or a tick box above sets them.
         </div>
       )}
@@ -1393,11 +1394,11 @@ export function AdminDashboardPage() {
       <Panel className="p-0 sm:p-0">
         <div className="flex items-center justify-between px-3 pt-3 sm:px-6 sm:pt-5">
           <p className="lux-label">Recent orders</p>
-          <Link to="/admin/orders" className="text-xs uppercase tracking-[0.1em] text-[var(--color-primary)] underline underline-offset-4">
+          <Link to="/admin/orders" className="tap-area text-xs uppercase tracking-[0.1em] text-[var(--color-primary)] underline underline-offset-4">
             All orders
           </Link>
         </div>
-        <div className="mt-2 divide-y divide-[var(--color-border)]">
+        <div className="mt-3 divide-y divide-[var(--color-border)]">
           {(data?.recentOrders || []).map((order) => (
             <Link
               key={order.id}
@@ -1449,7 +1450,7 @@ export function AdminPromotionsPage() {
           const banner = data.banners.find((item) => item.id === id);
           if (!banner) return null;
           return (
-            <div key={id} className="flex items-center justify-between gap-3 rounded border border-[var(--color-border)] p-3">
+            <div key={id} className="flex items-center justify-between gap-3 border border-[var(--color-border)] p-3">
               <div className="flex items-center gap-3">
                 <Thumbnail asset={banner.image} alt={banner.title} />
                 <div>
@@ -1483,7 +1484,7 @@ export function AdminPromotionsPage() {
           <p className="lux-label">Banners</p>
           <div className="space-y-2">
             {data.banners.map((banner) => (
-              <button key={banner.id} className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
+              <button key={banner.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
                 setEditingBannerId(banner.id);
                 setBannerForm({ ...banner, image: normalizeAsset(banner.image) });
               }}>
@@ -1523,7 +1524,7 @@ export function AdminPromotionsPage() {
           <p className="lux-label">Popup ads</p>
           <div className="space-y-2">
             {data.popupAds.map((popup) => (
-              <button key={popup.id} className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
+              <button key={popup.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
                 setEditingPopupId(popup.id);
                 setPopupForm({ ...popup, image: normalizeAsset(popup.image), startDate: toDateInput(popup.startDate), endDate: toDateInput(popup.endDate) });
               }}>
@@ -1561,7 +1562,7 @@ export function AdminPromotionsPage() {
           <p className="lux-label">Events</p>
           <div className="space-y-2">
             {data.events.map((event) => (
-              <button key={event.id} className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
+              <button key={event.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
                 setEditingEventId(event.id);
                 setEventForm({ ...event, image: normalizeAsset(event.image), date: toDateInput(event.date) });
               }}>
@@ -2066,7 +2067,7 @@ export function AdminProductsPage() {
     queryClient.invalidateQueries({ queryKey: ['admin-products'] });
   };
 
-  const sheetButton = 'inline-flex cursor-pointer items-center border border-[var(--color-border)] px-3 py-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)] sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em]';
+  const sheetButton = 'inline-flex min-h-10 cursor-pointer items-center border border-[var(--color-border)] px-3 py-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)] sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em]';
 
   return (
     <div className="space-y-5 sm:space-y-8">
@@ -2110,7 +2111,7 @@ export function AdminProductsPage() {
                 type="button"
                 aria-pressed={categoryFilter === value}
                 onClick={() => setCategoryFilter(value)}
-                className={`min-h-9 shrink-0 snap-start border px-3 text-[12px] uppercase tracking-[0.08em] ${
+                className={`min-h-10 shrink-0 snap-start border px-3 text-[12px] uppercase tracking-[0.08em] ${
                   categoryFilter === value
                     ? 'border-[var(--color-border-active)] bg-[var(--color-primary)] text-white'
                     : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]'
@@ -2154,21 +2155,24 @@ export function AdminProductsPage() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className={`flex items-center gap-3 border px-3 py-2 transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
+                className={`flex items-center border px-3 py-2 transition hover:border-[var(--color-border-active)] ${editingId === product.id ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)]' : 'border-[var(--color-border)]'}`}
               >
-              <input
-                type="checkbox"
-                aria-label={`Select ${product.styleCode}`}
-                className="h-4 w-4 shrink-0 accent-[var(--color-border-active)]"
-                checked={selectedIds.includes(product.id)}
-                onChange={(event) =>
-                  setSelectedIds((current) =>
-                    event.target.checked
-                      ? [...current, product.id]
-                      : current.filter((id) => id !== product.id),
-                  )
-                }
-              />
+              {/* The label is the tap target: the row's full height from its left edge. */}
+              <label className="-my-2 -ml-3 flex shrink-0 cursor-pointer items-center self-stretch px-3">
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${product.styleCode}`}
+                  className="h-4 w-4 shrink-0 accent-[var(--color-border-active)]"
+                  checked={selectedIds.includes(product.id)}
+                  onChange={(event) =>
+                    setSelectedIds((current) =>
+                      event.target.checked
+                        ? [...current, product.id]
+                        : current.filter((id) => id !== product.id),
+                    )
+                  }
+                />
+              </label>
               <button
                 type="button"
                 className="flex min-w-0 flex-1 items-center gap-3 text-left"
@@ -2210,7 +2214,7 @@ export function AdminProductsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-semibold text-[var(--color-text)]">
                       {product.styleCode}
-                      {product.isBestSeller && <span className="ml-2 whitespace-nowrap text-[11px] uppercase tracking-[0.12em] text-amber-700">★ Best seller</span>}
+                      {product.isBestSeller && <span className="ml-2 whitespace-nowrap text-[11px] uppercase tracking-[0.12em] text-[var(--color-primary)]"><span className="text-[var(--color-accent)]">★</span> Best seller</span>}
                     </p>
                     <StatusBadge status={product.status} />
                   </div>
@@ -2421,15 +2425,16 @@ function OrderDetail({ order }) {
               <div className="space-y-3">
                 <p className="text-sm text-[var(--color-text-muted)]">Line items</p>
                 {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                  <div key={item.id} className="flex items-center gap-3 border border-[var(--color-border)] p-3">
                     {/* The colour that was ordered — two lines of one style must
                         not show the same photo on the fulfilment screen. */}
                     <Thumbnail
                       asset={variantImage(item.product, item.customization) || item.product?.media?.[0]}
-                      alt={item.product?.name}
+                      alt={productDisplayName(item.product)}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[var(--color-text)]">{item.product?.name}</p>
+                      {/* Imported styles carry the code as their name; the code is on the next line. */}
+                      <p className="text-sm font-medium text-[var(--color-text)]">{productDisplayName(item.product)}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">
                         {[item.customization?.goldColor, item.customization?.goldCarat, item.customization?.diamondQuality, item.customization?.size ? `Size ${item.customization.size}` : '']
@@ -2442,10 +2447,10 @@ function OrderDetail({ order }) {
                       {(item.changeRequests || []).map((cr) => (
                         <div
                           key={cr.id}
-                          className={`mt-2 flex items-start justify-between gap-2 border-l-2 px-3 py-2 ${cr.status === 'Open' ? 'border-amber-400 bg-amber-50' : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]'}`}
+                          className={`mt-2 flex items-start justify-between gap-2 border-l-2 px-3 py-2 ${cr.status === 'Open' ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10' : 'border-[var(--color-border)] bg-[var(--color-surface-alt)]'}`}
                         >
                           <div className="min-w-0">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-700">Change request</p>
+                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--color-primary)]">Change request</p>
                             <p className="text-xs text-[var(--color-text)]">{cr.message}</p>
                           </div>
                           <div className="flex flex-shrink-0 flex-col items-end gap-1">
@@ -2611,7 +2616,7 @@ export function AdminCataloguesPage() {
             <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyCatalogue); setSheetOpen(true); }}>New Catalogue</Button>
           </div>
           {catalogues.map((catalogue) => (
-            <button key={catalogue.id} className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
+            <button key={catalogue.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
               setEditingId(catalogue.id);
               setForm({
                 id: catalogue.id,
@@ -2648,7 +2653,7 @@ export function AdminCataloguesPage() {
                 </Field>
                 <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
                   {filteredProducts.map((product) => (
-                    <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                    <label key={product.id} className="flex cursor-pointer items-center gap-3 border border-[var(--color-border)] p-3">
                       <input
                         type="checkbox"
                         checked={form.productIds.includes(product.id)}
@@ -2661,10 +2666,10 @@ export function AdminCataloguesPage() {
                           }))
                         }
                       />
-                      <Thumbnail asset={product.media?.[0]} alt={product.name} />
+                      <Thumbnail asset={product.media?.[0]} alt={productDisplayName(product)} />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[var(--color-text)]">{product.styleCode}</p>
-                        <p className="truncate text-xs text-[var(--color-text-muted)]">{product.name}</p>
+                        <p className="truncate text-xs text-[var(--color-text-muted)]">{productDisplayName(product)}</p>
                       </div>
                     </label>
                   ))}
@@ -2677,7 +2682,7 @@ export function AdminCataloguesPage() {
                 </Field>
                 <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
                   {filteredUsers.map((user) => (
-                    <label key={user.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                    <label key={user.id} className="flex cursor-pointer items-center gap-3 border border-[var(--color-border)] p-3">
                       <input
                         type="checkbox"
                         checked={form.assignedUserIds.includes(user.id)}
@@ -2804,7 +2809,7 @@ export function AdminCollectionsPage() {
           {collections.map((collection) => (
             <button
               key={collection.id}
-              className={`flex w-full items-center gap-3 rounded border p-3 text-left hover:border-[var(--color-border-active)] ${editingId === collection.id ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`}
+              className={`flex w-full items-center gap-3 border p-3 text-left hover:border-[var(--color-border-active)] ${editingId === collection.id ? 'border-[var(--color-border-active)]' : 'border-[var(--color-border)]'}`}
               onClick={() => {
                 setEditingId(collection.id);
                 setProductSearch('');
@@ -2871,13 +2876,13 @@ export function AdminCollectionsPage() {
                 {filteredProducts.map((product) => {
                   const elsewhere = product.collectionId && product.collectionId !== editingId ? product.collection : '';
                   return (
-                    <label key={product.id} className="flex cursor-pointer items-center gap-3 rounded border border-[var(--color-border)] p-3">
+                    <label key={product.id} className="flex cursor-pointer items-center gap-3 border border-[var(--color-border)] p-3">
                       <input type="checkbox" checked={form.productIds.includes(product.id)} onChange={() => toggleProduct(product.id)} />
-                      <Thumbnail asset={product.media?.[0]} alt={product.name} />
+                      <Thumbnail asset={product.media?.[0]} alt={productDisplayName(product)} />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[var(--color-text)]">{product.styleCode}</p>
                         <p className="truncate text-xs text-[var(--color-text-muted)]">
-                          {product.name}
+                          {productDisplayName(product)}
                           {elsewhere ? ` • currently in ${elsewhere}` : ''}
                         </p>
                       </div>
@@ -3171,7 +3176,7 @@ export function AdminWhatsAppPage() {
         </div>
 
         {audience === 'selected' ? (
-          <div className="max-h-[280px] space-y-2 overflow-y-auto rounded border border-[var(--color-border)] p-3">
+          <div className="max-h-[280px] space-y-2 overflow-y-auto border border-[var(--color-border)] p-3">
             {buyerSearchList.map((user) => (
               <label key={user.id} className="flex cursor-pointer items-start gap-3 text-sm">
                 <input type="checkbox" className="mt-1" checked={selectedBuyerIds.has(user.id)} onChange={() => toggleBuyer(user.id)} />
@@ -3269,7 +3274,7 @@ function GuestCatalogueGroup({ label, options, selected, onToggle }) {
     return (
       <div>
         <p className="lux-label">{label}</p>
-        <p className="mt-1 text-sm text-gray-500">None available yet.</p>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">None available yet.</p>
       </div>
     );
   }
@@ -3324,7 +3329,7 @@ function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collec
     <Panel className="order-4 space-y-5">
       <div>
         <p className="lux-label">Guest Catalogue (which products guests can browse)</p>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
           Pick which products signed-out visitors may see. A product is shown to guests if it matches
           <span className="font-medium"> any</span> rule below — one of the three tick-boxes, or a
           selected category, sub-category, collection or occasion. The tick-boxes keep themselves current:
@@ -3715,7 +3720,7 @@ export function AdminTestimonialsPage() {
             <Button variant="secondary" onClick={() => { setEditingId(null); setForm(emptyTestimonial); setSheetOpen(true); }}>New</Button>
           </div>
           {data.map((testimonial) => (
-            <button key={testimonial.id} className="flex w-full items-center gap-3 rounded border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
+            <button key={testimonial.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
               setEditingId(testimonial.id);
               setForm({ ...testimonial, avatar: normalizeAsset(testimonial.avatar) });
               setSheetOpen(true);
@@ -3893,7 +3898,7 @@ export function AdminReportsPage() {
                       key={column.key}
                       className={`whitespace-nowrap px-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-text-muted)] ${column.numeric ? 'text-right' : ''} ${index === 0 ? 'sticky left-0 bg-[var(--color-surface-alt)]' : ''}`}
                     >
-                      <button type="button" onClick={() => toggleSort(column)} className="inline-flex min-h-10 items-center gap-1 uppercase">
+                      <button type="button" onClick={() => toggleSort(column)} className="inline-flex min-h-10 min-w-10 items-center gap-1 uppercase">
                         {column.label}
                         {sort?.key === column.key ? <span aria-hidden>{sort.dir === 'desc' ? '↓' : '↑'}</span> : null}
                       </button>

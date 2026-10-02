@@ -170,7 +170,7 @@ function PhotoResults({ result, preview, onClose }) {
               <p className="mt-1 text-[12px] text-[var(--color-text-muted)] sm:text-sm">We saw: {result.seen.join(' · ')}</p>
             ) : null}
           </div>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close" className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close" className="inline-flex h-10 w-10 shrink-0 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
             <X className="h-5 w-5" />
           </button>
         </div>

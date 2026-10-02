@@ -42,7 +42,7 @@ function RailLink({ to, children }) {
   return (
     <Link
       to={to}
-      className="hairline-draw inline-flex items-center gap-1.5 whitespace-nowrap pb-1 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] sm:gap-2 sm:pb-1.5 sm:text-[13px] sm:tracking-[0.14em]"
+      className="hairline-draw tap-area inline-flex items-center gap-1.5 whitespace-nowrap pb-1 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] sm:gap-2 sm:pb-1.5 sm:text-[13px] sm:tracking-[0.14em]"
     >
       {children} <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
     </Link>
@@ -285,7 +285,7 @@ export function HeroSlider({ banners }) {
                 key={banner.id}
                 onClick={() => setActive(index)}
                 aria-label={`Go to slide ${index + 1}`}
-                className="relative flex h-8 w-10 items-center sm:w-14"
+                className="relative flex h-10 w-10 items-center sm:w-14"
               >
                 <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/30" aria-hidden />
                 {index === active ? (

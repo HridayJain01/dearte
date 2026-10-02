@@ -58,8 +58,8 @@ export function LoginPage() {
         <Input label="Email" type="email" autoComplete="username" error={form.formState.errors.email?.message} {...form.register('email')} />
         <PasswordInput label="Password" autoComplete="current-password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <div className="flex items-center justify-between text-[12px] sm:text-sm">
-          <Link to="/forgot-password" className="text-[var(--color-primary)] hover:underline">Forgot Password?</Link>
-          <Link to="/register" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Create account</Link>
+          <Link to="/forgot-password" className="tap-area text-[var(--color-primary)] hover:underline">Forgot Password?</Link>
+          <Link to="/register" className="tap-area text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Create account</Link>
         </div>
         <Button className="w-full" type="submit">Login</Button>
       </form>
@@ -201,7 +201,7 @@ export function ForgotPasswordPage() {
           <Input label="Email" type="email" autoComplete="email" error={emailForm.formState.errors.email?.message} {...emailForm.register('email', { required: 'Email is required' })} />
           <Button className="w-full" type="submit">Send OTP</Button>
           <p className="text-center text-[12px] text-[var(--color-text-muted)] sm:text-sm">
-            <Link to="/login" className="text-[var(--color-primary)] hover:underline">Back to login</Link>
+            <Link to="/login" className="tap-area text-[var(--color-primary)] hover:underline">Back to login</Link>
           </p>
         </form>
       ) : (

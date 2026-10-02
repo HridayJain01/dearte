@@ -50,7 +50,7 @@ function drawHeader(doc, logo, title) {
   doc.rect(0, 22, width, 2, 'F');
   if (logo) {
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(14, 4, 50, 14, 1.5, 1.5, 'F');
+    doc.rect(14, 4, 50, 14, 'F');
     doc.addImage(logo, 'PNG', 16, 5.1, 46, 12.1, undefined, 'FAST');
   }
   doc.setTextColor(236, 230, 219);
@@ -64,11 +64,11 @@ function drawHeader(doc, logo, title) {
 function drawCard(doc, product, photo, x, y, w, h) {
   doc.setDrawColor(BRAND.line);
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+  doc.rect(x, y, w, h, 'FD');
 
   const box = { x: x + 3, y: y + 3, w: w - 6, h: h - 27 };
   doc.setFillColor(BRAND.paper);
-  doc.roundedRect(box.x, box.y, box.w, box.h, 1.5, 1.5, 'F');
+  doc.rect(box.x, box.y, box.w, box.h, 'F');
   if (photo) {
     // Fit inside the panel without stretching.
     const scale = Math.min(box.w / photo.width, box.h / photo.height);

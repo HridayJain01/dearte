@@ -86,7 +86,7 @@ export function ProductCard({ product, priority = false }) {
             />
           ) : null}
           <button
-            className="absolute right-1.5 top-1.5 z-10 p-1.5 text-[var(--color-primary)] transition duration-300 hover:scale-110 hover:[&>svg]:fill-[var(--color-primary)] sm:right-4 sm:top-3 sm:p-2"
+            className="absolute right-0 top-0 z-10 p-3 text-[var(--color-primary)] transition duration-300 hover:scale-110 hover:[&>svg]:fill-[var(--color-primary)] sm:right-3 sm:top-2 sm:p-3"
             aria-label="Add to wishlist"
             onClick={(e) => {
               e.preventDefault();
@@ -120,7 +120,7 @@ export function ProductCard({ product, priority = false }) {
             {cartItem && !needsSize ? (
               <div className="flex w-full items-center border border-[var(--color-border)]">
                 <button
-                  className="flex h-9 flex-1 items-center justify-center text-lg leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-11 sm:text-xl"
+                  className="flex h-10 flex-1 items-center justify-center text-lg leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-11 sm:text-xl"
                   onClick={(e) => {
                     e.preventDefault();
                     ensureAuth(() =>
@@ -137,7 +137,7 @@ export function ProductCard({ product, priority = false }) {
                   {cartItem.quantity}
                 </span>
                 <button
-                  className="flex h-9 flex-1 items-center justify-center text-lg leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-11 sm:text-xl"
+                  className="flex h-10 flex-1 items-center justify-center text-lg leading-none text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-11 sm:text-xl"
                   onClick={(e) => {
                     e.preventDefault();
                     ensureAuth(() => updateCart(cartItem.id, { quantity: cartItem.quantity + 1 }));

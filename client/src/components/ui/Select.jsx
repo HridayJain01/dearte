@@ -186,7 +186,7 @@ export function Select({
         disabled={disabled}
         onClick={() => (open ? close() : openList())}
         onKeyDown={handleKeyDown}
-        className={`flex min-h-9 w-full items-center justify-between gap-2 border bg-[var(--color-surface)] px-2.5 py-1.5 text-left text-[13px] transition duration-200 outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-sm ${
+        className={`flex min-h-10 w-full items-center justify-between gap-2 border bg-[var(--color-surface)] px-2.5 py-1.5 text-left text-[13px] transition duration-200 outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-12 sm:gap-3 sm:px-4 sm:py-3 sm:text-sm ${
           open
             ? 'border-[var(--color-border-active)] shadow-[0_8px_24px_-16px_rgba(107,15,46,0.55)]'
             : 'border-[var(--color-border)] hover:border-[var(--color-border-active)]'
@@ -238,7 +238,7 @@ export function Select({
                   onMouseEnter={() => setActiveIndex(index)}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => commit(option)}
-                  className={`flex cursor-pointer items-center justify-between gap-3 px-3 py-2 text-[13px] transition-colors duration-150 sm:px-4 sm:py-2.5 sm:text-sm ${
+                  className={`flex min-h-10 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-[13px] transition-colors duration-150 sm:px-4 sm:py-2.5 sm:text-sm ${
                     option.disabled
                       ? 'cursor-not-allowed text-[var(--color-text-muted)] opacity-50'
                       : isActive

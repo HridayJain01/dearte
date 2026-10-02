@@ -193,6 +193,14 @@ body {
     opacity: 0.45;
     cursor: not-allowed;
   }
+
+  /* The label around a checkbox or radio is its tap target, so on phones it
+     meets the 40px floor (see ICON_BUTTON in AppLayout) however short its text. */
+  @media (max-width: 639px) {
+    label:has(> input:is([type='checkbox'], [type='radio'])) {
+      min-height: 2.5rem;
+    }
+  }
 }
 
 /* Layered so a caller can retune the size per breakpoint (`lux-label
@@ -205,6 +213,26 @@ body {
     color: var(--color-text-muted);
     font-size: 0.75rem;
     font-weight: 500;
+  }
+}
+
+/* A text link that should stay small but be easy to tap: an invisible ::before
+   makes its tap area at least 40px each way (the phone floor; see ICON_BUTTON in
+   AppLayout) without moving anything. Only for links with clear space above
+   and below; stacked links need real padding instead. */
+@layer components {
+  .tap-area {
+    position: relative;
+  }
+
+  .tap-area::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 40px);
+    height: max(100%, 40px);
+    transform: translate(-50%, -50%);
   }
 }
 

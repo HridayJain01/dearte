@@ -118,8 +118,35 @@ components; extend the tokens instead.
 - Reveal travel is 20px max; hover lifts are 4px max; one sweep motif per view.
 
 ### Geometry Ruling
-Razor-sharp everywhere, **zero exceptions**: avatars, brand logos and metal
-swatches are square. (The WhatsApp float is the one legacy circle left —
-scheduled to be squared in the global-chrome pass.) The off-brand navy
-`#002130` has been removed; the category showcase and diamond icon now use
-`--color-accent` / `lux-heading` crimson.
+Razor-sharp everywhere, **zero exceptions**: avatars, brand logos, metal
+swatches, the WhatsApp float and the boxes in the order and lookbook PDFs are
+all square. The off-brand navy `#002130` has been removed; the category
+showcase and diamond icons use `--color-accent` / `lux-heading` crimson. The
+WhatsApp float keeps WhatsApp's teal `#128C7E` so it reads as WhatsApp; it is
+the one colour outside the ten tokens.
+
+---
+
+## Status Badges
+`<StatusBadge>` maps every order, buyer, product, change-request and blog-post
+status onto four tones built from the tokens, loudest where there is work to do:
+
+| Tone | Look | Statuses |
+|---|---|---|
+| Waiting | gold border, `accent/15` fill | Pending, Open, Needs review |
+| Under way | `primary/25` border, `surface-alt` fill, crimson text | Reviewed, Approved, Processing, Shipped, Draft |
+| Done | `border`, `surface` fill, body text | Fulfilled, Resolved, Active, Published |
+| Stopped | dashed `border`, muted text | Inactive, Cancelled, Rejected, Disapproved, Unpublished |
+
+Warnings use the same gold (`accent` border, `accent/10` fill); errors use a
+crimson border on `surface-alt`.
+
+---
+
+## Tap Targets
+On phones every control is at least **40px** tall and wide (the header's icon
+rail sets the floor); `Button` and the header icons grow to 44px from `sm` up.
+A text link that should stay small takes `.tap-area`, an invisible 40px hit
+area that moves nothing. Labels wrapping a checkbox or radio are 40px tall on
+phones. The footer's stacked link lists are the one exception: 32px apart
+(WCAG 2.2 asks for 24px), which keeps the footer short.

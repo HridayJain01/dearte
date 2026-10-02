@@ -9,6 +9,7 @@ import {
   totalPieces,
   variantImage,
 } from './productVariants';
+import { productDisplayName } from './productTitle';
 
 export const BRAND = {
   charcoal: '#1f1d1a',
@@ -126,7 +127,7 @@ function drawHeader(doc, title, reference, kind, logoDataUrl, pageNumberLabel = 
 
   if (logoDataUrl) {
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(14, 4, 50, 14, 1.5, 1.5, 'F');
+    doc.rect(14, 4, 50, 14, 'F');
     doc.addImage(logoDataUrl, 'PNG', 16, 5.1, 46, 12.1, undefined, 'FAST');
   }
 
@@ -152,7 +153,7 @@ function drawHeader(doc, title, reference, kind, logoDataUrl, pageNumberLabel = 
 function drawSummaryCard(doc, x, y, w, label, value) {
   doc.setDrawColor(BRAND.line);
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(x, y, w, 18, 2, 2, 'FD');
+  doc.rect(x, y, w, 18, 'FD');
   doc.setTextColor(BRAND.muted);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
@@ -169,7 +170,7 @@ function drawInfoBlock(doc, x, y, w, title, lines) {
 
   doc.setDrawColor(BRAND.line);
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(x, y, w, height, 2, 2, 'FD');
+  doc.rect(x, y, w, height, 'FD');
 
   doc.setTextColor(BRAND.gold);
   doc.setFont('helvetica', 'bold');
@@ -190,10 +191,10 @@ function drawInfoBlock(doc, x, y, w, title, lines) {
 function drawItemCard(doc, item, imageDataUrl, x, y, w, h) {
   doc.setDrawColor(BRAND.line);
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+  doc.rect(x, y, w, h, 'FD');
 
   doc.setFillColor(BRAND.paper);
-  doc.roundedRect(x + 3, y + 3, 28, h - 6, 1.5, 1.5, 'F');
+  doc.rect(x + 3, y + 3, 28, h - 6, 'F');
 
   if (imageDataUrl) {
     try {
@@ -221,7 +222,8 @@ function drawItemCard(doc, item, imageDataUrl, x, y, w, h) {
   doc.setTextColor(BRAND.charcoal);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  const titleLines = doc.splitTextToSize(normalizeText(product.name) || 'Selected piece', w - 75);
+  // The style code is printed just above; imported styles use it as their name.
+  const titleLines = doc.splitTextToSize(normalizeText(productDisplayName(product)) || 'Selected piece', w - 75);
   doc.text(titleLines.slice(0, 2), detailsX, y + 12.5);
 
   doc.setFont('helvetica', 'normal');
@@ -256,7 +258,7 @@ function drawItemCard(doc, item, imageDataUrl, x, y, w, h) {
 
   doc.setDrawColor(BRAND.gold);
   doc.setFillColor(BRAND.goldSoft);
-  doc.roundedRect(rightX - 17, y + 13.5, 17, 6, 1.5, 1.5, 'FD');
+  doc.rect(rightX - 17, y + 13.5, 17, 6, 'FD');
   doc.setTextColor(BRAND.charcoal);
   doc.setFontSize(7);
   doc.text('Selected', rightX - 8.5, y + 17.5, { align: 'center' });

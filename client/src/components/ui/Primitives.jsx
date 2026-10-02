@@ -28,7 +28,7 @@ export function Button({
 
   return (
     <Tag
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium leading-none transition duration-300 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-11 sm:gap-2 sm:px-5 sm:py-3 sm:text-[13px] ${variants[variant]} ${className}`}
+      className={`inline-flex min-h-10 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium leading-none transition duration-300 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-11 sm:gap-2 sm:px-5 sm:py-3 sm:text-[13px] ${variants[variant]} ${className}`}
       {...props}
     >
       {loading ? (
@@ -112,19 +112,36 @@ export function StatCard({ label, title, value, caption, detail }) {
   );
 }
 
-export function StatusBadge({ status }) {
-  const map = {
-    Active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    Inactive: 'bg-gray-50 text-gray-500 border-gray-200',
-    Pending: 'bg-amber-50 text-amber-700 border-amber-200',
-    Reviewed: 'bg-sky-50 text-sky-700 border-sky-200',
-    Approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    Processing: 'bg-blue-50 text-blue-700 border-blue-200',
-    Shipped: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    Fulfilled: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    Cancelled: 'bg-red-50 text-red-700 border-red-200',
-  };
-  const classes = map[status] ?? 'bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] border-[var(--color-border)]';
+// Four tones from the brand palette, loudest where there is work to do: gold is
+// waiting on someone, a crimson tint is under way, plain is done (the usual state
+// of a product or buyer, so it stays quiet), and dashed muted has stopped.
+const STATUS_TONES = {
+  waiting: 'border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-text)]',
+  moving: 'border-[var(--color-primary)]/25 bg-[var(--color-surface-alt)] text-[var(--color-primary)]',
+  done: 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]',
+  stopped: 'border-dashed border-[var(--color-border)] bg-transparent text-[var(--color-text-muted)]',
+};
+
+const STATUS_TONE = {
+  Pending: 'waiting',
+  Open: 'waiting',
+  Reviewed: 'moving',
+  Approved: 'moving',
+  Processing: 'moving',
+  Shipped: 'moving',
+  Fulfilled: 'done',
+  Resolved: 'done',
+  Active: 'done',
+  Inactive: 'stopped',
+  Cancelled: 'stopped',
+  Rejected: 'stopped',
+  Disapproved: 'stopped',
+};
+
+// `tone` lets a status this map doesn't know (a blog post's "Needs review")
+// borrow one of the four tones.
+export function StatusBadge({ status, tone = STATUS_TONE[status] }) {
+  const classes = STATUS_TONES[tone] ?? STATUS_TONES.moving;
   return (
     <span className={`inline-flex items-center whitespace-nowrap border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${classes}`}>
       {status}
@@ -143,7 +160,7 @@ export const Input = forwardRef(function Input(
       {label ? <span className="text-[var(--color-text-muted)]">{label}</span> : null}
       <Tag
         ref={ref}
-        className={`border border-[var(--color-border)] bg-transparent px-3 py-2 text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:px-4 sm:py-3 ${className}`}
+        className={`min-h-10 border border-[var(--color-border)] bg-transparent px-3 py-2 text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:px-4 sm:py-3 ${className}`}
         {...props}
       />
       {error ? <span className="text-xs text-[var(--color-primary)] sm:text-xs">{error}</span> : null}
@@ -166,7 +183,7 @@ export const PasswordInput = forwardRef(function PasswordInput(
         <input
           ref={ref}
           type={visible ? 'text' : 'password'}
-          className={`w-full border border-[var(--color-border)] bg-transparent px-3 py-2 pr-11 text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:px-4 sm:py-3 sm:pr-12 ${className}`}
+          className={`min-h-10 w-full border border-[var(--color-border)] bg-transparent px-3 py-2 pr-11 text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:px-4 sm:py-3 sm:pr-12 ${className}`}
           {...props}
         />
         <button

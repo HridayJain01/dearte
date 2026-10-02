@@ -37,7 +37,7 @@ export function WeightDisclaimerTrigger({ className = '', text = WEIGHT_NOTE, la
         onClick={handleClick}
         onFocus={show}
         onBlur={hide}
-        className="-m-2.5 inline-flex items-center justify-center p-2.5 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors duration-300"
+        className="-m-3 inline-flex items-center justify-center p-3 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors duration-300"
         aria-label={label}
       >
         <Info className="h-4 w-4" />

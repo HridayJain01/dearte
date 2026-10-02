@@ -87,7 +87,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
             type="button"
             onClick={onClose}
             aria-label="Close size guide"
-            className="border border-[var(--color-border)] p-1.5 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:p-2"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center border border-[var(--color-border)] text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -150,7 +150,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
               <ul className="space-y-1.5 sm:space-y-2">
                 {tips.map((tip) => (
                   <li key={tip} className="flex gap-2 text-xs leading-relaxed text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
-                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)] sm:mt-2" />
+                    <span className="mt-1.5 h-1 w-1 shrink-0 bg-[var(--color-primary)] sm:mt-2" />
                     <span>{tip}</span>
                   </li>
                 ))}
@@ -166,7 +166,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:text-xs sm:tracking-[0.14em]"
+            className="tap-area shrink-0 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:text-xs sm:tracking-[0.14em]"
           >
             Done
           </button>

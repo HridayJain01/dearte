@@ -17,6 +17,7 @@ import {
   totalPieces,
 } from './weights.js';
 import { drawBrandLogo } from './brandLogo.js';
+import { displayName } from '../services/ai/catalogue.js';
 
 const BRAND = {
   charcoal: '#1f1d1a',
@@ -105,9 +106,10 @@ function text(doc, str, xMm, yBaselineMm, opts = {}) {
   }
 }
 
-function box(doc, xMm, yMm, wMm, hMm, { r = 2, fill, stroke } = {}) {
+// Square corners, like the brand and the jsPDF download this mirrors.
+function box(doc, xMm, yMm, wMm, hMm, { fill, stroke } = {}) {
   doc.lineWidth(0.5);
-  doc.roundedRect(mm(xMm), mm(yMm), mm(wMm), mm(hMm), mm(r));
+  doc.rect(mm(xMm), mm(yMm), mm(wMm), mm(hMm));
   if (fill && stroke) doc.fillAndStroke(fill, stroke);
   else if (fill) doc.fill(fill);
   else if (stroke) doc.stroke(stroke);
@@ -123,7 +125,7 @@ async function drawHeader(doc, title, reference, pageNumberLabel = '') {
   doc.rect(0, mm(22), mm(PAGE_W), mm(2)).fill(BRAND.gold);
 
   // White logo plate + vector brand logo on top.
-  box(doc, 14, 4, 50, 14, { r: 1.5, fill: BRAND.white });
+  box(doc, 14, 4, 50, 14, { fill: BRAND.white });
   try {
     await drawBrandLogo(doc, { x: mm(23.4), y: mm(6), width: mm(31.5) });
   } catch {
@@ -143,7 +145,7 @@ async function drawHeader(doc, title, reference, pageNumberLabel = '') {
 }
 
 function drawSummaryCard(doc, xMm, yMm, wMm, label, value) {
-  box(doc, xMm, yMm, wMm, 18, { r: 2, fill: BRAND.white, stroke: BRAND.line });
+  box(doc, xMm, yMm, wMm, 18, { fill: BRAND.white, stroke: BRAND.line });
   text(doc, label, xMm + 3, yMm + 6, { size: 7.5, color: BRAND.muted });
   text(doc, normalizeText(value) || '—', xMm + 3, yMm + 12.5, {
     size: 10,
@@ -155,7 +157,7 @@ function drawSummaryCard(doc, xMm, yMm, wMm, label, value) {
 function drawInfoBlock(doc, xMm, yMm, wMm, title, lines) {
   const lineHeight = 4.4;
   const height = 12 + lines.length * lineHeight;
-  box(doc, xMm, yMm, wMm, height, { r: 2, fill: BRAND.white, stroke: BRAND.line });
+  box(doc, xMm, yMm, wMm, height, { fill: BRAND.white, stroke: BRAND.line });
   text(doc, title, xMm + 3, yMm + 5, { size: 8, font: 'Helvetica-Bold', color: BRAND.gold });
   lines.forEach((line, index) => {
     text(doc, normalizeText(line) || '—', xMm + 3, yMm + 10 + index * lineHeight, {
@@ -168,8 +170,8 @@ function drawInfoBlock(doc, xMm, yMm, wMm, title, lines) {
 }
 
 function drawItemCard(doc, item, imageBuffer, xMm, yMm, wMm, hMm) {
-  box(doc, xMm, yMm, wMm, hMm, { r: 2, fill: BRAND.white, stroke: BRAND.line });
-  box(doc, xMm + 3, yMm + 3, 28, hMm - 6, { r: 1.5, fill: BRAND.paper });
+  box(doc, xMm, yMm, wMm, hMm, { fill: BRAND.white, stroke: BRAND.line });
+  box(doc, xMm + 3, yMm + 3, 28, hMm - 6, { fill: BRAND.paper });
 
   if (imageBuffer) {
     try {
@@ -195,7 +197,8 @@ function drawItemCard(doc, item, imageBuffer, xMm, yMm, wMm, hMm) {
     font: 'Helvetica-Bold',
     color: BRAND.gold,
   });
-  text(doc, normalizeText(product.name) || 'Selected piece', detailsX, yMm + 12.5, {
+  // The style code is printed just above; imported styles use it as their name.
+  text(doc, normalizeText(displayName(product)) || 'Selected piece', detailsX, yMm + 12.5, {
     size: 13,
     font: 'Helvetica-Bold',
     color: BRAND.charcoal,
@@ -240,7 +243,7 @@ function drawItemCard(doc, item, imageBuffer, xMm, yMm, wMm, hMm) {
     });
   }
 
-  box(doc, rightX - 17, yMm + 13.5, 17, 6, { r: 1.5, fill: BRAND.goldSoft, stroke: BRAND.gold });
+  box(doc, rightX - 17, yMm + 13.5, 17, 6, { fill: BRAND.goldSoft, stroke: BRAND.gold });
   text(doc, 'Selected', rightX - 8.5, yMm + 17.5, { size: 7, color: BRAND.charcoal, align: 'center' });
 }
 

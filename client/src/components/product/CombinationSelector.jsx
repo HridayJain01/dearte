@@ -56,7 +56,7 @@ export function CombinationSelector({
           <button
             type="button"
             onClick={onOpenChart}
-            className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:gap-2 sm:text-xs sm:tracking-[0.14em]"
+            className="tap-area inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:gap-2 sm:text-xs sm:tracking-[0.14em]"
           >
             <Ruler className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             Size Guide
@@ -117,7 +117,7 @@ export function CombinationSelector({
                       ]);
                       onActivate?.(index + 1);
                     }}
-                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:p-2"
+                    className="inline-flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </button>
@@ -126,7 +126,7 @@ export function CombinationSelector({
                     aria-label="Remove this combination"
                     disabled={lines.length <= 1}
                     onClick={() => removeLine(index)}
-                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-1.5 text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:border-[var(--color-border)] disabled:hover:text-[var(--color-text)] sm:p-2"
+                    className="inline-flex h-10 w-10 items-center justify-center border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:border-[var(--color-border)] disabled:hover:text-[var(--color-text)]"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -157,7 +157,7 @@ export function CombinationSelector({
                     Diamond Quality
                     <WeightDisclaimerTrigger text={DIAMOND_QUALITY_NOTE} label="What does this diamond quality mean?" />
                   </p>
-                  <div className="flex min-h-9 items-center border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 sm:min-h-12 sm:px-4 sm:py-3">
+                  <div className="flex min-h-10 items-center border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 sm:min-h-12 sm:px-4 sm:py-3">
                     <p className="text-[13px] text-[var(--color-text)] sm:text-sm">{DIAMOND_QUALITY}</p>
                   </div>
                 </div>
@@ -181,7 +181,7 @@ export function CombinationSelector({
                     aria-label="Decrease quantity"
                     disabled={quantity <= 1}
                     onClick={() => updateLine(index, { quantity: Math.max(1, quantity - 1) })}
-                    className="p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:text-[var(--color-text)] sm:p-3"
+                    className="inline-flex h-10 w-10 items-center justify-center text-[var(--color-text)] transition hover:text-[var(--color-primary)] disabled:opacity-40 disabled:hover:text-[var(--color-text)] sm:h-11 sm:w-11"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
@@ -192,7 +192,7 @@ export function CombinationSelector({
                     type="button"
                     aria-label="Increase quantity"
                     onClick={() => updateLine(index, { quantity: quantity + 1 })}
-                    className="p-2 text-[var(--color-text)] transition hover:text-[var(--color-primary)] sm:p-3"
+                    className="inline-flex h-10 w-10 items-center justify-center text-[var(--color-text)] transition hover:text-[var(--color-primary)] sm:h-11 sm:w-11"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -208,7 +208,7 @@ export function CombinationSelector({
           type="button"
           onClick={addLine}
           disabled={noSizesLeft}
-          className="inline-flex items-center gap-1.5 whitespace-nowrap border border-dashed border-[var(--color-border-active)] px-2.5 py-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-primary)] transition hover:bg-[var(--color-surface-alt)] disabled:cursor-not-allowed disabled:border-[var(--color-border)] disabled:text-[var(--color-text-muted)] disabled:hover:bg-transparent sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
+          className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap border border-dashed border-[var(--color-border-active)] px-2.5 py-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-primary)] transition hover:bg-[var(--color-surface-alt)] disabled:cursor-not-allowed disabled:border-[var(--color-border)] disabled:text-[var(--color-text-muted)] disabled:hover:bg-transparent sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
         >
           <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           Add another combination

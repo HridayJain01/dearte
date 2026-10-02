@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Check, X } from 'lucide-react';
 import { goldColorSwatch, variantImage } from '../../utils/productVariants';
 import { cdnImage } from '../../utils/formatters';
+import { productDisplayName } from '../../utils/productTitle';
 import { resolveSizeChart, sizeLabel } from '../../data/sizeMaster';
 
 /**
@@ -48,7 +49,7 @@ export function CartToast({ id, product, customization, lineCount = 1, pieceCoun
           {lineCount > 1 ? `${lineCount} combinations added` : 'Added to cart'}
         </p>
         <p className="mt-1 truncate text-[13px] font-semibold leading-tight text-[var(--color-text)]">
-          {product?.name}
+          {productDisplayName(product)}
         </p>
         {summary ? (
           <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{summary}</p>
