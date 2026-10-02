@@ -411,11 +411,11 @@ export function AppLayout() {
             </button>
             <button onClick={() => navigate('/wishlist')} aria-label="Wishlist" className={`relative ${ICON_BUTTON}`}>
               <Heart className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-              {wishlist.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[9px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[10px]">{wishlist.items.length}</span> : null}
+              {wishlist.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[12px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[12px]">{wishlist.items.length}</span> : null}
             </button>
             <button onClick={() => navigate('/cart')} aria-label="Cart" className={`relative ${ICON_BUTTON}`}>
               <ShoppingBag className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-              {cart.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[9px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[10px]">{cart.items.length}</span> : null}
+              {cart.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[12px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[12px]">{cart.items.length}</span> : null}
             </button>
             {isAuthenticated ? (
               <button
@@ -431,7 +431,7 @@ export function AppLayout() {
               // Register pair.
               <Button
                 variant="ghost"
-                className="ml-0.5 shrink-0 px-2 text-[10px] sm:ml-0 sm:px-5 sm:text-[13px]"
+                className="ml-0.5 shrink-0 px-2 text-[12px] sm:ml-0 sm:px-5 sm:text-[13px]"
                 onClick={() => navigate('/login')}
               >
                 Sign In
@@ -576,14 +576,14 @@ export function AppLayout() {
           <div className="col-span-2 lg:col-span-1">
             <img src={brandLogoUrl} alt={brandLogoAlt} className="h-8 w-auto bg-white/95 p-1.5 sm:h-10 sm:p-2" loading="lazy" decoding="async" />
             <h3 className="lux-heading mt-2 text-lg !text-white sm:mt-0 sm:text-4xl">Fine jewellery, consciously crafted.</h3>
-            <p className="mt-2 max-w-md text-[11px] leading-relaxed text-white/60 sm:mt-4 sm:text-sm">
+            <p className="mt-2 max-w-md text-xs leading-relaxed text-white/60 sm:mt-4 sm:text-sm">
               Discover pieces meant to be lived in, combining modern values with timeless aesthetics.
             </p>
           </div>
 
           <div>
-            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[10px] sm:mb-4 sm:text-xs">Explore</p>
-            <div className="space-y-1.5 text-[11px] text-white/60 sm:space-y-3 sm:text-sm">
+            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Explore</p>
+            <div className="space-y-1.5 text-xs text-white/60 sm:space-y-3 sm:text-sm">
               {TRUST_LINKS.map((item) => (
                 <Link key={item.to} to={item.to} className="block hover:text-white">
                   {item.label}
@@ -597,8 +597,8 @@ export function AppLayout() {
               by typing the URL. A crawler treats a page with no inbound links as
               barely worth ranking, however good it is. */}
           <div>
-            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[10px] sm:mb-4 sm:text-xs">Guides</p>
-            <div className="space-y-1.5 text-[11px] text-white/60 sm:space-y-3 sm:text-sm">
+            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Guides</p>
+            <div className="space-y-1.5 text-xs text-white/60 sm:space-y-3 sm:text-sm">
               {EDUCATION_ROUTES.map((item) => (
                 <Link key={item.slug} to={`/education/${item.slug}`} className="block hover:text-white">
                   {item.title}
@@ -608,8 +608,8 @@ export function AppLayout() {
           </div>
 
           <div>
-            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[10px] sm:mb-4 sm:text-xs">Connect</p>
-            <div className="space-y-1.5 text-[11px] text-white/60 sm:space-y-3 sm:text-sm">
+            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Connect</p>
+            <div className="space-y-1.5 text-xs text-white/60 sm:space-y-3 sm:text-sm">
               {/* Only admin-set details render: placeholder contacts and bare
                   social homepages read as a fake business. */}
               {settings.email ? <a href={`mailto:${settings.email}`} className="block break-words hover:text-white">{settings.email}</a> : null}
@@ -626,8 +626,8 @@ export function AppLayout() {
           </div>
 
           <div className="col-span-2 border border-white/15 bg-white/5 p-3 sm:p-6 lg:col-span-1">
-            <p className="lux-label mb-1.5 !text-[var(--color-accent)] text-[10px] sm:mb-3 sm:text-xs">Newsletter</p>
-            <p className="text-[11px] text-white/60 sm:text-sm">{settings.newsletterBlurb || 'Sign up for early access to our exclusive collections.'}</p>
+            <p className="lux-label mb-1.5 !text-[var(--color-accent)] text-[11px] sm:mb-3 sm:text-xs">Newsletter</p>
+            <p className="text-xs text-white/60 sm:text-sm">{settings.newsletterBlurb || 'Sign up for early access to our exclusive collections.'}</p>
             <div className="mt-2.5 flex gap-2 sm:mt-4 sm:flex-col sm:gap-3">
               <input className="min-w-0 flex-1 border border-white/20 bg-transparent px-2.5 py-1.5 text-[12px] text-white placeholder:text-white/40 focus:border-[var(--color-accent)] focus:outline-none sm:px-4 sm:py-3 sm:text-base" placeholder="Email address" />
               <Button variant="secondary" className="shrink-0">Subscribe</Button>

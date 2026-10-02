@@ -170,7 +170,7 @@ export function Select({
   return (
     <div ref={rootRef} className={`relative ${className}`}>
       {label ? (
-        <span id={`${controlId}-label`} className="mb-1 block text-[11px] text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">
+        <span id={`${controlId}-label`} className="mb-1 block text-xs text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">
           {label}
         </span>
       ) : null}

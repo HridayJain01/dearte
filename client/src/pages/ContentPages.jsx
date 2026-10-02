@@ -9,6 +9,7 @@ import { Select } from '../components/ui/Select';
 import { TrustedBrandGrid } from '../components/home/HomeSections';
 import { Seo } from '../components/seo/Seo';
 import { routeSeo } from '../utils/seoRoutes';
+import { cdnImage } from '../utils/formatters';
 import { breadcrumbSchema, faqSchema, itemListSchema } from '../utils/seo';
 import brandExpressionImage from '../assets/Cormorant Garamond.png';
 import processImage from '../assets/process.png';
@@ -79,7 +80,7 @@ export function ContactPage() {
           </div>
         </Panel>
         <Panel>
-          <p className="lux-label mb-2.5 text-[10px] sm:mb-4 sm:text-xs">Contact Details</p>
+          <p className="lux-label mb-2.5 text-[11px] sm:mb-4 sm:text-xs">Contact Details</p>
           <div className="space-y-1.5 text-[12px] text-[var(--color-text-muted)] sm:space-y-3 sm:text-sm">
             <p>{data.address}</p>
             <p>{data.phone}</p>
@@ -116,12 +117,8 @@ export function AboutPage() {
               We design with emotional depth, engineer for scale, and deliver collections that feel both elevated and sellable.
             </p>
             <div className="mt-4 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
-              <Link to="/collections">
-                <Button variant="primary">Explore Collection</Button>
-              </Link>
-              <Link to="/contact">
-                <Button variant="ghost">Talk to Sales</Button>
-              </Link>
+              <Button as={Link} to="/collections" variant="primary">Explore Collection</Button>
+              <Button as={Link} to="/contact" variant="ghost">Talk to Sales</Button>
             </div>
           </div>
 
@@ -140,7 +137,7 @@ export function AboutPage() {
       <section className="page-shell mt-6 grid grid-cols-2 gap-2.5 sm:mt-12 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {ABOUT_STATS.map((stat) => (
           <Panel key={stat.label} className="border-[var(--color-border-active)]/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(250,240,243,0.8))]">
-            <p className="lux-label mb-2 text-[10px] leading-tight sm:mb-4 sm:text-xs">{stat.label}</p>
+            <p className="lux-label mb-2 text-[11px] leading-tight sm:mb-4 sm:text-xs">{stat.label}</p>
             <p className="text-2xl font-semibold text-[var(--color-primary)] sm:text-5xl">{stat.value}</p>
           </Panel>
         ))}
@@ -154,7 +151,7 @@ export function AboutPage() {
           loading="lazy"
         />
         <div>
-          <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">How We Build</p>
+          <p className="lux-label mb-2 text-[11px] sm:mb-3 sm:text-xs">How We Build</p>
           <h2 className="lux-heading text-xl sm:text-5xl">From concept sketch to showcase-ready pieces.</h2>
           <p className="mt-2.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-4 sm:text-base sm:leading-7">
             Our workflow combines in-house creative direction, disciplined sampling, and quality control at every touchpoint.
@@ -167,7 +164,7 @@ export function AboutPage() {
                 <Panel key={pillar.title} className="bg-[var(--color-surface-alt)] sm:p-4">
                   <Icon className="h-4 w-4 text-[var(--color-primary)] sm:h-5 sm:w-5" />
                   <h3 className="mt-2 text-[13px] font-semibold text-[var(--color-text)] sm:mt-3 sm:text-base">{pillar.title}</h3>
-                  <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:mt-2 sm:text-xs sm:leading-6">{pillar.copy}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-muted)] sm:mt-2 sm:text-xs sm:leading-6">{pillar.copy}</p>
                 </Panel>
               );
             })}
@@ -223,24 +220,24 @@ export function EducationPage() {
         <div className="overflow-hidden border border-[var(--color-border)] bg-[linear-gradient(145deg,#fff8f4_0%,#f8ebef_52%,#fff_100%)]">
           <div className="grid gap-4 p-3 sm:gap-8 sm:p-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:p-10">
             <div>
-              <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">Education Studio</p>
+              <p className="lux-label mb-2 text-[11px] sm:mb-3 sm:text-xs">Education Studio</p>
               <h1 className="lux-heading text-2xl sm:text-6xl">{data.title}</h1>
               <p className="mt-2.5 max-w-2xl text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-4 sm:text-base sm:leading-7">{data.intro}</p>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
               <Panel className="bg-[var(--color-surface)] p-2 text-center sm:p-4">
                 <Gem className="mx-auto h-4 w-4 text-[var(--color-primary)] sm:h-5 sm:w-5" />
-                <p className="mt-1.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px] sm:tracking-[0.14em]">Modules</p>
+                <p className="mt-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px] sm:tracking-[0.14em]">Modules</p>
                 <p className="text-lg font-semibold text-[var(--color-primary)] sm:text-2xl">{data.sections.length}</p>
               </Panel>
               <Panel className="bg-[var(--color-surface)] p-2 text-center sm:p-4">
                 <Ruler className="mx-auto h-4 w-4 text-[var(--color-primary)] sm:h-5 sm:w-5" />
-                <p className="mt-1.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px] sm:tracking-[0.14em]">Depth</p>
+                <p className="mt-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px] sm:tracking-[0.14em]">Depth</p>
                 <p className="text-lg font-semibold text-[var(--color-primary)] sm:text-2xl">Pro</p>
               </Panel>
               <Panel className="bg-[var(--color-surface)] p-2 text-center sm:p-4">
                 <BookOpenCheck className="mx-auto h-4 w-4 text-[var(--color-primary)] sm:h-5 sm:w-5" />
-                <p className="mt-1.5 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px] sm:tracking-[0.14em]">Format</p>
+                <p className="mt-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px] sm:tracking-[0.14em]">Format</p>
                 <p className="text-lg font-semibold text-[var(--color-primary)] sm:text-2xl">Guide</p>
               </Panel>
             </div>
@@ -252,7 +249,7 @@ export function EducationPage() {
             <Link
               key={item.slug}
               to={`/education/${item.slug}`}
-              className={`whitespace-nowrap border px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] transition sm:px-4 sm:py-3 sm:text-sm sm:tracking-[0.08em] ${item.slug === slug
+              className={`whitespace-nowrap border px-2.5 py-1.5 text-[11px] uppercase tracking-[0.06em] transition sm:px-4 sm:py-3 sm:text-sm sm:tracking-[0.08em] ${item.slug === slug
                 ? 'border-[var(--color-border-active)] bg-[var(--color-primary)] text-white'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)]'}`}
             >
@@ -265,7 +262,7 @@ export function EducationPage() {
           <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             {data.sections.map((section, index) => (
               <Panel key={section.title} className="relative overflow-hidden border-[var(--color-border)]/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(250,240,243,0.9))]">
-                <p className="mb-2 text-[9px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:text-xs sm:tracking-[0.2em]">Module {String(index + 1).padStart(2, '0')}</p>
+                <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:text-xs sm:tracking-[0.2em]">Module {String(index + 1).padStart(2, '0')}</p>
                 <h3 className="text-base font-semibold text-[var(--color-text)] sm:text-2xl">{section.title}</h3>
                 <ul className="mt-2.5 space-y-1.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-4 sm:space-y-3 sm:text-sm sm:leading-7">
                   {section.bullets.map((bullet) => (
@@ -280,12 +277,12 @@ export function EducationPage() {
           </div>
 
           <Panel className="h-fit border-[var(--color-border-active)]/30 bg-[var(--color-primary)] text-white sm:p-6">
-            <p className="text-[9px] uppercase tracking-[0.12em] text-white/70 sm:text-xs sm:tracking-[0.16em]">Learning Path</p>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-white/70 sm:text-xs sm:tracking-[0.16em]">Learning Path</p>
             <h3 className="mt-2 text-base font-semibold sm:mt-3 sm:text-2xl">Use this guide for faster buyer conversations.</h3>
             <p className="mt-2 text-[12px] leading-relaxed text-white/80 sm:mt-4 sm:text-sm sm:leading-7">
               Pair these modules with your product walkthrough to explain quality, value, and care with confidence.
             </p>
-            <Link to="/contact" className="mt-3 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline sm:mt-6 sm:gap-2 sm:text-xs sm:tracking-[0.16em]">
+            <Link to="/contact" className="mt-3 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-[var(--color-accent)] hover:underline sm:mt-6 sm:gap-2 sm:text-xs sm:tracking-[0.16em]">
               Request training support <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Link>
           </Panel>
@@ -369,9 +366,9 @@ export function EventsPage() {
       <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
         {data.map((event) => (
           <Panel key={event.id}>
-            <img src={event.image} alt={event.title} className="h-40 w-full object-cover sm:h-72" loading="lazy" decoding="async" />
+            <img src={cdnImage(event.image, 1200)} alt={event.title} className="h-40 w-full object-cover sm:h-72" loading="lazy" decoding="async" />
             <h3 className="mt-2.5 text-base font-semibold text-[var(--color-text)] sm:mt-5 sm:text-2xl">{event.title}</h3>
-            <p className="mt-1 text-[11px] text-[var(--color-primary)] sm:mt-2 sm:text-sm">{event.date}</p>
+            <p className="mt-1 text-xs text-[var(--color-primary)] sm:mt-2 sm:text-sm">{event.date}</p>
             <p className="mt-1.5 text-[12px] leading-relaxed text-text-muted sm:mt-3 sm:text-sm">{event.description}</p>
           </Panel>
         ))}
@@ -393,10 +390,10 @@ export function TestimonialsPage() {
         {data.map((item) => (
           <Panel key={item.id}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <img src={item.avatar} alt={item.name} className="h-10 w-10 object-cover sm:h-16 sm:w-16" loading="lazy" decoding="async" />
+              <img src={cdnImage(item.avatar, 128)} alt={item.name} className="h-10 w-10 object-cover sm:h-16 sm:w-16" loading="lazy" decoding="async" />
               <div>
                 <h3 className="text-[14px] font-semibold text-[var(--color-text)] sm:text-xl">{item.name}</h3>
-                <p className="text-[11px] text-[var(--color-text-muted)] sm:text-sm">{item.company}</p>
+                <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">{item.company}</p>
               </div>
             </div>
             <p className="mt-2.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-4 sm:text-sm">{item.review}</p>
@@ -454,7 +451,7 @@ export function CareersPage() {
           <Panel key={job.id} className="flex flex-col gap-2.5 sm:gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h3 className="text-base font-semibold text-[var(--color-text)] sm:text-2xl">{job.title}</h3>
-              <p className="mt-1 text-[11px] text-[var(--color-text-muted)] sm:mt-2 sm:text-sm">{job.location} • {job.type}</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)] sm:mt-2 sm:text-sm">{job.location} • {job.type}</p>
               <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">{job.description}</p>
             </div>
             <div className="flex md:shrink-0">

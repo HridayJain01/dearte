@@ -6,6 +6,7 @@ import { Eye, Play, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { Button, ErrorState, LoadingBlock, Panel, SectionHeading } from '../components/ui/Primitives';
 import { aiErrorMessage, aiService } from '../services/aiService';
 import { adminService } from '../services/adminService';
+import { cdnImage } from '../utils/formatters';
 
 // Kept local rather than imported from AdminPages.jsx: that module carries the
 // spreadsheet importer (xlsx), which this page has no use for.
@@ -463,7 +464,7 @@ const POST_STATUS = {
 function PostStatus({ status }) {
   const style = POST_STATUS[status] || POST_STATUS.draft;
   return (
-    <span className={`inline-flex whitespace-nowrap border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${style.className}`}>
+    <span className={`inline-flex whitespace-nowrap border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${style.className}`}>
       {style.label}
     </span>
   );
@@ -492,7 +493,7 @@ function PostPreview({ post, onClose }) {
         </div>
       ) : null}
       {post.coverImage?.secureUrl ? (
-        <img src={post.coverImage.secureUrl} alt={post.coverImage.alt || ''} className="max-h-64 w-full border border-[var(--color-border)] object-contain" />
+        <img src={cdnImage(post.coverImage.secureUrl, 1200)} alt={post.coverImage.alt || ''} className="max-h-64 w-full border border-[var(--color-border)] object-contain" />
       ) : null}
       <p className="text-base leading-7">{post.excerpt}</p>
       {post.sections.map((section, index) => (

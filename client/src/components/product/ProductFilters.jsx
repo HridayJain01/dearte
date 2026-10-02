@@ -17,7 +17,7 @@ function FilterDropdown({ label, name, openFilter, onToggle, children }) {
     <div className={`relative ${isOpen ? 'max-sm:w-full' : ''}`}>
       <button
         onClick={() => onToggle(name)}
-        className={`whitespace-nowrap border bg-[var(--color-surface)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em] ${
+        className={`whitespace-nowrap border bg-[var(--color-surface)] px-2.5 py-1.5 text-[11px] uppercase tracking-[0.06em] sm:px-4 sm:py-2.5 sm:text-[12px] sm:tracking-[0.12em] ${
           isOpen
             ? 'border-[var(--color-border-active)] text-[var(--color-primary)]'
             : 'border-[var(--color-border)] text-[var(--color-text)]'
@@ -182,7 +182,7 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
                     setFilter('metalColor', toggleArrayValue(activeFilters.metalColor, metalColor));
                     close();
                   }}
-                  className={`border px-2 py-1 text-[10px] uppercase tracking-[0.06em] sm:px-3 sm:py-2 sm:text-xs sm:tracking-[0.08em] ${
+                  className={`border px-2 py-1 text-[11px] uppercase tracking-[0.06em] sm:px-3 sm:py-2 sm:text-xs sm:tracking-[0.08em] ${
                     activeFilters.metalColor.includes(metalColor)
                       ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)] text-[var(--color-primary)]'
                       : 'border-[var(--color-border)] text-[var(--color-text-muted)]'
@@ -249,7 +249,7 @@ export function ProductFilters({ filters, activeFilters, setFilter }) {
 
       </div>
 
-      <div className="text-[10px] text-[var(--color-text-muted)] sm:text-xs">
+      <div className="text-[12px] text-[var(--color-text-muted)] sm:text-xs">
         Use the dropdowns above to refine by style, material, and weight.
       </div>
     </Panel>

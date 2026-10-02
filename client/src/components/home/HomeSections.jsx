@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import brandExpressionImage from '../../assets/Cormorant Garamond.png';
 import processImage from '../../assets/process.png';
 import { Button, Panel } from '../ui/Primitives';
+import { cdnImage } from '../../utils/formatters';
 import { Parallax, Reveal } from '../ui/motion';
 import { ProductCard } from '../product/ProductCard';
 
@@ -23,7 +24,7 @@ function SectionIntro({ eyebrow, title, description, action, align = 'left', cla
           {eyebrow ? (
             <div className={`mb-2 flex items-center gap-2 sm:mb-4 sm:gap-3 ${centered ? 'justify-center' : ''}`}>
               <span className="gold-hairline w-6 sm:w-8" aria-hidden />
-              <p className="lux-label text-[10px] sm:text-xs">{eyebrow}</p>
+              <p className="lux-label text-[11px] sm:text-xs">{eyebrow}</p>
             </div>
           ) : null}
           <h2 className="lux-heading text-xl sm:text-4xl md:text-6xl">{title}</h2>
@@ -220,7 +221,9 @@ export function HeroSlider({ banners }) {
             className={`hero-slide absolute inset-0 ${index === active ? 'opacity-100' : 'opacity-0'}`}
           >
             <img
-              src={banner.image}
+              src={cdnImage(banner.image, 1920)}
+              srcSet={`${cdnImage(banner.image, 828)} 828w, ${cdnImage(banner.image, 1920)} 1920w`}
+              sizes="100vw"
               alt={banner.title}
               // The first slide is the home page's LCP element. Lazy-loading it
               // would push the largest paint behind layout for no benefit; the
@@ -268,12 +271,8 @@ export function HeroSlider({ banners }) {
                 className="animate-hero-line mt-1 flex flex-wrap gap-2 sm:gap-3"
                 style={{ '--line-delay': '540ms' }}
               >
-                <Link to={slide.ctaLink}>
-                  <Button variant="primary">{slide.ctaLabel}</Button>
-                </Link>
-                <Link to="/contact">
-                  <Button variant="ghost" className="border-white/30! text-white! hover:bg-white/10!">Talk to Sales</Button>
-                </Link>
+                <Button as={Link} to={slide.ctaLink} variant="primary">{slide.ctaLabel}</Button>
+                <Button as={Link} to="/contact" variant="ghost" className="border-white/30! text-white! hover:bg-white/10!">Talk to Sales</Button>
               </div>
             </div>
           </div>
@@ -355,7 +354,7 @@ export function TestimonialRail({ testimonials }) {
           >
             &ldquo;
           </span>
-          <p className="lux-label mb-3 text-[10px] sm:mb-6 sm:text-xs">Featured testimony</p>
+          <p className="lux-label mb-3 text-[11px] sm:mb-6 sm:text-xs">Featured testimony</p>
           <div className="mb-3 flex gap-1 text-[var(--color-accent)] sm:mb-6 sm:gap-1.5">
             {Array.from({ length: featured.rating }).map((_, index) => (
               <Star key={`${featured.id}-${index}`} className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
@@ -367,7 +366,7 @@ export function TestimonialRail({ testimonials }) {
           <span className="gold-hairline mt-4 w-12 sm:mt-8 sm:w-14" aria-hidden />
           <div className="mt-3 flex items-center gap-3 sm:mt-6 sm:gap-4">
             <img
-              src={featured.avatar}
+              src={cdnImage(featured.avatar, 128)}
               alt={featured.name}
               className="h-10 w-10 border border-[var(--color-border)] object-cover sm:h-16 sm:w-16"
               loading="lazy"
@@ -375,7 +374,7 @@ export function TestimonialRail({ testimonials }) {
             />
             <div>
               <p className="text-[13px] font-semibold text-[var(--color-text)] sm:text-base">{featured.name}</p>
-              <p className="text-[11px] text-[var(--color-text-muted)] sm:text-sm">{featured.company}</p>
+              <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">{featured.company}</p>
             </div>
           </div>
         </Reveal>
@@ -384,7 +383,7 @@ export function TestimonialRail({ testimonials }) {
           {supporting.map((testimonial, index) => (
             <Reveal key={testimonial.id} delay={index * 90} className="lux-panel flex items-start gap-3 p-3 sm:gap-4 sm:p-6">
               <img
-                src={testimonial.avatar}
+                src={cdnImage(testimonial.avatar, 128)}
                 alt={testimonial.name}
                 className="h-10 w-10 flex-none border border-[var(--color-border)] object-cover sm:h-14 sm:w-14"
                 loading="lazy"
@@ -396,9 +395,9 @@ export function TestimonialRail({ testimonials }) {
                     <Star key={`${testimonial.id}-${starIndex}`} className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
                   ))}
                 </div>
-                <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-sm sm:leading-7">{testimonial.review}</p>
+                <p className="text-xs leading-relaxed text-[var(--color-text-muted)] sm:text-sm sm:leading-7">{testimonial.review}</p>
                 <p className="mt-2 text-[13px] font-semibold text-[var(--color-text)] sm:mt-4 sm:text-base">{testimonial.name}</p>
-                <p className="text-[11px] text-[var(--color-text-muted)] sm:text-sm">{testimonial.company}</p>
+                <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">{testimonial.company}</p>
               </div>
             </Reveal>
           ))}
@@ -428,23 +427,23 @@ export function EventsRail({ events }) {
               <article className="group h-full border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)]">
                 <div className="relative overflow-hidden">
                   <img
-                    src={event.image}
+                    src={cdnImage(event.image, 720)}
                     alt={event.title}
                     className="h-28 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-64"
                     loading="lazy"
                     decoding="async"
                   />
-                  <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-xs sm:tracking-[0.16em]">
+                  <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-xs sm:tracking-[0.16em]">
                     {status}
                   </span>
                 </div>
                 <div className="space-y-1.5 p-2.5 sm:space-y-4 sm:p-6">
-                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-xs sm:tracking-[0.14em]">
+                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-xs sm:tracking-[0.14em]">
                     <CalendarDays className="h-3.5 w-3.5 text-[var(--color-accent)] sm:h-4 sm:w-4" />
                     <span>{new Date(event.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
                   <h3 className="font-serif text-base leading-tight text-[var(--color-text)] sm:text-[1.7rem]">{event.title}</h3>
-                  <p className="line-clamp-3 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:line-clamp-none sm:text-sm sm:leading-7">{event.description}</p>
+                  <p className="line-clamp-3 text-xs leading-relaxed text-[var(--color-text-muted)] sm:line-clamp-none sm:text-sm sm:leading-7">{event.description}</p>
                 </div>
               </article>
             </Reveal>
@@ -475,7 +474,7 @@ export function TrustedBrandGrid({ brands }) {
               <div className="flex items-center gap-2 sm:gap-3">
                 {brand.logo ? (
                   <img
-                    src={brand.logo?.secureUrl || brand.logo}
+                    src={cdnImage(brand.logo?.secureUrl || brand.logo, 96)}
                     alt={brand.name}
                     className="h-9 w-9 border border-[var(--color-border)] object-cover sm:h-12 sm:w-12"
                     loading="lazy"
@@ -488,13 +487,13 @@ export function TrustedBrandGrid({ brands }) {
                 )}
                 <div className="min-w-0">
                   <p className="hairline-draw inline-block max-w-full truncate pb-0.5 text-[12px] font-semibold text-[var(--color-text)] sm:text-sm">{brand.name}</p>
-                  <p className="text-[9px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.16em]">{brand.sector || 'Trusted partner'}</p>
+                  <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.16em]">{brand.sector || 'Trusted partner'}</p>
                 </div>
               </div>
               {brand.websiteUrl ? (
-                <p className="mt-2.5 text-[9px] uppercase tracking-[0.12em] text-[var(--color-primary)] transition-colors group-hover:text-[var(--color-accent)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Visit website</p>
+                <p className="mt-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--color-primary)] transition-colors group-hover:text-[var(--color-accent)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Visit website</p>
               ) : (
-                <p className="mt-2.5 text-[9px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Brand profile</p>
+                <p className="mt-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Brand profile</p>
               )}
             </Card>
           </Reveal>
@@ -514,12 +513,7 @@ export function CTABanner() {
         <p className="lux-label mt-5 text-[var(--color-accent)]! sm:mt-6">The atelier awaits</p>
         <h2 className="lux-heading mb-6 mt-3 text-2xl text-white! sm:mb-8 sm:mt-4 sm:text-4xl md:text-6xl">Ready to curate your collection?</h2>
         <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
-          <Link to="/products">
-            <Button variant="secondary">Explore Products</Button>
-          </Link>
-          <Link to="/checkout">
-            <Button variant="ghost" className="border-white/30! text-white! hover:bg-white/10!">Shop Now</Button>
-          </Link>
+          <Button as={Link} to="/products" variant="secondary">Explore products</Button>
         </div>
       </Reveal>
     </section>

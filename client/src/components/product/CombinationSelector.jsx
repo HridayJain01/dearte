@@ -51,12 +51,12 @@ export function CombinationSelector({
   return (
     <div className="space-y-2.5 sm:space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="lux-label text-[10px] sm:text-xs">Your combinations</p>
+        <p className="lux-label text-[11px] sm:text-xs">Your combinations</p>
         {chart ? (
           <button
             type="button"
             onClick={onOpenChart}
-            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:gap-2 sm:text-xs sm:tracking-[0.14em]"
+            className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:gap-2 sm:text-xs sm:tracking-[0.14em]"
           >
             <Ruler className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             Size Guide
@@ -98,7 +98,7 @@ export function CombinationSelector({
               }`}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-[11px] sm:tracking-[0.14em]">
+                <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-[11px] sm:tracking-[0.14em]">
                   <span
                     className="h-3 w-3 border border-[var(--color-border)] sm:h-3.5 sm:w-3.5"
                     style={{ backgroundColor: goldColorSwatch(line.goldColor) }}
@@ -153,7 +153,7 @@ export function CombinationSelector({
                   onChange={(goldCarat) => updateLine(index, { goldCarat })}
                 />
                 <div>
-                  <p className="mb-1 flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">
+                  <p className="mb-1 flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">
                     Diamond Quality
                     <WeightDisclaimerTrigger text={DIAMOND_QUALITY_NOTE} label="What does this diamond quality mean?" />
                   </p>
@@ -174,7 +174,7 @@ export function CombinationSelector({
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] text-[var(--color-text-muted)] sm:text-xs">Quantity</span>
+                <span className="text-xs text-[var(--color-text-muted)] sm:text-xs">Quantity</span>
                 <div className="flex items-center border border-[var(--color-border)] bg-[var(--color-surface)]">
                   <button
                     type="button"
@@ -208,13 +208,13 @@ export function CombinationSelector({
           type="button"
           onClick={addLine}
           disabled={noSizesLeft}
-          className="inline-flex items-center gap-1.5 whitespace-nowrap border border-dashed border-[var(--color-border-active)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--color-primary)] transition hover:bg-[var(--color-surface-alt)] disabled:cursor-not-allowed disabled:border-[var(--color-border)] disabled:text-[var(--color-text-muted)] disabled:hover:bg-transparent sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap border border-dashed border-[var(--color-border-active)] px-2.5 py-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-primary)] transition hover:bg-[var(--color-surface-alt)] disabled:cursor-not-allowed disabled:border-[var(--color-border)] disabled:text-[var(--color-text-muted)] disabled:hover:bg-transparent sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs sm:tracking-[0.14em]"
         >
           <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           Add another combination
         </button>
 
-        <p className="text-[10px] text-[var(--color-text-muted)] sm:text-xs">
+        <p className="text-[12px] text-[var(--color-text-muted)] sm:text-xs">
           {lines.length} {lines.length === 1 ? 'combination' : 'combinations'} · {totalUnits}{' '}
           {totalUnits === 1 ? 'piece' : 'pieces'}
         </p>

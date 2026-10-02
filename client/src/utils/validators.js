@@ -9,24 +9,24 @@ const passwordRule = z
   .regex(/[0-9]/, 'Password must contain a number');
 
 export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email('Enter a valid email address'),
+  password: z.string().min(1, 'Enter your password'),
 });
 
 export const registerSchema = z
   .object({
-    customerName: z.string().min(2),
-    email: z.string().email(),
-    mobile: z.string().min(10),
-    address: z.string().min(6),
-    city: z.string().min(2),
-    state: z.string().min(2),
-    country: z.string().min(2),
-    pinCode: z.string().min(4),
-    companyName: z.string().min(2),
+    customerName: z.string().min(2, 'Enter your name'),
+    email: z.string().email('Enter a valid email address'),
+    mobile: z.string().min(10, 'Enter a mobile number of at least 10 digits'),
+    address: z.string().min(6, 'Enter your full address'),
+    city: z.string().min(2, 'Enter your city'),
+    state: z.string().min(2, 'Choose your state'),
+    country: z.string().min(2, 'Choose your country'),
+    pinCode: z.string().min(4, 'Enter your pin code'),
+    companyName: z.string().min(2, 'Enter your company name'),
     gstNumber: z.string().optional(),
     password: passwordRule,
-    confirmPassword: z.string().min(8),
+    confirmPassword: z.string().min(1, 'Enter your password again'),
     acceptedTerms: z.boolean().refine((value) => value, 'Please accept the terms'),
   })
   .refine((data) => data.password === data.confirmPassword, {

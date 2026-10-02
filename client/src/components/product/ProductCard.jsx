@@ -4,7 +4,7 @@ import { Button, WeightDisclaimerTrigger } from '../ui/Primitives';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useWishlist } from '../../hooks/useWishlist';
-import { formatWeight } from '../../utils/formatters';
+import { cdnImage, formatWeight } from '../../utils/formatters';
 import { DIAMOND_QUALITY } from '../../utils/constants';
 import { resolveSizeChart } from '../../data/sizeMaster';
 import { goldColorSwatch, sameCustomization, variantImages } from '../../utils/productVariants';
@@ -62,7 +62,7 @@ export function ProductCard({ product, priority = false }) {
       <Link to={`/products/${product.styleCode}`} className="block relative">
         <div className="relative h-40 overflow-hidden bg-[var(--color-surface)] sm:h-72">
           <img
-            src={image}
+            src={cdnImage(image, 640)}
             alt={`${displayName} — style ${product.styleCode}`}
             width="320"
             height="288"
@@ -75,7 +75,7 @@ export function ProductCard({ product, priority = false }) {
               hover-capable pointers, so touch screens keep the first photo. */}
           {hoverImage ? (
             <img
-              src={hoverImage}
+              src={cdnImage(hoverImage, 640)}
               alt=""
               aria-hidden
               width="320"
@@ -103,13 +103,13 @@ export function ProductCard({ product, priority = false }) {
               <p className="line-clamp-2 font-serif text-[13px] leading-[1.25] text-[var(--color-text)] sm:text-[1.35rem]">
                 {displayName}
               </p>
-              <p className="mt-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[11px]">
+              <p className="mt-0.5 text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[11px]">
                 {product.styleCode}
               </p>
             </div>
           </div>
 
-          <p className="flex items-center gap-1 text-[10px] leading-snug text-[var(--color-text-muted)] sm:gap-1.5 sm:text-xs">
+          <p className="flex items-center gap-1 text-[12px] leading-snug text-[var(--color-text-muted)] sm:gap-1.5 sm:text-xs">
             <span>
               Diamond: {formatWeight(product.diamondWeight, 'ct')} | Gold: {formatWeight(product.goldWeight, 'g')}
             </span>
@@ -173,7 +173,7 @@ export function ProductCard({ product, priority = false }) {
               </Button>
             )}
             {otherVariantCount ? (
-              <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[10px] sm:tracking-[0.12em]">
+              <p className="mt-1 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[11px] sm:tracking-[0.12em]">
                 {otherVariantCount} other {otherVariantCount === 1 ? 'variant' : 'variants'} in cart
               </p>
             ) : null}

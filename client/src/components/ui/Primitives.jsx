@@ -7,6 +7,7 @@ import { describeError } from '../../utils/errors';
 const BUTTON_CAPS = 'uppercase tracking-[0.06em] sm:tracking-[0.12em]';
 
 export function Button({
+  as = 'button',
   children,
   variant = 'primary',
   className = '',
@@ -14,6 +15,7 @@ export function Button({
   icon: Icon,
   ...props
 }) {
+  const Tag = as;
   const variants = {
     primary:
       `bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] ${BUTTON_CAPS}`,
@@ -25,7 +27,7 @@ export function Button({
   };
 
   return (
-    <button
+    <Tag
       className={`inline-flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium leading-none transition duration-300 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-11 sm:gap-2 sm:px-5 sm:py-3 sm:text-[13px] ${variants[variant]} ${className}`}
       {...props}
     >
@@ -35,7 +37,7 @@ export function Button({
         <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       ) : null}
       {children}
-    </button>
+    </Tag>
   );
 }
 
@@ -48,7 +50,7 @@ export function SectionHeading({ eyebrow, title, description, action, as = 'h2' 
   return (
     <div className="mb-5 flex flex-col gap-3 sm:mb-8 sm:gap-4 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
-        {eyebrow ? <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">{eyebrow}</p> : null}
+        {eyebrow ? <p className="lux-label mb-2 text-[11px] sm:mb-3 sm:text-xs">{eyebrow}</p> : null}
         <Heading className="lux-heading text-2xl sm:text-4xl md:text-6xl">{title}</Heading>
         {description ? (
           <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-sm md:text-base">
@@ -71,7 +73,7 @@ export function StatCard({ label, title, value, caption, detail }) {
 
   return (
     <Panel className="min-h-[104px] sm:min-h-[140px]">
-      <p className="lux-label mb-2.5 text-[10px] sm:mb-5 sm:text-xs">{heading}</p>
+      <p className="lux-label mb-2.5 text-[11px] sm:mb-5 sm:text-xs">{heading}</p>
       <p className="text-3xl font-semibold leading-none text-[var(--color-primary)] sm:text-[2.75rem]">{value}</p>
       {subtext ? <p className="mt-2.5 text-xs text-[var(--color-text-muted)] sm:mt-4 sm:text-sm">{subtext}</p> : null}
     </Panel>
@@ -92,7 +94,7 @@ export function StatusBadge({ status }) {
   };
   const classes = map[status] ?? 'bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] border-[var(--color-border)]';
   return (
-    <span className={`inline-flex items-center border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${classes}`}>
+    <span className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${classes}`}>
       {status}
     </span>
   );
@@ -112,7 +114,7 @@ export const Input = forwardRef(function Input(
         className={`border border-[var(--color-border)] bg-transparent px-3 py-2 text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-active)] sm:px-4 sm:py-3 ${className}`}
         {...props}
       />
-      {error ? <span className="text-[11px] text-[var(--color-primary)] sm:text-xs">{error}</span> : null}
+      {error ? <span className="text-xs text-[var(--color-primary)] sm:text-xs">{error}</span> : null}
     </label>
   );
 });
@@ -145,7 +147,7 @@ export const PasswordInput = forwardRef(function PasswordInput(
           {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
-      {error ? <span className="text-[11px] text-[var(--color-primary)] sm:text-xs">{error}</span> : null}
+      {error ? <span className="text-xs text-[var(--color-primary)] sm:text-xs">{error}</span> : null}
     </label>
   );
 });
@@ -172,7 +174,7 @@ export function ErrorState({ error, onRetry, retrying = false }) {
         <h3 className="lux-heading text-xl sm:text-3xl">{title}</h3>
         <p className="mt-2 max-w-md text-[13px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">{description}</p>
       </div>
-      <p className="mt-3 max-w-lg break-all font-mono text-[10px] text-[var(--color-text-muted)] sm:text-xs">{detail}</p>
+      <p className="mt-3 max-w-lg break-all font-mono text-[12px] text-[var(--color-text-muted)] sm:text-xs">{detail}</p>
       {onRetry ? (
         <div className="mt-4 sm:mt-6">
           <Button onClick={onRetry} loading={retrying}>Try again</Button>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Check, X } from 'lucide-react';
 import { goldColorSwatch, variantImage } from '../../utils/productVariants';
+import { cdnImage } from '../../utils/formatters';
 import { resolveSizeChart, sizeLabel } from '../../data/sizeMaster';
 
 /**
@@ -31,7 +32,7 @@ export function CartToast({ id, product, customization, lineCount = 1, pieceCoun
     <div className="pointer-events-auto flex w-[min(21rem,calc(100vw-2rem))] items-start gap-3 border border-[var(--color-border-active)] bg-[var(--color-surface)] p-3 shadow-[0_24px_48px_-24px_rgba(58,26,40,0.45)]">
       {image ? (
         <div className="relative shrink-0">
-          <img src={image} alt="" className="h-14 w-14 object-cover" loading="lazy" decoding="async" />
+          <img src={cdnImage(image, 112)} alt="" className="h-14 w-14 object-cover" loading="lazy" decoding="async" />
           {customization?.goldColor ? (
             <span
               className="absolute bottom-1 right-1 h-2.5 w-2.5 border border-white shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
@@ -42,7 +43,7 @@ export function CartToast({ id, product, customization, lineCount = 1, pieceCoun
       ) : null}
 
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--color-primary)]">
+        <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-[var(--color-primary)]">
           <Check className="h-3 w-3 shrink-0" />
           {lineCount > 1 ? `${lineCount} combinations added` : 'Added to cart'}
         </p>
@@ -50,11 +51,11 @@ export function CartToast({ id, product, customization, lineCount = 1, pieceCoun
           {product?.name}
         </p>
         {summary ? (
-          <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">{summary}</p>
+          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{summary}</p>
         ) : null}
         {/* Only worth stating when it isn't the obvious single piece. */}
         {lineCount > 1 || pieceCount > 1 ? (
-          <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
+          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
             {pieceCount} {pieceCount === 1 ? 'piece' : 'pieces'}
           </p>
         ) : null}

@@ -21,7 +21,7 @@ import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
 import { CatalogueBuilder, PhotoSearchButton, RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
 import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
-import { formatDate, formatWeight } from '../utils/formatters';
+import { cdnImage, formatDate, formatWeight } from '../utils/formatters';
 import { DIAMOND_QUALITY } from '../utils/constants';
 import { routeSeo } from '../utils/seoRoutes';
 import { breadcrumbSchema, clampDescription, itemListSchema, productSchema } from '../utils/seo';
@@ -148,7 +148,7 @@ export function CollectionsPage() {
             <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-surface-alt)]">
               {collection.image ? (
                 <img
-                  src={collection.image}
+                  src={cdnImage(collection.image, 900)}
                   alt={collection.name}
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                   loading="lazy"
@@ -158,9 +158,9 @@ export function CollectionsPage() {
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
             </div>
             <div className="space-y-1 p-2.5 sm:space-y-2 sm:p-5">
-              <p className="text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Collection</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Collection</p>
               <h2 className="lux-heading text-[15px] text-[var(--color-text)] sm:text-2xl">{collection.name}</h2>
-              <p className="text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces curated under this collection story.</p>
+              <p className="text-[12px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces curated under this collection story.</p>
             </div>
           </Link>
         ))}
@@ -230,9 +230,9 @@ export function OccasionsPage() {
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/25 via-black/5 to-transparent" />
               </div>
               <div className="space-y-1 p-2.5 sm:space-y-2 sm:p-5">
-                <p className="text-[9px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Occasion</p>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Occasion</p>
                 <h2 className="lux-heading text-[15px] text-[var(--color-text)] sm:text-2xl">{occasion.name}</h2>
-                <p className="text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces styled for {occasion.name.toLowerCase()}.</p>
+                <p className="text-[12px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces styled for {occasion.name.toLowerCase()}.</p>
               </div>
             </Link>
           ))}
@@ -512,9 +512,7 @@ export function ProductListPage() {
           <p className="text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:text-sm">
             You're viewing a small preview of our catalogue. Sign in to your buyer account to browse the full collection.
           </p>
-          <Link to="/login" className="shrink-0">
-            <Button>Sign in to see more</Button>
-          </Link>
+          <Button as={Link} to="/login" className="shrink-0">Sign in to see more</Button>
         </Panel>
       ) : null}
       <div className="space-y-3.5 sm:space-y-6">
@@ -572,7 +570,7 @@ export function ProductListPage() {
                   {activeChips.map((chip) => (
                     <span
                       key={chip.key}
-                      className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-0.5 pl-2 pr-0.5 text-[10px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:gap-2 sm:py-1 sm:pl-3 sm:pr-1 sm:text-xs sm:tracking-[0.08em]"
+                      className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-0.5 pl-2 pr-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:gap-2 sm:py-1 sm:pl-3 sm:pr-1 sm:text-xs sm:tracking-[0.08em]"
                     >
                       {chip.label}
                       <button
@@ -589,7 +587,7 @@ export function ProductListPage() {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
+                  className="text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
                 >
                   Clear All
                 </button>
@@ -796,7 +794,7 @@ export function ProductDetailPage() {
               >
                 {/* The product page's LCP element. */}
                 <img
-                  src={activeImages[safeActiveImage] || data.images[0]}
+                  src={cdnImage(activeImages[safeActiveImage] || data.images[0], 1600)}
                   alt={`${displayName} — style ${data.styleCode} in ${activeLine.goldColor || data.metalColor || 'gold'}`}
                   loading="eager"
                   fetchPriority="high"
@@ -812,7 +810,7 @@ export function ProductDetailPage() {
                 {/* The thumbnail is the button's only content, so an empty alt
                     would leave the control with no accessible name at all. */}
                 <img
-                  src={image}
+                  src={cdnImage(image, 240)}
                   alt={`${displayName} view ${index + 1}`}
                   loading="lazy"
                   decoding="async"
@@ -825,7 +823,7 @@ export function ProductDetailPage() {
 
         <div className="space-y-3 sm:space-y-6">
           <div>
-            <p className="font-[var(--font-accent)] text-[10px] tracking-[0.25em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">{data.styleCode}</p>
+            <p className="font-[var(--font-accent)] text-[11px] tracking-[0.25em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">{data.styleCode}</p>
             {/* The style code already sits directly above this as the eyebrow,
                 so nothing is lost by giving the heading a readable name. */}
             <h1 className="lux-heading mt-1 text-2xl sm:mt-3 sm:text-5xl">{displayName}</h1>
@@ -833,7 +831,7 @@ export function ProductDetailPage() {
                 BreadcrumbList in the head, it stops rendering a dangling "&gt;"
                 for the styles that have no collection, and every crumb is a link
                 back to a facet page that wants the internal link. */}
-            <nav aria-label="Breadcrumb" className="mt-1.5 text-[11px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">
+            <nav aria-label="Breadcrumb" className="mt-1.5 text-xs text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">
               <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                 {[
                   { label: 'Products', to: '/products' },
@@ -863,12 +861,12 @@ export function ProductDetailPage() {
             </nav>
             {data.occasions?.length ? (
               <div className="mt-2.5 sm:mt-4">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Perfect for</p>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Perfect for</p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-2 sm:gap-2">
                   {data.occasions.map((occasion) => (
                     <span
                       key={occasion}
-                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-[10px] text-[var(--color-text)] sm:px-3 sm:py-1.5 sm:text-xs"
+                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-[12px] text-[var(--color-text)] sm:px-3 sm:py-1.5 sm:text-xs"
                     >
                       {occasion}
                     </span>
@@ -885,7 +883,7 @@ export function ProductDetailPage() {
               {data.specifications.map((spec, specIndex) => (
                 <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-2 sm:p-4">
                   <div className="flex items-center justify-between gap-1">
-                    <p className="text-[9px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{spec.attribute}</p>
+                    <p className="text-[11px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{spec.attribute}</p>
                     {spec.attribute?.toLowerCase().includes('weight') && (
                       <WeightDisclaimerTrigger />
                     )}
@@ -894,7 +892,7 @@ export function ProductDetailPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[10px] text-[var(--color-text-muted)] sm:mt-4 sm:pt-4 sm:text-xs">
+            <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[12px] text-[var(--color-text-muted)] sm:mt-4 sm:pt-4 sm:text-xs">
               <span>* All weights mentioned are approximate.</span>
               <WeightDisclaimerTrigger />
             </div>
@@ -956,7 +954,7 @@ export function ProductDetailPage() {
               {orderLines.length > 1 ? `Add ${orderLines.length} Combinations to Cart` : 'Add to Cart'}
             </Button>
             {existingCartLines.length ? (
-              <Link to="/cart" className="text-center text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:text-xs">
+              <Link to="/cart" className="text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:text-xs">
                 Already in your cart: {existingCartLines.reduce((sum, line) => sum + line.quantity, 0)} pieces across{' '}
                 {existingCartLines.length} {existingCartLines.length === 1 ? 'combination' : 'combinations'}
               </Link>
@@ -1097,7 +1095,7 @@ function CartLine({ item, onUpdate, onRemove }) {
       <div className="flex-shrink-0">
         <div className="relative">
           <img
-            src={image}
+            src={cdnImage(image, 240)}
             alt={`${product.name}${customization.goldColor ? ` in ${customization.goldColor}` : ''}`}
             className="h-20 w-20 object-cover sm:h-28 sm:w-28"
           />
@@ -1113,14 +1111,14 @@ function CartLine({ item, onUpdate, onRemove }) {
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div className="min-w-0 flex-1">
-          <p className="font-[var(--font-accent)] text-[10px] tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{product.styleCode}</p>
+          <p className="font-[var(--font-accent)] text-[11px] tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{product.styleCode}</p>
           <h3 className="mt-1 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-lg">{product.name}</h3>
 
           <div className="mt-2 flex flex-wrap gap-1 sm:mt-2.5 sm:gap-1.5">
             {customizationChips(customization, { sizeNoun: chart?.noun || 'Size' }).map((chip) => (
               <span
                 key={chip.label}
-                className="inline-flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[10px] text-[var(--color-text)] sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs"
+                className="inline-flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[12px] text-[var(--color-text)] sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs"
               >
                 {chip.swatch ? (
                   <span
@@ -1134,7 +1132,7 @@ function CartLine({ item, onUpdate, onRemove }) {
             ))}
           </div>
 
-          <p className="mt-1.5 flex items-center gap-1.5 text-[10px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-xs">
+          <p className="mt-1.5 flex items-center gap-1.5 text-[12px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-xs">
             <span>
               Gold {formatWeight(goldWeight, 'g')}
               {customization.goldCarat ? ` (${customization.goldCarat})` : ''} · Diamond {formatWeight(diamondWeight, 'ct')}
@@ -1143,13 +1141,13 @@ function CartLine({ item, onUpdate, onRemove }) {
           </p>
 
           {customization.note ? (
-            <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)] sm:mt-2 sm:text-sm">
+            <p className="mt-1.5 text-xs text-[var(--color-text-muted)] sm:mt-2 sm:text-sm">
               <span className="text-[var(--color-text)]">Custom request:</span> {customization.note}
             </p>
           ) : null}
 
           <div className="mt-2.5 border-t border-[var(--color-border)] pt-2.5 sm:mt-3 sm:pt-3">
-            <p className="lux-label mb-1.5 text-[9px] sm:mb-2 sm:text-[10px]">Edit this piece</p>
+            <p className="lux-label mb-1.5 text-[11px] sm:mb-2 sm:text-[11px]">Edit this piece</p>
             <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {options.goldColors?.length ? (
                 <Select
@@ -1176,7 +1174,7 @@ function CartLine({ item, onUpdate, onRemove }) {
                 />
               ) : null}
             </div>
-            <p className="mt-1.5 text-[10px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-[11px]">
+            <p className="mt-1.5 text-[12px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-xs">
               Changing an option here updates this line only. If it matches another line in your cart, the two are combined.
             </p>
           </div>
@@ -1266,7 +1264,7 @@ export function CartPage() {
     <section className="page-shell section-gap">
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="Cart" noindex />
-      <SectionHeading eyebrow="Cart" title="Order review." description="Pricing will be confirmed by your sales representative." />
+      <SectionHeading as="h1" eyebrow="Cart" title="Your cart" description="Pricing will be confirmed by your sales representative." />
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4">
           {/* Newest first. The API appends each new line, so the buyer would
@@ -1278,12 +1276,12 @@ export function CartPage() {
         </div>
 
         <Panel className="h-fit space-y-3 sm:space-y-5">
-          <p className="lux-label text-[10px] sm:text-xs">Order Summary</p>
+          <p className="lux-label text-[11px] sm:text-xs">Order Summary</p>
           <div className="space-y-2 border-t border-[var(--color-border)] pt-3 sm:space-y-3 sm:pt-5">
             <div className="flex items-center justify-between">
               <span className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
                 Total Pieces
-                <span className="mt-0.5 block text-[10px] sm:text-xs">
+                <span className="mt-0.5 block text-[12px] sm:text-xs">
                   across {cart.items.length} {cart.items.length === 1 ? 'variant' : 'variants'}
                 </span>
               </span>
@@ -1306,7 +1304,7 @@ export function CartPage() {
           </div>
           <div className="space-y-1.5 border-t border-[var(--color-border)] pt-3 text-[12px] text-[var(--color-text-muted)] sm:pt-4 sm:text-sm">
             <p>Pricing confirmed by your sales representative after review.</p>
-            <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] sm:text-xs">
+            <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-xs">
               <span>* All weights are approximate and for reference only.</span>
               <WeightDisclaimerTrigger />
             </p>
@@ -1318,9 +1316,7 @@ export function CartPage() {
             <Button variant="secondary" className="w-full" icon={Download} loading={isDownloadingPdf} onClick={handleDownloadPdf}>
               Download Catalogue PDF
             </Button>
-            <Link to="/checkout">
-              <Button className="w-full">Proceed to Checkout</Button>
-            </Link>
+            <Button as={Link} to="/checkout" className="w-full">Proceed to Checkout</Button>
           </div>
           <Link to="/products" className="inline-flex text-[12px] text-[var(--color-primary)] hover:underline sm:text-sm">
             Continue Shopping
@@ -1357,7 +1353,7 @@ function downloadWishlistCsv(items, collectionName, fileName) {
 }
 
 const WISHLIST_TAB =
-  'whitespace-nowrap border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
+  'whitespace-nowrap border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
 
 export function WishlistPage() {
   const { wishlist, removeFromWishlist, createWishlistCollection, error: wishlistError, refreshWishlist } = useWishlist();
@@ -1382,8 +1378,9 @@ export function WishlistPage() {
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="Wishlist" noindex />
       <SectionHeading
+        as="h1"
         eyebrow="Wishlist"
-        title="Named collections for buyer planning"
+        title="Saved pieces"
         description="Create themed groups like Wedding Season or Export Order, then move them to cart when ready."
       />
 
@@ -1478,17 +1475,17 @@ export function WishlistPage() {
             <Panel key={item.id}>
               <Link to={`/products/${item.product.styleCode}`}>
                 <img
-                  src={item.product.images[0]}
+                  src={cdnImage(item.product.images[0], 640)}
                   alt={item.product.name}
                   className="mb-2.5 h-36 w-full object-cover transition duration-300 hover:opacity-90 sm:mb-4 sm:h-72"
                   loading="lazy"
                   decoding="async"
                 />
               </Link>
-              <span className="mb-2 inline-block border border-[var(--color-border)] px-1.5 py-px text-[9px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:px-2 sm:py-0.5 sm:text-[10px] sm:tracking-[0.2em]">
+              <span className="mb-2 inline-block border border-[var(--color-border)] px-1.5 py-px text-[11px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:px-2 sm:py-0.5 sm:text-[11px] sm:tracking-[0.2em]">
                 {getCollectionName(item.collectionId)}
               </span>
-              <p className="font-[var(--font-accent)] text-[9px] tracking-[0.22em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">
+              <p className="font-[var(--font-accent)] text-[11px] tracking-[0.22em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">
                 {item.product.styleCode}
               </p>
               <h3 className="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-xl">
@@ -1496,9 +1493,7 @@ export function WishlistPage() {
               </h3>
               <div className="mt-2.5 flex flex-col gap-1.5 sm:mt-5 sm:flex-row sm:gap-3">
                 {needsSize ? (
-                  <Link to={`/products/${item.product.styleCode}`} className="w-full sm:flex-1">
-                    <Button className="w-full">Choose Size</Button>
-                  </Link>
+                  <Button as={Link} to={`/products/${item.product.styleCode}`} className="w-full sm:flex-1">Choose Size</Button>
                 ) : (
                   <Button
                     className="w-full sm:flex-1"
@@ -1571,14 +1566,14 @@ export function CheckoutPage() {
     <section className="page-shell section-gap">
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="Checkout" noindex />
-      <SectionHeading eyebrow="Checkout" title="Multi-step approval-ready checkout" />
+      <SectionHeading as="h1" eyebrow="Checkout" title="Review and place your order" />
       <div className="mb-5 flex gap-3 sm:mb-8 sm:gap-4">
         {steps.map((label, index) => (
           <div key={label} className="flex-1">
             <div
               className={`mb-2 h-0.5 w-full transition-colors sm:mb-2.5 ${index <= step ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
             />
-            <div className={`text-[10px] transition-colors sm:text-xs ${index <= step ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`}>
+            <div className={`text-[12px] transition-colors sm:text-xs ${index <= step ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`}>
               <span className="block font-semibold">{String(index + 1).padStart(2, '0')}</span>
               <span className="uppercase tracking-[0.08em]">{label}</span>
             </div>
@@ -1620,12 +1615,12 @@ export function CheckoutPage() {
           </form>
         </Panel>
         <Panel>
-          <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">Review Summary</p>
+          <p className="lux-label mb-3 text-[11px] sm:mb-4 sm:text-xs">Review Summary</p>
           <div className="space-y-2.5 sm:space-y-4">
             {cart.items.map((item) => (
               <div key={item.id} className="flex items-center gap-3 border-b border-[var(--color-border)] pb-2.5 sm:gap-4 sm:pb-4">
                 <img
-                  src={variantImage(item.product, item.customization)}
+                  src={cdnImage(variantImage(item.product, item.customization), 128)}
                   alt={item.product.name}
                   className="h-12 w-12 flex-shrink-0 object-cover sm:h-16 sm:w-16"
                   loading="lazy"
@@ -1633,7 +1628,7 @@ export function CheckoutPage() {
                 />
                 <div className="min-w-0">
                   <p className="text-[13px] text-[var(--color-text)] sm:text-base">{item.product.name}</p>
-                  <p className="text-[10px] text-[var(--color-text-muted)] sm:text-xs">
+                  <p className="text-[12px] text-[var(--color-text-muted)] sm:text-xs">
                     Qty {item.quantity} •{' '}
                     {customizationSummary(item.customization, {
                       sizeNoun: resolveSizeChart(item.product)?.noun || 'Size',
@@ -1667,14 +1662,14 @@ export function CataloguePage() {
     <section className="page-shell section-gap">
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="My Catalogues" noindex />
-      <SectionHeading eyebrow="Catalogues" title="Assigned private lookbooks" description="Sales-rep curated catalogues visible only to approved buyers." />
+      <SectionHeading as="h1" eyebrow="Catalogues" title="Catalogues shared with you" description="Picked for you by your sales representative." />
       <CatalogueBuilder />
       <div className="grid gap-6 lg:grid-cols-2">
         {data.map((catalogue) => (
           <Panel key={catalogue.id}>
             <div className="mb-4 grid grid-cols-3 gap-3">
               {catalogue.products.slice(0, 3).map((product) => (
-                <img key={product.id} src={product.images[0]} alt={product.name} className="h-32 w-full object-cover" loading="lazy" decoding="async" />
+                <img key={product.id} src={cdnImage(product.images[0], 400)} alt={product.name} className="h-32 w-full object-cover" loading="lazy" decoding="async" />
               ))}
             </div>
             <h3 className="text-2xl font-semibold text-[var(--color-text)]">{catalogue.name}</h3>
@@ -1798,7 +1793,7 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
               {order.items.map((item) => (
                 <div key={item.id} className="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 sm:flex-row">
                   <img
-                    src={variantImage(item.product, item.customization) || item.product?.media?.[0]?.secureUrl}
+                    src={cdnImage(variantImage(item.product, item.customization) || item.product?.media?.[0]?.secureUrl, 96)}
                     alt={item.product?.name || 'Product'}
                     className="h-12 w-12 flex-shrink-0 border border-[var(--color-border)] object-cover"
                     loading="lazy"
@@ -1871,12 +1866,12 @@ export function ProfilePage() {
     <section className="page-shell section-gap">
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="My Account" noindex />
-      <SectionHeading eyebrow="Profile" title="Buyer account and order history" />
+      <SectionHeading as="h1" eyebrow="Account" title="Your account and orders" />
       {/* Renders nothing unless restock suggestions are on and something is due. */}
       <RestockPanel />
-      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
-          <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">My Profile</p>
+          <p className="lux-label mb-3 text-[11px] sm:mb-4 sm:text-xs">My Profile</p>
           {profile ? (
             <div className="space-y-2 text-[13px] text-[var(--color-text-muted)] sm:space-y-4 sm:text-sm">
               <p><span className="text-[var(--color-text)] font-medium">Name:</span> {profile.name}</p>
@@ -1890,7 +1885,7 @@ export function ProfilePage() {
           ) : <LoadingBlock label="Loading profile..." />}
         </Panel>
         <Panel>
-          <p className="lux-label mb-3 text-[10px] sm:mb-4 sm:text-xs">Order History</p>
+          <p className="lux-label mb-3 text-[11px] sm:mb-4 sm:text-xs">Order History</p>
           {ordersQuery.isLoadingError ? (
             <ErrorState error={ordersQuery.error} onRetry={ordersQuery.refetch} retrying={ordersQuery.isFetching} />
           ) : (

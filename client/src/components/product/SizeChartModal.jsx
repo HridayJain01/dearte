@@ -75,9 +75,9 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
           <div className="flex items-start gap-2 sm:gap-3">
             <Ruler className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-primary)] sm:mt-1 sm:h-5 sm:w-5" />
             <div>
-              <p className="lux-label text-[10px] sm:text-xs">Size Guide</p>
+              <p className="lux-label text-[11px] sm:text-xs">Size Guide</p>
               <h2 className="lux-heading mt-0.5 text-lg sm:mt-1 sm:text-3xl">{chart.label} Sizes</h2>
-              <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] sm:mt-1 sm:text-xs">
+              <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)] sm:mt-1 sm:text-xs">
                 {chart.rows.length} sizes · international conversions included
               </p>
             </div>
@@ -102,7 +102,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
                     <th
                       key={column}
                       scope="col"
-                      className={`px-2.5 py-2 text-left text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-[0.14em] ${
+                      className={`px-2.5 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)] sm:px-4 sm:py-3 sm:text-[11px] sm:tracking-[0.14em] ${
                         index === 0 ? 'text-[var(--color-primary)]' : ''
                       }`}
                     >
@@ -146,10 +146,10 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
 
           {tips.length ? (
             <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-3 sm:px-7 sm:py-5">
-              <p className="lux-label mb-2 text-[10px] sm:mb-3 sm:text-xs">How to measure</p>
+              <p className="lux-label mb-2 text-[11px] sm:mb-3 sm:text-xs">How to measure</p>
               <ul className="space-y-1.5 sm:space-y-2">
                 {tips.map((tip) => (
-                  <li key={tip} className="flex gap-2 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
+                  <li key={tip} className="flex gap-2 text-xs leading-relaxed text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)] sm:mt-2" />
                     <span>{tip}</span>
                   </li>
@@ -160,13 +160,13 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
         </div>
 
         <footer className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] px-3 py-2.5 sm:gap-4 sm:px-7 sm:py-4">
-          <p className="text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-xs">
+          <p className="text-[12px] leading-snug text-[var(--color-text-muted)] sm:text-xs">
             Tap any row to apply that size. Unsure? Your sales representative can confirm before production.
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 text-[10px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:text-xs sm:tracking-[0.14em]"
+            className="shrink-0 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:underline sm:text-xs sm:tracking-[0.14em]"
           >
             Done
           </button>

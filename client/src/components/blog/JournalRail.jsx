@@ -2,12 +2,12 @@ import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { aiService } from '../../services/aiService';
-import { formatDate } from '../../utils/formatters';
+import { cdnImage, formatDate } from '../../utils/formatters';
 
 // Stock photos are cropped to fill the card; DeArte's own product shots sit on
 // white and are shown whole, so a ring is never cut in half.
 export function PostImage({ asset, credit, alt, className = '', eager = false }) {
-  const src = asset?.secureUrl || '/og-image.png';
+  const src = cdnImage(asset?.secureUrl, 1200) || '/og-image.png';
   const isPhoto = credit?.source === 'Pexels';
   return (
     <img
@@ -29,7 +29,7 @@ export function PostCard({ post }) {
       </Link>
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         {post.publishedAt ? (
-          <p className="lux-label text-[10px] sm:text-xs">{formatDate(post.publishedAt)}</p>
+          <p className="lux-label text-[11px] sm:text-xs">{formatDate(post.publishedAt)}</p>
         ) : null}
         <h3 className="lux-heading mt-2 text-xl leading-snug sm:text-2xl">
           <Link to={href} className="hover:text-[var(--color-primary-hover)]">{post.title}</Link>
@@ -69,7 +69,7 @@ export function JournalRail() {
         <div className="max-w-2xl">
           <div className="mb-2 flex items-center gap-2 sm:mb-4 sm:gap-3">
             <span className="gold-hairline w-6 sm:w-8" aria-hidden />
-            <p className="lux-label text-[10px] sm:text-xs">From the journal</p>
+            <p className="lux-label text-[11px] sm:text-xs">From the journal</p>
           </div>
           <h2 className="lux-heading text-xl sm:text-4xl md:text-5xl">Lab-grown know-how for the trade</h2>
         </div>

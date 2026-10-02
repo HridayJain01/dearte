@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { formatDate, formatWeight } from './formatters';
+import { cdnImage, formatDate, formatWeight } from './formatters';
 import { brandLogoUrl } from './brandLogo';
 import {
   diamondWeightFor,
@@ -273,7 +273,8 @@ async function generatePdf({ payload, user, filename }) {
     payload.items.map(async (item) => ({
       id: item.id,
       // The photo of the colour that was actually ordered, not the style default.
-      dataUrl: await imageToDataUrl(variantImage(item.product, item.customization)),
+      // ~300 dpi for the 25.6 mm photo slot; the original upload is ~4000 px.
+      dataUrl: await imageToDataUrl(cdnImage(variantImage(item.product, item.customization), 400)),
     })),
   );
 

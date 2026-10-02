@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import { BRAND, getBrandLogoDataUrl, normalizeText } from './orderPdf';
-import { formatDate, formatWeight } from './formatters';
+import { cdnImage, formatDate, formatWeight } from './formatters';
 import { diamondWeightFor, goldWeightFor, variantImage } from './productVariants';
 import { productDisplayName } from './productTitle';
 
@@ -23,7 +23,7 @@ const plain = (value) =>
 async function loadPhoto(url, maxSide = 900) {
   if (!url) return null;
   try {
-    const response = await fetch(url);
+    const response = await fetch(cdnImage(url, maxSide));
     if (!response.ok) return null;
     const bitmap = await createImageBitmap(await response.blob());
     const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));

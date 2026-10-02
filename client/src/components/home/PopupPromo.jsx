@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { cdnImage } from '../../utils/formatters';
 
 function shouldShowPopup(ad) {
   if (!ad?.id || !ad?.image) return false;
@@ -54,7 +55,7 @@ export function PopupPromo({ ads }) {
         >
           <X className="h-5 w-5" />
         </button>
-        <img src={ad.image} alt="" className="max-h-[80vh] w-full object-contain" loading="lazy" decoding="async" />
+        <img src={cdnImage(ad.image, 1200)} alt="" className="max-h-[80vh] w-full object-contain" loading="lazy" decoding="async" />
       </div>
     </div>
   );

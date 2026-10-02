@@ -8,6 +8,7 @@ import { ArrowLeft, ChevronDown, Download, Plus, Search, Trash2 } from 'lucide-r
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
 import { DIAMOND_QUALITY } from '../utils/constants';
+import { cdnImage } from '../utils/formatters';
 import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader, parseImageFileName } from '../utils/importChunks';
 
 const textInput =
@@ -287,7 +288,7 @@ function Thumbnail({ asset, alt = '', size = 'h-12 w-12' }) {
 
   // Lazy: the product list can run to thousands of rows, and on a phone it is
   // one long page rather than a short scroll box.
-  return <img src={src} alt={alt} loading="lazy" decoding="async" className={`${size} shrink-0 rounded object-cover`} />;
+  return <img src={cdnImage(src, 160)} alt={alt} loading="lazy" decoding="async" className={`${size} shrink-0 rounded object-cover`} />;
 }
 
 // Below md each row becomes a card, label beside value, rather than a table to
@@ -316,7 +317,7 @@ function DataTable({ columns, rows, emptyMessage = 'No records.' }) {
             <tr key={row.id || index} className="border-b border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-alt)] max-md:block max-md:border max-md:px-3 max-md:py-1.5">
               {columns.map((column) => (
                 <td key={column.key} className="py-3.5 pr-4 align-middle max-md:flex max-md:items-center max-md:justify-between max-md:gap-4 max-md:py-1.5 max-md:pr-0">
-                  <span className="lux-label shrink-0 text-[10px] md:hidden">{column.label}</span>
+                  <span className="lux-label shrink-0 text-[11px] md:hidden">{column.label}</span>
                   <div className="min-w-0 break-words max-md:text-right">
                     {column.render ? column.render(row[column.key], row) : row[column.key]}
                   </div>
@@ -496,7 +497,7 @@ function ColorVariantGallery({ colorVariants, onChange }) {
               className="overflow-hidden rounded border border-[var(--color-border)] bg-[var(--color-surface)]"
             >
               <img
-                src={item.asset?.secureUrl}
+                src={cdnImage(item.asset?.secureUrl, 400)}
                 alt={item.asset?.alt || `${active.color} ${item.view}`}
                 loading="lazy"
                 className="aspect-square w-full object-cover"
@@ -1330,11 +1331,11 @@ export function AdminDashboardPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Dashboard" title="Admin overview" description="Operational visibility for buyers, products, orders, and catalogue assignments." />
+      <SectionHeading eyebrow="Dashboard" title="Admin overview" description="Buyers, products, orders and catalogues at a glance." />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard title="Buyers" value={stats.buyers || 0} detail={`${stats.pendingBuyers || 0} pending activation`} />
         <StatCard title="Products" value={stats.products || 0} detail={`${stats.newProducts || 0} marked new`} />
-        <StatCard title="Orders" value={stats.orders || 0} detail="Mongo-backed order pipeline" />
+        <StatCard title="Orders" value={stats.orders || 0} detail="Placed by buyers" />
         <StatCard title="Catalogues" value={stats.catalogues || 0} detail="Private buyer collections" />
       </div>
       <Panel>
@@ -1389,7 +1390,7 @@ export function AdminPromotionsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Promotions" title="Manage banners, popups, and events" description="All promotional media is now backend-managed and upload-first." />
+      <SectionHeading eyebrow="Promotions" title="Manage banners, popups, and events" description="Home page banners, the welcome popup and events." />
 
       <Panel className="space-y-3">
         <p className="lux-label">Banner order</p>
@@ -1969,7 +1970,7 @@ export function AdminProductsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Products, media, and stock now live in MongoDB and are editable from admin." />
+      <SectionHeading eyebrow="Inventory" title="Create and manage products" description="Add styles, edit photos and weights, or update many at once from Excel." />
       <BulkProductImportPanel
         onImported={() => {
           // See updateValuesFromSheet: stale product pages elsewhere in the tab too.
@@ -2104,7 +2105,7 @@ export function AdminProductsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-semibold text-[var(--color-text)]">
                       {product.styleCode}
-                      {product.isBestSeller && <span className="ml-2 text-[10px] uppercase tracking-[0.12em] text-amber-700">★ Best seller</span>}
+                      {product.isBestSeller && <span className="ml-2 text-[11px] uppercase tracking-[0.12em] text-amber-700">★ Best seller</span>}
                     </p>
                     <StatusBadge status={product.status} />
                   </div>
@@ -2193,7 +2194,7 @@ export function AdminOrdersPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Orders" title="Review and edit buyer orders" description="When you change order status, confirm whether WhatsApp notification should reach the buyer. Order confirmations with PDF attach automatically." />
+      <SectionHeading eyebrow="Orders" title="Review and edit buyer orders" description="Change an order's status and choose whether the buyer hears about it by WhatsApp or email." />
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Panel className="space-y-2">
           {data.map((order) => (
@@ -2318,7 +2319,7 @@ export function AdminOrdersPage() {
                             {cr.status === 'Open' ? (
                               <Button
                                 variant="ghost"
-                                className="px-2 py-1 text-[10px]"
+                                className="px-2 py-1 text-[12px]"
                                 onClick={async () => {
                                   try {
                                     await adminService.resolveChangeRequest(selectedOrder.id, cr.id);
@@ -2402,7 +2403,7 @@ export function AdminCataloguesPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Catalogues" title="Build private buyer catalogues" description="Search products and buyers, preview thumbnails, and manage assignments without manual IDs." />
+      <SectionHeading eyebrow="Catalogues" title="Build private buyer catalogues" description="Pick the products in a catalogue and the buyers who can see it." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -3211,7 +3212,7 @@ export function AdminConfigPage() {
 
   return (
     <div className="flex flex-col gap-5 sm:gap-8">
-      <SectionHeading eyebrow="Configuration" title="Site settings and taxonomy managers" description="These records now power admin dropdowns and frontend content structure. Collections are managed on the Collections page." />
+      <SectionHeading eyebrow="Configuration" title="Site settings" description="Site details, guest access, categories, metals and trusted brands. Collections have their own page." />
 
       <Panel className="order-3 space-y-4">
         <p className="lux-label">Site settings</p>
@@ -3456,7 +3457,7 @@ export function AdminTestimonialsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Testimonials" title="Moderate and curate social proof" description="Testimonials, avatars, and status changes are fully backend-managed." />
+      <SectionHeading eyebrow="Testimonials" title="Moderate and curate social proof" description="Choose which buyer reviews appear on the site." />
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel className="space-y-3">
           <div className="flex items-center justify-between">
@@ -3523,7 +3524,7 @@ export function AdminRolesPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Roles" title="Reference roles" description="Roles remain documented for future admin permission layering." />
+      <SectionHeading eyebrow="Roles" title="Reference roles" description="What each role is meant to cover. These are for reference and don't change anyone's access yet." />
       <Panel>
         <DataTable
           columns={[
@@ -3552,7 +3553,7 @@ export function AdminReportsPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      <SectionHeading eyebrow="Reports" title="Operational reporting" description="Product, category, login, and buyer-order reports are pulled from the current Mongo-backed dataset." />
+      <SectionHeading eyebrow="Reports" title="Reports" description="Product views, cart adds and orders, plus category, sign-in and buyer activity." />
       <Panel className="space-y-4">
         <Field label="Report">
           <select className={textInput} value={reportType} onChange={(event) => setReportType(event.target.value)}>

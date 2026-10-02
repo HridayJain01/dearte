@@ -53,10 +53,10 @@ export function LoginPage() {
 
   return (
     <AuthShell seoTitle="Buyer Sign In" title="Sign in to your buyer account." description="Registered retailers can browse collections, save catalogues, and submit order requests.">
-      <form className="space-y-3.5 sm:space-y-5" onSubmit={onSubmit}>
+      <form noValidate className="space-y-3.5 sm:space-y-5" onSubmit={onSubmit}>
         <SectionHeading eyebrow="Login" title="Welcome back" />
-        <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
-        <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
+        <Input label="Email" type="email" autoComplete="username" error={form.formState.errors.email?.message} {...form.register('email')} />
+        <PasswordInput label="Password" autoComplete="current-password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <div className="flex items-center justify-between text-[12px] sm:text-sm">
           <Link to="/forgot-password" className="text-[var(--color-primary)] hover:underline">Forgot Password?</Link>
           <Link to="/register" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Create account</Link>
@@ -105,13 +105,13 @@ export function RegisterPage() {
 
   return (
     <AuthShell seoTitle="Apply for a Trade Account" title="Apply for a De Arté trade account." description="Buyer registrations stay inactive until reviewed and approved by the admin team.">
-      <form className="grid gap-2.5 sm:gap-4 md:grid-cols-2" onSubmit={onSubmit}>
-        <Input label="Customer Name" error={form.formState.errors.customerName?.message} {...form.register('customerName')} />
-        <Input label="Email" error={form.formState.errors.email?.message} {...form.register('email')} />
-        <Input label="Mobile" error={form.formState.errors.mobile?.message} {...form.register('mobile')} />
-        <Input label="Company Name" error={form.formState.errors.companyName?.message} {...form.register('companyName')} />
-        <Input label="Address" className="md:col-span-2" error={form.formState.errors.address?.message} {...form.register('address')} />
-        <Input label="City" error={form.formState.errors.city?.message} {...form.register('city')} />
+      <form noValidate className="grid gap-2.5 sm:gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+        <Input label="Customer Name" autoComplete="name" error={form.formState.errors.customerName?.message} {...form.register('customerName')} />
+        <Input label="Email" type="email" autoComplete="email" error={form.formState.errors.email?.message} {...form.register('email')} />
+        <Input label="Mobile" type="tel" autoComplete="tel" error={form.formState.errors.mobile?.message} {...form.register('mobile')} />
+        <Input label="Company Name" autoComplete="organization" error={form.formState.errors.companyName?.message} {...form.register('companyName')} />
+        <Input label="Address" autoComplete="street-address" className="md:col-span-2" error={form.formState.errors.address?.message} {...form.register('address')} />
+        <Input label="City" autoComplete="address-level2" error={form.formState.errors.city?.message} {...form.register('city')} />
         {states ? (
           <Input as="select" label="State" error={form.formState.errors.state?.message} {...form.register('state')}>
             <option value="">Select state</option>
@@ -130,10 +130,10 @@ export function RegisterPage() {
           <option value="">Select country</option>
           {COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
         </Input>
-        <Input label="Pin Code" error={form.formState.errors.pinCode?.message} {...form.register('pinCode')} />
+        <Input label="Pin Code" autoComplete="postal-code" error={form.formState.errors.pinCode?.message} {...form.register('pinCode')} />
         <Input label="GST Number" {...form.register('gstNumber')} />
-        <PasswordInput label="Password" error={form.formState.errors.password?.message} {...form.register('password')} />
-        <PasswordInput label="Confirm Password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
+        <PasswordInput label="Password" autoComplete="new-password" error={form.formState.errors.password?.message} {...form.register('password')} />
+        <PasswordInput label="Confirm Password" autoComplete="new-password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
         <div className="md:col-span-2">
           <label className="flex items-start gap-2 text-[12px] text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
             <input type="checkbox" className="mt-1" {...form.register('acceptedTerms')} />
@@ -144,7 +144,7 @@ export function RegisterPage() {
             </span>
           </label>
           {form.formState.errors.acceptedTerms ? (
-            <span className="mt-1 block text-[11px] text-[var(--color-primary)] sm:text-xs">{form.formState.errors.acceptedTerms.message}</span>
+            <span className="mt-1 block text-xs text-[var(--color-primary)] sm:text-xs">{form.formState.errors.acceptedTerms.message}</span>
           ) : null}
         </div>
         <Button className="mt-1 md:col-span-2" type="submit">Submit Registration</Button>
@@ -196,20 +196,20 @@ export function ForgotPasswordPage() {
   return (
     <AuthShell seoTitle="Reset Your Password" title="Reset your password." description="Enter your email to receive a one-time code, then set a new password.">
       {step === 'request' ? (
-        <form className="space-y-3.5 sm:space-y-5" onSubmit={onRequestOtp}>
+        <form noValidate className="space-y-3.5 sm:space-y-5" onSubmit={onRequestOtp}>
           <SectionHeading eyebrow="Forgot password" title="Request a reset code" />
-          <Input label="Email" type="email" error={emailForm.formState.errors.email?.message} {...emailForm.register('email', { required: 'Email is required' })} />
+          <Input label="Email" type="email" autoComplete="email" error={emailForm.formState.errors.email?.message} {...emailForm.register('email', { required: 'Email is required' })} />
           <Button className="w-full" type="submit">Send OTP</Button>
           <p className="text-center text-[12px] text-[var(--color-text-muted)] sm:text-sm">
             <Link to="/login" className="text-[var(--color-primary)] hover:underline">Back to login</Link>
           </p>
         </form>
       ) : (
-        <form className="space-y-3.5 sm:space-y-5" onSubmit={onResetPassword}>
+        <form noValidate className="space-y-3.5 sm:space-y-5" onSubmit={onResetPassword}>
           <SectionHeading eyebrow="Forgot password" title="Enter your new password" />
           <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">A code was sent to <strong>{sentEmail}</strong>.</p>
-          <Input label="OTP" error={resetForm.formState.errors.otp?.message} {...resetForm.register('otp', { required: 'OTP is required' })} />
-          <PasswordInput label="New Password" error={resetForm.formState.errors.newPassword?.message} {...resetForm.register('newPassword', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })} />
+          <Input label="OTP" inputMode="numeric" autoComplete="one-time-code" error={resetForm.formState.errors.otp?.message} {...resetForm.register('otp', { required: 'OTP is required' })} />
+          <PasswordInput label="New Password" autoComplete="new-password" error={resetForm.formState.errors.newPassword?.message} {...resetForm.register('newPassword', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })} />
           <Button className="w-full" type="submit">Reset Password</Button>
           <p className="text-center text-[12px] text-[var(--color-text-muted)] sm:text-sm">
             <button type="button" className="text-[var(--color-primary)] hover:underline" onClick={() => setStep('request')}>Resend code</button>

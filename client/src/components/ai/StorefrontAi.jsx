@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { aiErrorMessage, aiService } from '../../services/aiService';
 import { userService } from '../../services/userService';
+import { cdnImage } from '../../utils/formatters';
 import { productDisplayName } from '../../utils/productTitle';
 import { formatDate } from '../../utils/formatters';
 
@@ -51,7 +52,7 @@ export function RestockPanel() {
 
   return (
     <Panel className="mb-4 sm:mb-6">
-      <p className="lux-label text-[10px] sm:text-xs">Time to restock</p>
+      <p className="lux-label text-[11px] sm:text-xs">Time to restock</p>
       <p className="mt-1 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
         Going by how often you have ordered them, these pieces are due for a reorder.
       </p>
@@ -62,14 +63,14 @@ export function RestockPanel() {
             <li key={item.productId} className="flex items-center gap-3 py-3">
               <Link to={`/products/${item.product.styleCode}`} className="h-14 w-14 flex-none border border-[var(--color-border)] bg-[var(--color-surface)]">
                 {item.product.images?.[0] ? (
-                  <img src={item.product.images[0]} alt="" className="h-full w-full object-contain p-1" loading="lazy" />
+                  <img src={cdnImage(item.product.images[0], 112)} alt="" className="h-full w-full object-contain p-1" loading="lazy" />
                 ) : null}
               </Link>
               <div className="min-w-0 flex-1">
                 <Link to={`/products/${item.product.styleCode}`} className="block truncate text-[13px] font-medium text-[var(--color-text)] hover:text-[var(--color-primary)] sm:text-sm">
                   {productDisplayName(item.product)}
                 </Link>
-                <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)] sm:text-xs">
+                <p className="mt-0.5 text-xs text-[var(--color-text-muted)] sm:text-xs">
                   Style {item.product.styleCode} · last ordered {formatDate(item.lastOrderedAt)} · {pieces} pcs · usually every {item.cycleDays} days
                 </p>
               </div>
@@ -163,7 +164,7 @@ function PhotoResults({ result, preview, onClose }) {
         <div className="flex items-start gap-4">
           {preview ? <img src={preview} alt="Your photo" className="h-16 w-16 flex-none border border-[var(--color-border)] object-cover sm:h-20 sm:w-20" /> : null}
           <div className="min-w-0 flex-1">
-            <p className="lux-label text-[10px] sm:text-xs">Shop by photo</p>
+            <p className="lux-label text-[11px] sm:text-xs">Shop by photo</p>
             <h2 className="lux-heading mt-1 text-xl sm:text-3xl">{result.items.length ? 'Closest pieces in the catalogue' : 'No close match yet'}</h2>
             {result.seen?.length ? (
               <p className="mt-1 text-[12px] text-[var(--color-text-muted)] sm:text-sm">We saw: {result.seen.join(' · ')}</p>
@@ -283,7 +284,7 @@ export function CatalogueBuilder() {
   return (
     <Panel className="mb-6 space-y-4 sm:mb-8">
       <div>
-        <p className="lux-label text-[10px] sm:text-xs">Build a lookbook with AI</p>
+        <p className="lux-label text-[11px] sm:text-xs">Build a lookbook with AI</p>
         <p className="mt-1 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
           Describe the selection you need. Remove pieces and edit the wording, then download it as a PDF.
         </p>

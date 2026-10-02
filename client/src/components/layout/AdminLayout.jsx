@@ -124,7 +124,7 @@ export function AdminLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.08em] ${isActive ? 'text-primary' : 'text-text-muted'}`
+                `flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] uppercase tracking-[0.08em] ${isActive ? 'text-primary' : 'text-text-muted'}`
               }
             >
               <Icon className="h-5 w-5" />
@@ -135,7 +135,7 @@ export function AdminLayout() {
         <button
           type="button"
           onClick={() => menuRef.current?.showModal()}
-          className={`flex min-h-14 flex-col items-center justify-center gap-1 text-[10px] uppercase tracking-[0.08em] ${current && !TABS.includes(current) ? 'text-primary' : 'text-text-muted'}`}
+          className={`flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] uppercase tracking-[0.08em] ${current && !TABS.includes(current) ? 'text-primary' : 'text-text-muted'}`}
         >
           <MoreHorizontal className="h-5 w-5" />
           More

@@ -66,7 +66,7 @@ export function BlogListPage() {
 function Credit({ credit }) {
   if (!credit?.name) return null;
   return (
-    <p className="mt-2 text-[11px] text-[var(--color-text-muted)]">
+    <p className="mt-2 text-xs text-[var(--color-text-muted)]">
       Photo by{' '}
       <a href={credit.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--color-primary)]">
         {credit.name}
@@ -157,7 +157,7 @@ export function BlogPostPage() {
 
       <div className="page-shell">
         <div className="mx-auto max-w-3xl">
-          <nav aria-label="Breadcrumb" className="lux-label text-[10px] sm:text-xs">
+          <nav aria-label="Breadcrumb" className="lux-label text-[11px] sm:text-xs">
             <Link to="/blog" className="hover:text-[var(--color-primary)]">Journal</Link>
           </nav>
           <h1 className="lux-heading mt-3 text-3xl leading-tight sm:text-5xl md:text-6xl">{post.title}</h1>
@@ -213,7 +213,7 @@ export function BlogPostPage() {
           <section className="mt-12 sm:mt-16">
             <div className="mb-4 flex items-center gap-2 sm:mb-8 sm:gap-3">
               <span className="gold-hairline w-6 sm:w-8" aria-hidden />
-              <h2 className="lux-label text-[10px] sm:text-xs">Pieces from this story</h2>
+              <h2 className="lux-label text-[11px] sm:text-xs">Pieces from this story</h2>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-4">
               {post.products.map((product) => <ProductCard key={product.id} product={product} />)}
@@ -234,7 +234,7 @@ export function BlogPostPage() {
 
         <div className="mx-auto mt-12 max-w-3xl sm:mt-16">
           <Panel className="bg-[var(--color-primary)] text-white sm:p-8">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-white/70 sm:text-xs">For retailers</p>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/70 sm:text-xs">For retailers</p>
             <h2 className="mt-2 text-xl font-semibold sm:text-3xl">Stock DeArte lab-grown diamond jewellery</h2>
             <p className="mt-2 text-sm leading-relaxed text-white/80">
               Browse the full trade catalogue, request custom pieces or start a private label range.
@@ -248,7 +248,7 @@ export function BlogPostPage() {
               </Link>
             </div>
           </Panel>
-          <p className="mt-4 text-[11px] text-[var(--color-text-muted)]">
+          <p className="mt-4 text-xs text-[var(--color-text-muted)]">
             Prepared by the DeArte editorial desk with AI assistance.
             {usesPexels ? (
               <>
