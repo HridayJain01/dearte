@@ -476,11 +476,13 @@ body {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
-/* Admin on phones. iOS zooms the page into any form field set below 16px and
-   leaves it zoomed after, so the console no longer fits the screen. Unlayered on
-   purpose: it has to beat the `text-sm` the admin inputs carry. */
+/* Form fields on phones, storefront and admin alike. iOS zooms the page into
+   any form field set below 16px and leaves it zoomed after, so the page no
+   longer fits the screen. Unlayered on purpose: it has to beat the utility
+   sizes the fields carry (`text-sm` in admin, the `text-[13px]` storefront
+   inputs inherit from their label). Desktop sizes are untouched. */
 @media (max-width: 639px) {
-  .admin-shell :is(input:not([type='checkbox'], [type='radio']), select, textarea) {
+  :is(input:not([type='checkbox'], [type='radio']), select, textarea) {
     font-size: 16px;
   }
 }
