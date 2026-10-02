@@ -128,13 +128,13 @@ function drawHeader(doc, title, reference, kind, logoDataUrl, pageNumberLabel = 
   if (logoDataUrl) {
     doc.setFillColor(255, 255, 255);
     doc.rect(14, 4, 50, 14, 'F');
-    doc.addImage(logoDataUrl, 'PNG', 16, 5.1, 46, 12.1, undefined, 'FAST');
+    doc.addImage(logoDataUrl, 'PNG', 23.4, 6, 31.5, 10.08, undefined, 'FAST');
   }
 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text('Private jewellery catalogue and order summary', 14, 18);
+  doc.text('Private jewellery catalogue and order summary', 14, 20.5);
 
   doc.setTextColor(236, 230, 219);
   doc.setFontSize(11);

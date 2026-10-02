@@ -51,7 +51,7 @@ function drawHeader(doc, logo, title) {
   if (logo) {
     doc.setFillColor(255, 255, 255);
     doc.rect(14, 4, 50, 14, 'F');
-    doc.addImage(logo, 'PNG', 16, 5.1, 46, 12.1, undefined, 'FAST');
+    doc.addImage(logo, 'PNG', 23.4, 6, 31.5, 10.08, undefined, 'FAST');
   }
   doc.setTextColor(236, 230, 219);
   doc.setFont('helvetica', 'normal');
