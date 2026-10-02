@@ -1,5 +1,5 @@
 import { forwardRef, useState } from 'react';
-import { Eye, EyeOff, LoaderCircle, Sparkles, TriangleAlert } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { describeError } from '../../utils/errors';
 
 // Mobile keeps the same letterspaced, uppercase voice as desktop, just tighter,
@@ -63,6 +63,36 @@ export function SectionHeading({ eyebrow, title, description, action, as = 'h2' 
   );
 }
 
+/**
+ * Phone-first modal sheet on a native <dialog>: focus trap, Escape and an inert
+ * page for free. Open it with `ref.current.showModal()`. A tap on the backdrop
+ * lands on the dialog element itself, which closes it.
+ */
+export function BottomSheet({ sheetRef, title, children, footer }) {
+  return (
+    <dialog
+      ref={sheetRef}
+      aria-label={title}
+      onClick={(event) => event.target === event.currentTarget && event.currentTarget.close()}
+      className="bottom-sheet mx-0 mb-0 mt-auto max-h-[88svh] w-full max-w-none flex-col border-t border-[var(--color-accent)]/40 bg-[var(--color-surface)] p-0 text-[var(--color-text)] backdrop:bg-[var(--scrim-veil)] open:flex sm:m-auto sm:max-w-lg sm:border"
+    >
+      <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] pl-4 pr-1">
+        <p className="truncate font-serif text-xl text-[var(--color-primary)]">{title}</p>
+        <button
+          type="button"
+          onClick={() => sheetRef.current?.close()}
+          aria-label="Close"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">{children}</div>
+      {footer ? <div className="safe-bottom-pad shrink-0 border-t border-[var(--color-border)] px-4 pt-3">{footer}</div> : null}
+    </dialog>
+  );
+}
+
 export function Panel({ children, className = '' }) {
   return <div className={`lux-panel p-3 sm:p-6 ${className}`}>{children}</div>;
 }
@@ -94,7 +124,7 @@ export function StatusBadge({ status }) {
   };
   const classes = map[status] ?? 'bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] border-[var(--color-border)]';
   return (
-    <span className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${classes}`}>
+    <span className={`inline-flex items-center whitespace-nowrap border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${classes}`}>
       {status}
     </span>
   );

@@ -1,5 +1,5 @@
-import { ChevronDown, Download, MessageCircleMore, Search, Share2, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, Download, MessageCircleMore, Pencil, Search, Share2, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -12,11 +12,11 @@ import { useSiteSettings, whatsappHref } from '../hooks/useSiteSettings';
 import { recentlyViewed, rememberViewed } from '../utils/recentlyViewed';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
-import { Button, EmptyState, ErrorState, LoadingBlock, PageError, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
+import { BottomSheet, Button, EmptyState, ErrorState, LoadingBlock, PageError, Panel, SectionHeading, StatusBadge, WeightDisclaimerTrigger } from '../components/ui/Primitives';
 import { Select } from '../components/ui/Select';
 import { ProductCard } from '../components/product/ProductCard';
 import { Seo } from '../components/seo/Seo';
-import { ProductFilters } from '../components/product/ProductFilters';
+import { FilterSheetButton, FilterSidebar } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
 import { CatalogueBuilder, PhotoSearchButton, RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
@@ -39,9 +39,6 @@ import {
   variantImage,
   variantImages,
 } from '../utils/productVariants';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { checkoutSchema } from '../utils/validators';
 import { useCollections, useOccasions } from '../hooks/useProducts';
 
 function ShopCategoryDiamondIcon({ className }) {
@@ -241,7 +238,7 @@ export function OccasionsPage() {
         <EmptyState
           title="No occasions yet"
           description="Occasions are drawn from the catalogue. Check back once pieces have been tagged."
-          action={<Link to="/products"><Button>Browse products</Button></Link>}
+          action={<Button as={Link} to="/products">Browse products</Button>}
         />
       )}
     </section>
@@ -505,7 +502,6 @@ export function ProductListPage() {
         as="h1"
         eyebrow="Products"
         title={activeSubCategory || activeCategory || activeCollection || activeOccasion || 'Shop by Product'}
-        description="Browse jewellery by product type first, then refine by collection, metal, and stock status."
       />
       {!isAuthenticated ? (
         <Panel className="mb-4 flex flex-col gap-2.5 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -515,16 +511,18 @@ export function ProductListPage() {
           <Button as={Link} to="/login" className="shrink-0">Sign in to see more</Button>
         </Panel>
       ) : null}
-      <div className="space-y-3.5 sm:space-y-6">
+      <div className="space-y-3 sm:space-y-5">
+        {/* A short row of tiles, not a 2x2 wall: the tiles used to fill the
+            first screen and push every product below the fold. */}
         {!activeCategory && !activeSubCategory && !activeCollection && !activeOccasion && (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="snap-rail -mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:gap-3 sm:px-0">
             {PRODUCT_CATEGORY_TILES.map((tile) => (
               <ShopCategoryCard
                 key={tile.label}
                 label={tile.label}
                 categorySlug={tile.categorySlug}
                 imageSrc={tile.imageSrc}
-                className="aspect-square min-h-[9rem] w-full sm:aspect-[4/5] sm:min-h-[17rem]"
+                className="h-24 w-32 flex-none snap-start sm:h-36 sm:w-60 lg:w-auto lg:flex-1"
               />
             ))}
           </div>
@@ -556,87 +554,175 @@ export function ProductListPage() {
           <SmartSearchButton query={searchDraft} onApply={applySmartSearch} />
           <PhotoSearchButton />
         </div>
-        <ProductFilters
-          filters={data.filters}
-          activeFilters={filters}
-          setFilter={setFilter}
-        />
-        <div className="lux-panel flex flex-col gap-2.5 p-3 sm:gap-4 sm:p-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">{data.total} items found</p>
+        <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+          <aside aria-label="Filters" className="max-lg:hidden lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:overflow-y-auto">
+            <FilterSidebar filters={data.filters} activeFilters={filters} setFilter={setFilter} />
+          </aside>
+
+          <div className="min-w-0 space-y-3 sm:space-y-5">
+            {/* Stays under the header while the grid scrolls on phones and
+                tablets, so filters and sort are one tap away at any depth. */}
+            <div className="sticky top-14 z-30 -mx-3 flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-primary-bg)]/95 px-3 py-2 backdrop-blur sm:top-[88px] lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
+              <div className="lg:hidden">
+                <FilterSheetButton total={data.total} onClear={clearAll} filters={data.filters} activeFilters={filters} setFilter={setFilter} />
+              </div>
+              <p className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)] sm:text-sm">
+                {data.total} {data.total === 1 ? 'piece' : 'pieces'}
+              </p>
+              <Select
+                className="w-40 shrink-0 sm:w-64"
+                value={sort}
+                onChange={setSort}
+                options={[
+                  { value: '', label: 'Featured' },
+                  { value: 'diamond-asc', label: 'Diamond Wt. Low to High' },
+                  { value: 'diamond-desc', label: 'Diamond Wt. High to Low' },
+                  { value: 'gold-asc', label: 'Gold Wt. Low to High' },
+                  { value: 'gold-desc', label: 'Gold Wt. High to Low' },
+                  { value: 'best-sellers', label: 'Best Sellers' },
+                  { value: 'new-arrivals', label: 'New Arrivals' },
+                ]}
+              />
+            </div>
+
             {activeChips.length ? (
-              <div className="mt-1.5 space-y-2 sm:mt-2 sm:space-y-3">
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {activeChips.map((chip) => (
-                    <span
-                      key={chip.key}
-                      className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-0.5 pl-2 pr-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:gap-2 sm:py-1 sm:pl-3 sm:pr-1 sm:text-xs sm:tracking-[0.08em]"
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {activeChips.map((chip) => (
+                  <span
+                    key={chip.key}
+                    className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] py-0.5 pl-2.5 pr-0.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.08em]"
+                  >
+                    {chip.label}
+                    <button
+                      type="button"
+                      onClick={chip.onRemove}
+                      aria-label={`Remove filter ${chip.label}`}
+                      className="flex h-7 w-7 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
                     >
-                      {chip.label}
-                      <button
-                        type="button"
-                        onClick={chip.onRemove}
-                        aria-label={`Remove filter ${chip.label}`}
-                        className="flex h-4 w-4 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:h-5 sm:w-5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
+                  className="min-h-9 px-1 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
                 >
-                  Clear All
+                  Clear all
                 </button>
               </div>
             ) : null}
+
+            <div
+              className={`grid grid-cols-2 gap-3 transition-opacity duration-200 sm:gap-5 lg:grid-cols-3 2xl:grid-cols-4 ${
+                isRefreshing ? 'pointer-events-none opacity-60' : 'opacity-100'
+              }`}
+            >
+              {data.items.map((product, index) => (
+                // The first row is the one that can hold the LCP element.
+                <ProductCard key={product.id} product={product} priority={index < 4} />
+              ))}
+            </div>
+
+            {/* One row at every width — stacked full-width pagers wasted three
+                screens' worth of height on a phone. */}
+            <div className="flex items-center justify-between gap-3">
+              <Button variant="secondary" onClick={() => setPage(page - 1)} disabled={page === 1}>
+                Previous
+              </Button>
+              <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
+                Page {data.page} of {data.totalPages}
+              </p>
+              <Button variant="secondary" onClick={() => setPage(Math.min(data.totalPages, page + 1))} disabled={page >= data.totalPages}>
+                Next
+              </Button>
+            </div>
           </div>
-          <Select
-            className="w-full sm:w-64"
-            value={sort}
-            onChange={setSort}
-            options={[
-              { value: '', label: 'Featured' },
-              { value: 'diamond-asc', label: 'Diamond Wt. Low to High' },
-              { value: 'diamond-desc', label: 'Diamond Wt. High to Low' },
-              { value: 'gold-asc', label: 'Gold Wt. Low to High' },
-              { value: 'gold-desc', label: 'Gold Wt. High to Low' },
-              { value: 'best-sellers', label: 'Best Sellers' },
-              { value: 'new-arrivals', label: 'New Arrivals' },
-            ]}
-          />
-        </div>
-
-        <div
-          className={`grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-4 transition-opacity duration-200 ${
-            isRefreshing ? 'pointer-events-none opacity-60' : 'opacity-100'
-          }`}
-        >
-          {data.items.map((product, index) => (
-            // Four across at the widest breakpoint, so the first four are the
-            // ones that can be the LCP element.
-            <ProductCard key={product.id} product={product} priority={index < 4} />
-          ))}
-        </div>
-
-        {/* One row at every width — stacked full-width pagers wasted three
-            screens' worth of height on a phone. */}
-        <div className="flex items-center justify-between gap-3">
-          <Button variant="secondary" onClick={() => setPage(page - 1)} disabled={page === 1}>
-            Previous
-          </Button>
-          <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
-            Page {data.page} of {data.totalPages}
-          </p>
-          <Button variant="secondary" onClick={() => setPage(Math.min(data.totalPages, page + 1))} disabled={page >= data.totalPages}>
-            Next
-          </Button>
         </div>
       </div>
     </section>
+  );
+}
+
+const CARAT_COLUMNS = [
+  ['18K', 'k18'],
+  ['14K', 'k14'],
+  ['9K', 'k9'],
+];
+// Weight rows the importer writes into specifications; the table below shows
+// them from `weights` instead, so they are not listed twice.
+const WEIGHT_SPEC_ROW = /^(gross|net|gold|diamond|colou?r ?stone)/i;
+
+/**
+ * Gross and net weight per karat as one small table (it used to be seven
+ * boxes and most of a phone screen). The karat the buyer has picked is
+ * highlighted. Styles imported before per-karat weights existed fall back to
+ * their specification rows.
+ */
+function WeightTable({ product, carat }) {
+  const weights = product.weights || {};
+  const columns = CARAT_COLUMNS.filter(([, key]) => Number(weights.gross?.[key]) > 0 || Number(weights.net?.[key]) > 0);
+  const specs = (product.specifications || []).filter((spec) => !columns.length || !WEIGHT_SPEC_ROW.test(String(spec.attribute || '').trim()));
+  const diamond = Number(weights.diamond || product.diamondWeight || 0);
+  const colourStone = Number(weights.colourStone || 0);
+  const active = String(carat || '').replace(/\s/g, '').toUpperCase();
+
+  return (
+    <Panel>
+      {columns.length ? (
+        <table className="w-full text-left text-[13px] sm:text-sm">
+          <thead>
+            <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+              <th className="pb-2 font-normal">Weight (g)</th>
+              {columns.map(([label]) => (
+                <th key={label} className={`pb-2 text-right ${active === label ? 'font-semibold text-[var(--color-primary)]' : 'font-normal'}`}>
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ['Gross', 'gross'],
+              ['Net', 'net'],
+            ].map(([label, group]) => (
+              <tr key={group} className="border-t border-[var(--color-border)]">
+                <th className="py-2 font-normal text-[var(--color-text-muted)]">{label}</th>
+                {columns.map(([columnLabel, key]) => (
+                  <td
+                    key={key}
+                    className={`py-2 text-right tabular-nums ${active === columnLabel ? 'bg-[var(--color-surface-alt)] font-semibold text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}
+                  >
+                    {Number(weights[group]?.[key]) || '—'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+      {columns.length && (diamond || colourStone) ? (
+        <p className="mt-1 border-t border-[var(--color-border)] pt-2 text-[13px] text-[var(--color-text)] sm:text-sm">
+          {diamond ? <>Diamond <span className="font-semibold tabular-nums">{diamond} ct</span></> : null}
+          {diamond && colourStone ? ' · ' : null}
+          {colourStone ? <>Colour stone <span className="font-semibold tabular-nums">{colourStone} ct</span></> : null}
+        </p>
+      ) : null}
+      {specs.length ? (
+        <div className={`grid grid-cols-2 gap-1.5 sm:gap-3 ${columns.length ? 'mt-3' : ''}`}>
+          {specs.map((spec, specIndex) => (
+            <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-2 sm:p-4">
+              <p className="text-[11px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{spec.attribute}</p>
+              <p className="mt-0.5 text-[13px] leading-tight text-[var(--color-text)] sm:mt-2 sm:text-sm">{spec.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[12px] text-[var(--color-text-muted)] sm:mt-3 sm:pt-3 sm:text-xs">
+        <span>* All weights are approximate.</span>
+        <WeightDisclaimerTrigger />
+      </div>
+    </Panel>
   );
 }
 
@@ -732,9 +818,9 @@ export function ProductDetailPage() {
           }
           action={
             isAuthenticated ? (
-              <Link to="/products"><Button>Browse products</Button></Link>
+              <Button as={Link} to="/products">Browse products</Button>
             ) : (
-              <Link to="/login"><Button>Sign in</Button></Link>
+              <Button as={Link} to="/login">Sign in</Button>
             )
           }
         />
@@ -777,8 +863,8 @@ export function ProductDetailPage() {
           ),
         ]}
       />
-      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-2.5 sm:space-y-4">
+      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+        <div className="space-y-2.5 sm:space-y-4 lg:sticky lg:top-28">
           <Panel className="overflow-hidden p-0">
             <TransformWrapper>
               {/* The zoom library sizes its own wrapper and content to
@@ -876,27 +962,7 @@ export function ProductDetailPage() {
             ) : null}
           </div>
 
-          <Panel>
-            {/* Two up even on the narrowest screen: one spec per row turned a
-                short weight table into a full page of scrolling. */}
-            <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
-              {data.specifications.map((spec, specIndex) => (
-                <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-2 sm:p-4">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[11px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{spec.attribute}</p>
-                    {spec.attribute?.toLowerCase().includes('weight') && (
-                      <WeightDisclaimerTrigger />
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-[13px] leading-tight text-[var(--color-text)] sm:mt-2 sm:text-sm">{spec.value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[12px] text-[var(--color-text-muted)] sm:mt-4 sm:pt-4 sm:text-xs">
-              <span>* All weights mentioned are approximate.</span>
-              <WeightDisclaimerTrigger />
-            </div>
-          </Panel>
+          <WeightTable product={data} carat={activeLine.goldCarat} />
 
           <Panel>
             <CombinationSelector
@@ -927,7 +993,10 @@ export function ProductDetailPage() {
             </label>
           </Panel>
 
-          <div className="flex flex-col gap-2 sm:gap-3">
+          {/* Sticky within this column: it rides the bottom edge from the moment
+              the details start until the buyer scrolls past them, so the main
+              action is never a scroll away. */}
+          <div className="sticky bottom-0 z-20 -mx-3 space-y-1.5 border-t border-[var(--color-border)] bg-[var(--color-primary-bg)]/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur sm:mx-0 sm:px-0">
             <Button
               className="w-full"
               disabled={Boolean(sizeChart) && !orderLines.every((line) => line.size)}
@@ -954,11 +1023,14 @@ export function ProductDetailPage() {
               {orderLines.length > 1 ? `Add ${orderLines.length} Combinations to Cart` : 'Add to Cart'}
             </Button>
             {existingCartLines.length ? (
-              <Link to="/cart" className="text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] sm:text-xs">
+              <Link to="/cart" className="block text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
                 Already in your cart: {existingCartLines.reduce((sum, line) => sum + line.quantity, 0)} pieces across{' '}
                 {existingCartLines.length} {existingCartLines.length === 1 ? 'combination' : 'combinations'}
               </Link>
             ) : null}
+          </div>
+
+          <div className="flex flex-col gap-2 sm:gap-3">
             <div className="flex items-stretch gap-2">
               {(wishlist?.collections?.length ?? 0) > 1 && (
                 <select
@@ -1076,7 +1148,40 @@ function RecentlyViewedRail({ products }) {
  * customization — image, chips and weights — so two lines of the same style at
  * different colours or karats never read as the same piece.
  */
+// One tap per option instead of a dropdown: inside a sheet, a dropdown's list
+// would be clipped by the sheet's own scroll area.
+function OptionChips({ legend, options, value, onChange, swatch }) {
+  return (
+    <fieldset className="mb-4">
+      <legend className="mb-2 text-[12px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{legend}</legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const optionValue = option.value ?? option;
+          const selected = value === optionValue;
+          return (
+            <button
+              key={optionValue}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => !selected && onChange(optionValue)}
+              className={`inline-flex min-h-10 min-w-12 items-center justify-center gap-2 border px-3 text-[13px] ${
+                selected
+                  ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)] font-semibold text-[var(--color-primary)]'
+                  : 'border-[var(--color-border)] text-[var(--color-text)]'
+              }`}
+            >
+              {swatch ? <span className="h-3.5 w-3.5 border border-[var(--color-border)]" style={{ backgroundColor: swatch(optionValue) }} /> : null}
+              {option.label ?? option}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 function CartLine({ item, onUpdate, onRemove }) {
+  const editRef = useRef(null);
   const product = item.product || {};
   const customization = item.customization || {};
   const chart = resolveSizeChart(product);
@@ -1097,7 +1202,7 @@ function CartLine({ item, onUpdate, onRemove }) {
           <img
             src={cdnImage(image, 240)}
             alt={`${product.name}${customization.goldColor ? ` in ${customization.goldColor}` : ''}`}
-            className="h-20 w-20 object-cover sm:h-28 sm:w-28"
+            className="h-16 w-16 object-cover sm:h-28 sm:w-28"
           />
           {customization.goldColor ? (
             <span
@@ -1112,7 +1217,7 @@ function CartLine({ item, onUpdate, onRemove }) {
       <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div className="min-w-0 flex-1">
           <p className="font-[var(--font-accent)] text-[11px] tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{product.styleCode}</p>
-          <h3 className="mt-1 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-lg">{product.name}</h3>
+          <h3 className="mt-1 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-lg">{productDisplayName(product)}</h3>
 
           <div className="mt-2 flex flex-wrap gap-1 sm:mt-2.5 sm:gap-1.5">
             {customizationChips(customization, { sizeNoun: chart?.noun || 'Size' }).map((chip) => (
@@ -1146,44 +1251,12 @@ function CartLine({ item, onUpdate, onRemove }) {
             </p>
           ) : null}
 
-          <div className="mt-2.5 border-t border-[var(--color-border)] pt-2.5 sm:mt-3 sm:pt-3">
-            <p className="lux-label mb-1.5 text-[11px] sm:mb-2 sm:text-[11px]">Edit this piece</p>
-            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-              {options.goldColors?.length ? (
-                <Select
-                  options={options.goldColors}
-                  value={customization.goldColor}
-                  placeholder="Gold colour"
-                  onChange={(goldColor) => editSelection({ goldColor })}
-                />
-              ) : null}
-              {options.goldCarats?.length ? (
-                <Select
-                  options={options.goldCarats}
-                  value={customization.goldCarat}
-                  placeholder="Gold karat"
-                  onChange={(goldCarat) => editSelection({ goldCarat })}
-                />
-              ) : null}
-              {chart ? (
-                <Select
-                  options={chart.rows.map((row) => ({ value: row.size, label: sizeLabel(row.size), hint: row.hint }))}
-                  value={customization.size}
-                  placeholder={chart.noun}
-                  onChange={(size) => editSelection({ size })}
-                />
-              ) : null}
-            </div>
-            <p className="mt-1.5 text-[12px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-xs">
-              Changing an option here updates this line only. If it matches another line in your cart, the two are combined.
-            </p>
-          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <div className="flex items-center border border-[var(--color-border)]">
             <button
-              className="flex h-8 w-8 items-center justify-center text-base text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-9 sm:w-9 sm:text-lg"
+              className="flex h-10 w-10 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
               onClick={() => onUpdate(item.id, { quantity: Math.max(1, item.quantity - 1) })}
               aria-label="Decrease quantity"
             >
@@ -1193,7 +1266,7 @@ function CartLine({ item, onUpdate, onRemove }) {
               {item.quantity}
             </span>
             <button
-              className="flex h-8 w-8 items-center justify-center text-base text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] sm:h-9 sm:w-9 sm:text-lg"
+              className="flex h-10 w-10 items-center justify-center text-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]"
               onClick={() => onUpdate(item.id, { quantity: item.quantity + 1 })}
               aria-label="Increase quantity"
             >
@@ -1201,14 +1274,42 @@ function CartLine({ item, onUpdate, onRemove }) {
             </button>
           </div>
           <button
+            type="button"
+            onClick={() => editRef.current?.showModal()}
+            className="inline-flex h-10 items-center gap-1.5 border border-[var(--color-border)] px-2.5 text-[12px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:border-[var(--color-border-active)]"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </button>
+          <button
             onClick={() => onRemove(item.id)}
             aria-label="Remove from cart"
-            className="flex h-8 w-8 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-red-300 hover:text-red-500 sm:h-9 sm:w-9"
+            className="flex h-10 w-10 items-center justify-center border border-[var(--color-border)] text-[var(--color-text-muted)] transition hover:border-[var(--color-border-active)] hover:text-[var(--color-primary)]"
           >
-            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      <BottomSheet sheetRef={editRef} title={`Edit ${product.styleCode || 'piece'}`}>
+        {options.goldColors?.length ? (
+          <OptionChips legend="Gold colour" options={options.goldColors} value={customization.goldColor} swatch={goldColorSwatch} onChange={(goldColor) => editSelection({ goldColor })} />
+        ) : null}
+        {options.goldCarats?.length ? (
+          <OptionChips legend="Gold karat" options={options.goldCarats} value={customization.goldCarat} onChange={(goldCarat) => editSelection({ goldCarat })} />
+        ) : null}
+        {chart ? (
+          <OptionChips
+            legend={chart.noun}
+            options={chart.rows.map((row) => ({ value: row.size, label: sizeLabel(row.size) }))}
+            value={customization.size}
+            onChange={(size) => editSelection({ size })}
+          />
+        ) : null}
+        <p className="pb-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
+          Changes save as you tap. If this matches another line in your cart, the two are combined.
+        </p>
+      </BottomSheet>
     </Panel>
   );
 }
@@ -1216,11 +1317,15 @@ function CartLine({ item, onUpdate, onRemove }) {
 export function CartPage() {
   const { cart, updateCart, removeFromCart, error: cartError, refreshCart } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
   // Styles already in the cart are left out: the rail is for what to add next.
   const inCart = new Set(cart.items.map((item) => item.product?.id));
   const recent = recentlyViewed(user?.id).filter((product) => !inCart.has(product.id)).slice(0, 8);
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: userService.profile });
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [placing, setPlacing] = useState(false);
+  const orderSheetRef = useRef(null);
 
   // Karat-aware, and shared with both PDFs and the admin order panel, so the
   // document the buyer receives quotes exactly what this summary showed them.
@@ -1243,6 +1348,23 @@ export function CartPage() {
     }
   };
 
+  // Checkout used to be a separate two-step page for this one notes field.
+  const placeOrder = async () => {
+    if (placing) return;
+    setPlacing(true);
+    try {
+      const order = await orderService.create({ notes });
+      await refreshCart();
+      // A toast, not router state: the account page never read that state, so
+      // buyers used to land there with no confirmation at all.
+      toast.success(`Order placed. Order ID: ${order.orderId}`);
+      navigate('/profile');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not place order'));
+      setPlacing(false);
+    }
+  };
+
   if (cartError) {
     return <PageError error={cartError} onRetry={refreshCart} />;
   }
@@ -1253,20 +1375,63 @@ export function CartPage() {
         <EmptyState
           title="Your cart is empty"
           description="Start with collections, new arrivals, or best sellers to curate your next buyer order."
-          action={<Link to="/products"><Button>Browse Collections</Button></Link>}
+          action={<Button as={Link} to="/products">Browse products</Button>}
         />
         <RecentlyViewedRail products={recent} />
       </section>
     );
   }
 
+  const totals = (
+    <dl className="space-y-2">
+      <div className="flex items-baseline justify-between">
+        <dt className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">
+          Pieces <span className="text-[12px]">· {cart.items.length} {cart.items.length === 1 ? 'line' : 'lines'}</span>
+        </dt>
+        <dd className="text-2xl font-light text-[var(--color-primary)]">{pieces}</dd>
+      </div>
+      <div className="flex items-baseline justify-between">
+        <dt className="flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
+          Diamond weight
+          <WeightDisclaimerTrigger />
+        </dt>
+        <dd className="text-base font-light text-[var(--color-primary)] sm:text-xl">{diamondWeightTotal.toFixed(2)} ct</dd>
+      </div>
+      <div className="flex items-baseline justify-between">
+        <dt className="flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] sm:text-sm">
+          Gold weight
+          <WeightDisclaimerTrigger />
+        </dt>
+        <dd className="text-base font-light text-[var(--color-primary)] sm:text-xl">{goldWeightTotal.toFixed(2)} g</dd>
+      </div>
+    </dl>
+  );
+
+  const notesField = (
+    <label className="block text-[13px] text-[var(--color-text-muted)] sm:text-sm">
+      <span className="mb-1.5 block">Order notes (optional)</span>
+      <textarea
+        value={notes}
+        onChange={(event) => setNotes(event.target.value)}
+        placeholder="Delivery preferences, deadlines, anything your sales representative should know"
+        className="min-h-[88px] w-full border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-[16px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:text-sm"
+      />
+    </label>
+  );
+
+  const pdfButton = (
+    <Button variant="secondary" className="w-full" icon={Download} loading={isDownloadingPdf} onClick={handleDownloadPdf}>
+      Download PDF
+    </Button>
+  );
+
   return (
     <section className="page-shell section-gap">
       {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
       <Seo title="Cart" noindex />
       <SectionHeading as="h1" eyebrow="Cart" title="Your cart" description="Pricing will be confirmed by your sales representative." />
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+        <div className="space-y-3 sm:space-y-4">
           {/* Newest first. The API appends each new line, so the buyer would
               otherwise have to scroll past a long cart to see what they just
               added. Copied before reversing — `cart.items` is shared state. */}
@@ -1275,55 +1440,57 @@ export function CartPage() {
           ))}
         </div>
 
-        <Panel className="h-fit space-y-3 sm:space-y-5">
-          <p className="lux-label text-[11px] sm:text-xs">Order Summary</p>
-          <div className="space-y-2 border-t border-[var(--color-border)] pt-3 sm:space-y-3 sm:pt-5">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
-                Total Pieces
-                <span className="mt-0.5 block text-[12px] sm:text-xs">
-                  across {cart.items.length} {cart.items.length === 1 ? 'variant' : 'variants'}
-                </span>
-              </span>
-              <span className="text-2xl font-light text-[var(--color-primary)] sm:text-3xl">{pieces}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-sm">
-                Total Diamond Weight
-                <WeightDisclaimerTrigger />
-              </span>
-              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{diamondWeightTotal.toFixed(2)} ct</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-sm">
-                Total Gold Weight
-                <WeightDisclaimerTrigger />
-              </span>
-              <span className="text-base font-light text-[var(--color-primary)] sm:text-xl">{goldWeightTotal.toFixed(2)} g</span>
-            </div>
-          </div>
-          <div className="space-y-1.5 border-t border-[var(--color-border)] pt-3 text-[12px] text-[var(--color-text-muted)] sm:pt-4 sm:text-sm">
-            <p>Pricing confirmed by your sales representative after review.</p>
-            <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)] sm:text-xs">
-              <span>* All weights are approximate and for reference only.</span>
-              <WeightDisclaimerTrigger />
-            </p>
-            {cart.specialInstructions ? (
-              <p className="mt-2">Note: {cart.specialInstructions}</p>
-            ) : null}
-          </div>
-          <div className="flex flex-col gap-2 sm:gap-3">
-            <Button variant="secondary" className="w-full" icon={Download} loading={isDownloadingPdf} onClick={handleDownloadPdf}>
-              Download Catalogue PDF
-            </Button>
-            <Button as={Link} to="/checkout" className="w-full">Proceed to Checkout</Button>
-          </div>
-          <Link to="/products" className="inline-flex text-[12px] text-[var(--color-primary)] hover:underline sm:text-sm">
-            Continue Shopping
-          </Link>
+        {/* Desktop: the summary and the order button stay in view beside the lines. */}
+        <Panel className="space-y-4 max-lg:hidden lg:sticky lg:top-28">
+          <p className="lux-label text-xs">Order summary</p>
+          {totals}
+          {notesField}
+          <Button className="w-full" loading={placing} disabled={placing} onClick={placeOrder}>
+            Place order
+          </Button>
+          {pdfButton}
+          <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+            * All weights are approximate.
+            <WeightDisclaimerTrigger />
+          </p>
         </Panel>
       </div>
+
       <RecentlyViewedRail products={recent} />
+
+      {/* Phones and tablets: totals ride the bottom edge; the order button opens
+          a short confirm sheet with the notes field. */}
+      <div className="sticky bottom-0 z-20 -mx-3 mt-4 flex items-center gap-3 border-t border-[var(--color-border)] bg-[var(--color-primary-bg)]/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur sm:mx-0 sm:px-0 lg:hidden">
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="text-[15px] font-semibold text-[var(--color-primary)]">
+            {pieces} {pieces === 1 ? 'piece' : 'pieces'}
+          </p>
+          <p className="text-[12px] text-[var(--color-text-muted)]">
+            {diamondWeightTotal.toFixed(2)} ct · {goldWeightTotal.toFixed(2)} g
+          </p>
+        </div>
+        <Button className="shrink-0" onClick={() => orderSheetRef.current?.showModal()}>
+          Place order
+        </Button>
+      </div>
+
+      <BottomSheet
+        sheetRef={orderSheetRef}
+        title="Place order"
+        footer={
+          <div className="space-y-2">
+            <Button className="w-full" loading={placing} disabled={placing} onClick={placeOrder}>
+              Place order
+            </Button>
+            {pdfButton}
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {totals}
+          {notesField}
+        </div>
+      </BottomSheet>
     </section>
   );
 }
@@ -1524,126 +1691,6 @@ export function WishlistPage() {
   );
 }
 
-export function CheckoutPage() {
-  const { cart, refreshCart, error: cartError } = useCart();
-  const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const steps = ['Notes', 'Review'];
-  const form = useForm({
-    resolver: zodResolver(checkoutSchema),
-    defaultValues: {
-      notes: '',
-    },
-  });
-  const {
-    formState: { isSubmitting },
-  } = form;
-  const reviewValues = form.getValues();
-
-  const handleNextStep = () => {
-    setStep((value) => Math.min(steps.length - 1, value + 1));
-  };
-
-  const placeOrder = form.handleSubmit(async (values) => {
-    try {
-      const order = await orderService.create(values);
-      await refreshCart();
-      navigate('/profile', {
-        state: {
-          successMessage: `Order placed successfully. Order ID: ${order.orderId}`,
-        },
-      });
-    } catch (error) {
-      toast.error(errorMessage(error, 'Could not place order'));
-    }
-  });
-
-  if (cartError) {
-    return <PageError error={cartError} onRetry={refreshCart} />;
-  }
-
-  return (
-    <section className="page-shell section-gap">
-      {/* Buyer-session page: nothing here is meaningful to a crawler, and indexing it would only add a thin, empty result. */}
-      <Seo title="Checkout" noindex />
-      <SectionHeading as="h1" eyebrow="Checkout" title="Review and place your order" />
-      <div className="mb-5 flex gap-3 sm:mb-8 sm:gap-4">
-        {steps.map((label, index) => (
-          <div key={label} className="flex-1">
-            <div
-              className={`mb-2 h-0.5 w-full transition-colors sm:mb-2.5 ${index <= step ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
-            />
-            <div className={`text-[12px] transition-colors sm:text-xs ${index <= step ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`}>
-              <span className="block font-semibold">{String(index + 1).padStart(2, '0')}</span>
-              <span className="uppercase tracking-[0.08em]">{label}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Panel>
-          {/* The order is placed from the Place Order button only. Native form
-              submission stays disabled so no stray submit (Enter key, or a
-              button React re-typed mid-click) can skip the review step. */}
-          <form className="space-y-4 sm:space-y-5" onSubmit={(event) => event.preventDefault()}>
-            {step === 0 ? (
-              <textarea {...form.register('notes')} aria-label="Special instructions" placeholder="Special instructions and delivery preferences" className="min-h-[110px] w-full border border-[var(--color-border)] bg-transparent p-3 text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-border-active)] sm:min-h-[160px] sm:p-4 sm:text-base" />
-            ) : null}
-            {step === 1 ? (
-              <div className="space-y-4">
-                <p className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">Notes: {reviewValues.notes || 'No notes added'}</p>
-              </div>
-            ) : null}
-
-            <div className="flex justify-between gap-3">
-              <Button type="button" variant="secondary" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))}>
-                Back
-              </Button>
-              {/* Distinct keys keep these as separate DOM nodes: without them
-                  React reuses one <button> and patching its type during the
-                  click made the browser submit the form on the same click. */}
-              {step < steps.length - 1 ? (
-                <Button key="next-step" type="button" onClick={handleNextStep}>
-                  Next Step
-                </Button>
-              ) : (
-                <Button key="place-order" type="button" loading={isSubmitting} disabled={isSubmitting} onClick={placeOrder}>
-                  Place Order
-                </Button>
-              )}
-            </div>
-          </form>
-        </Panel>
-        <Panel>
-          <p className="lux-label mb-3 text-[11px] sm:mb-4 sm:text-xs">Review Summary</p>
-          <div className="space-y-2.5 sm:space-y-4">
-            {cart.items.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 border-b border-[var(--color-border)] pb-2.5 sm:gap-4 sm:pb-4">
-                <img
-                  src={cdnImage(variantImage(item.product, item.customization), 128)}
-                  alt={item.product.name}
-                  className="h-12 w-12 flex-shrink-0 object-cover sm:h-16 sm:w-16"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="min-w-0">
-                  <p className="text-[13px] text-[var(--color-text)] sm:text-base">{item.product.name}</p>
-                  <p className="text-[12px] text-[var(--color-text-muted)] sm:text-xs">
-                    Qty {item.quantity} •{' '}
-                    {customizationSummary(item.customization, {
-                      sizeNoun: resolveSizeChart(item.product)?.noun || 'Size',
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-    </section>
-  );
-}
-
 export function CataloguePage() {
   const { data, isLoading, isLoadingError, error, refetch, isFetching } = useQuery({
     queryKey: ['catalogues'],
@@ -1758,13 +1805,16 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
 
   return (
     <>
-      <tr className="border-t border-[var(--color-border)] text-[var(--color-text)]">
-        <td className="whitespace-nowrap py-2.5 pr-3 sm:py-4">{order.orderId}</td>
-        <td className="whitespace-nowrap py-2.5 pr-3 sm:py-4">{formatDate(order.date)}</td>
-        <td className="py-2.5 pr-3 sm:py-4">{order.items.length}</td>
-        <td className="py-2.5 pr-3 sm:py-4"><StatusBadge status={order.status} /></td>
-        <td className="py-2.5 text-right sm:py-4">
-          <div className="flex items-center justify-end gap-1">
+      <tr className="border-t border-[var(--color-border)] text-[var(--color-text)] max-sm:grid max-sm:grid-cols-[1fr_auto] max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-3">
+        <td className="whitespace-nowrap py-2.5 pr-3 font-medium sm:py-4 sm:font-normal max-sm:py-0">{order.orderId}</td>
+        <td className="whitespace-nowrap py-2.5 pr-3 sm:py-4 max-sm:row-start-2 max-sm:py-0 max-sm:text-[var(--color-text-muted)]">{formatDate(order.date)}</td>
+        <td className="py-2.5 pr-3 sm:py-4 max-sm:row-start-2 max-sm:py-0 max-sm:pr-0 max-sm:text-right max-sm:text-[var(--color-text-muted)]">
+          {order.items.length}
+          <span className="sm:hidden"> {order.items.length === 1 ? 'item' : 'items'}</span>
+        </td>
+        <td className="py-2.5 pr-3 sm:py-4 max-sm:col-start-2 max-sm:row-start-1 max-sm:py-0 max-sm:pr-0 max-sm:text-right"><StatusBadge status={order.status} /></td>
+        <td className="py-2.5 text-right sm:py-4 max-sm:col-span-2 max-sm:py-0">
+          <div className="flex flex-wrap items-center justify-end gap-1 max-sm:justify-start">
             <Button
               variant="ghost"
               icon={ChevronDown}
@@ -1787,8 +1837,8 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
         </td>
       </tr>
       {expanded ? (
-        <tr className="border-t border-[var(--color-border)]">
-          <td colSpan={5} className="bg-[var(--color-surface-alt)] px-4 py-4">
+        <tr className="border-t border-[var(--color-border)] max-sm:block">
+          <td colSpan={5} className="bg-[var(--color-surface-alt)] px-4 py-4 max-sm:block max-sm:px-3">
             <div className="space-y-3">
               {order.items.map((item) => (
                 <div key={item.id} className="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 sm:flex-row">
@@ -1890,8 +1940,8 @@ export function ProfilePage() {
             <ErrorState error={ordersQuery.error} onRetry={ordersQuery.refetch} retrying={ordersQuery.isFetching} />
           ) : (
           <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[520px] text-left text-[12px] sm:min-w-0 sm:text-sm">
-              <thead className="text-[var(--color-text-muted)]">
+            <table className="w-full text-left text-[13px] sm:text-sm max-sm:block">
+              <thead className="text-[var(--color-text-muted)] max-sm:hidden">
                 <tr>
                   <th className="whitespace-nowrap pb-2.5 pr-3 sm:pb-4">Order ID</th>
                   <th className="whitespace-nowrap pb-2.5 pr-3 sm:pb-4">Date</th>
@@ -1900,7 +1950,7 @@ export function ProfilePage() {
                   <th className="pb-2.5 text-right sm:pb-4">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="max-sm:block">
                 {orders.map((order) => (
                   <OrderHistoryRow
                     key={order.id}

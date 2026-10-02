@@ -21,7 +21,6 @@ const ProductListPage = lazy(() => import('./pages/StorePages').then((module) =>
 const ProductDetailPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.ProductDetailPage })));
 const CartPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.CartPage })));
 const WishlistPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.WishlistPage })));
-const CheckoutPage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.CheckoutPage })));
 const CataloguePage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.CataloguePage })));
 const ProfilePage = lazy(() => import('./pages/StorePages').then((module) => ({ default: module.ProfilePage })));
 
@@ -131,7 +130,8 @@ function App() {
           <Route path="products/:styleCode" element={<GuestAccessRoute accessKey="pageProducts" preload={loadStorePages}><ProductDetailPage /></GuestAccessRoute>} />
           <Route path="cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
           <Route path="wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
-          <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+          {/* Orders are placed from the cart now; old links and bookmarks land there. */}
+          <Route path="checkout" element={<Navigate to="/cart" replace />} />
           <Route path="catalogue" element={<ProtectedRoute><CataloguePage /></ProtectedRoute>} />
           <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="login" element={<LoginPage />} />

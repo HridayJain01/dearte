@@ -149,7 +149,8 @@ export function AppInstallPrompt() {
     <div
       role="dialog"
       aria-label={copy[0]}
-      className="fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))_+_3.5rem)] z-40 border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lifted)] sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[22rem]"
+      // Phones: above the tab bar and the WhatsApp button beside it.
+      className="fixed inset-x-3 bottom-[calc(7.5rem+env(safe-area-inset-bottom))] z-40 border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lifted)] md:inset-x-auto md:bottom-6 md:left-6 md:w-[22rem]"
     >
       <div className="flex items-start gap-3">
         <img src="/icon-192.png" alt="" className="h-11 w-11 shrink-0" />

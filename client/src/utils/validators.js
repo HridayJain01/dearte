@@ -34,6 +34,3 @@ export const registerSchema = z
     message: 'Passwords must match',
   });
 
-export const checkoutSchema = z.object({
-  notes: z.string().optional(),
-});

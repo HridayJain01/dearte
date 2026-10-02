@@ -474,7 +474,7 @@ export function NotFoundPage() {
       <EmptyState
         title="This route isn't part of the De Arté collection."
         description="Try heading back to the home page or explore the main product library."
-        action={<Link to="/"><Button>Return Home</Button></Link>}
+        action={<Button as={Link} to="/">Return Home</Button>}
       />
     </section>
   );

@@ -448,10 +448,6 @@ body {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
-.safe-bottom-offset {
-  bottom: max(0.75rem, env(safe-area-inset-bottom));
-}
-
 /* Admin on phones. iOS zooms the page into any form field set below 16px and
    leaves it zoomed after, so the console no longer fits the screen. Unlayered on
    purpose: it has to beat the `text-sm` the admin inputs carry. */
@@ -469,6 +465,25 @@ body {
 
 html:has(.admin-drawer[open]) {
   overflow: hidden;
+}
+
+/* Storefront bottom sheet (a native <dialog>, see BottomSheet): rises from the
+   bottom edge on phones, sits centred on wider screens. */
+.bottom-sheet[open] {
+  animation: sheetIn 260ms var(--ease-lux);
+}
+
+html:has(.bottom-sheet[open]) {
+  overflow: hidden;
+}
+
+@keyframes sheetIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
 }
 
 /* Same for a list page's detail sheet, which only covers the screen below xl. */
@@ -493,6 +508,7 @@ html:has(.admin-drawer[open]) {
   }
 
   .admin-drawer[open],
+  .bottom-sheet[open],
   .animate-page-enter,
   .animate-hero-entry,
   .animate-hero-line,

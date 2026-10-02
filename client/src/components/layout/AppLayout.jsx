@@ -1,4 +1,4 @@
-import { ChevronDown, Heart, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
+import { ChevronDown, Gem, Heart, Home, Menu, Search, ShoppingBag, User, MessageCircleMore } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { EDUCATION_ROUTES, NAV_LINKS, TRUST_LINKS } from '../../utils/constants';
@@ -314,6 +314,53 @@ function CategoryMobileMenu({ label, to, categories, onNavigate }) {
   );
 }
 
+// Pages that pin their own action bar (Add to cart, Place order) to the bottom
+// of a phone screen; the tab bar and the WhatsApp button step aside there.
+const ACTION_BAR_PAGE = /^\/(products\/[^/]+|cart)\/?$/;
+
+const TAB_CLASS = ({ isActive }) =>
+  `relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] uppercase tracking-[0.08em] ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`;
+
+function TabBadge({ count }) {
+  return count ? (
+    <span className="absolute left-1/2 top-1.5 ml-1.5 bg-[var(--color-primary)] px-1 text-[11px] leading-4 text-white">{count}</span>
+  ) : null;
+}
+
+// Phone tab bar. The site installs as a standalone app with no browser
+// chrome, so the main destinations sit under the thumb instead of in a menu.
+function StoreTabBar({ isAuthenticated, isAdmin, wishlistCount, cartCount }) {
+  return (
+    <nav
+      aria-label="Shortcuts"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+    >
+      <NavLink to="/" end className={TAB_CLASS}>
+        <Home className="h-5 w-5" />
+        Home
+      </NavLink>
+      <NavLink to="/products" end className={TAB_CLASS}>
+        <Gem className="h-5 w-5" />
+        Shop
+      </NavLink>
+      <NavLink to="/wishlist" className={TAB_CLASS}>
+        <Heart className="h-5 w-5" />
+        <TabBadge count={wishlistCount} />
+        Wishlist
+      </NavLink>
+      <NavLink to="/cart" className={TAB_CLASS}>
+        <ShoppingBag className="h-5 w-5" />
+        <TabBadge count={cartCount} />
+        Cart
+      </NavLink>
+      <NavLink to={!isAuthenticated ? '/login' : isAdmin ? '/admin/dashboard' : '/profile'} className={TAB_CLASS}>
+        <User className="h-5 w-5" />
+        {isAuthenticated ? 'Account' : 'Sign in'}
+      </NavLink>
+    </nav>
+  );
+}
+
 export function AppLayout() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -343,6 +390,10 @@ export function AppLayout() {
   };
   const location = useLocation();
   const navigate = useNavigate();
+  const actionBarPage = ACTION_BAR_PAGE.test(location.pathname);
+  // On a phone the tab bar carries wishlist, cart and sign-in, so the header
+  // keeps only search and the menu, except on pages where the tab bar steps aside.
+  const phoneTabbed = actionBarPage ? '' : 'max-md:hidden';
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -356,7 +407,7 @@ export function AppLayout() {
   }, []);
 
   return (
-    <div className="relative">
+    <div className={`relative ${actionBarPage ? '' : 'max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom))]'}`}>
       {settings.announcement ? (
         <p className="bg-[var(--color-primary)] px-4 py-1.5 text-center text-[11px] tracking-[0.06em] text-white sm:text-xs">
           {settings.announcement}
@@ -409,11 +460,11 @@ export function AppLayout() {
             >
               <Search className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
-            <button onClick={() => navigate('/wishlist')} aria-label="Wishlist" className={`relative ${ICON_BUTTON}`}>
+            <button onClick={() => navigate('/wishlist')} aria-label="Wishlist" className={`relative ${ICON_BUTTON} ${phoneTabbed}`}>
               <Heart className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               {wishlist.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[12px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[12px]">{wishlist.items.length}</span> : null}
             </button>
-            <button onClick={() => navigate('/cart')} aria-label="Cart" className={`relative ${ICON_BUTTON}`}>
+            <button onClick={() => navigate('/cart')} aria-label="Cart" className={`relative ${ICON_BUTTON} ${phoneTabbed}`}>
               <ShoppingBag className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               {cart.items?.length ? <span className="absolute right-0 top-0 bg-[var(--color-primary)] px-1 py-px text-[12px] leading-tight text-white sm:-right-1 sm:-top-1 sm:px-1.5 sm:py-0.5 sm:text-[12px]">{cart.items.length}</span> : null}
             </button>
@@ -431,7 +482,7 @@ export function AppLayout() {
               // Register pair.
               <Button
                 variant="ghost"
-                className="ml-0.5 shrink-0 px-2 text-[12px] sm:ml-0 sm:px-5 sm:text-[13px]"
+                className={`ml-0.5 shrink-0 px-2 text-[12px] sm:ml-0 sm:px-5 sm:text-[13px] ${phoneTabbed}`}
                 onClick={() => navigate('/login')}
               >
                 Sign In
@@ -636,7 +687,18 @@ export function AppLayout() {
         </div>
       </footer>
 
-      <AppInstallPrompt />
+      {actionBarPage ? null : (
+        <StoreTabBar
+          isAuthenticated={isAuthenticated}
+          isAdmin={user?.role === 'admin'}
+          wishlistCount={wishlist.items?.length || 0}
+          cartCount={cart.items?.length || 0}
+        />
+      )}
+
+      {/* Buyers only, and never over a page's own action bar: a guest's first
+          visit already has enough asking for attention. */}
+      {isAuthenticated && !actionBarPage ? <AppInstallPrompt /> : null}
 
       <a
         href={settings.whatsapp ? whatsappHref(settings.whatsapp) : undefined}
@@ -645,7 +707,8 @@ export function AppLayout() {
         rel="noreferrer"
         aria-label="Chat on WhatsApp"
         // WhatsApp's teal rather than its bright green: white on #25D366 is 2:1.
-        className="safe-bottom-offset fixed bottom-3 right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#128C7E] text-white shadow-xl transition hover:bg-[#075E54] sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
+        // Above the tab bar on phones; out of the way of a page's action bar.
+        className={`fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom))] right-3 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#128C7E] text-white shadow-xl transition hover:bg-[#075E54] md:bottom-6 md:right-6 md:h-14 md:w-14 ${actionBarPage ? 'max-md:hidden' : ''}`}
       >
         <span className="sr-only">WhatsApp</span>
         <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true">

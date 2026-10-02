@@ -1,6 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { cdnImage } from '../../utils/formatters';
+
+// Not on arrival: a visitor gets a few seconds with the page before the promo
+// asks for attention (the install prompt waits for it to close).
+const SHOW_AFTER_MS = 10000;
 
 function shouldShowPopup(ad) {
   if (!ad?.id || !ad?.image) return false;
@@ -20,7 +24,14 @@ export function PopupPromo({ ads }) {
   const canShow = useMemo(() => shouldShowPopup(ad), [ad]);
 
   const [dismissed, setDismissed] = useState(false);
-  const open = canShow && !dismissed;
+  const [due, setDue] = useState(false);
+  const open = canShow && due && !dismissed;
+
+  useEffect(() => {
+    if (!canShow) return undefined;
+    const timer = setTimeout(() => setDue(true), SHOW_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [canShow]);
 
   if (!open || !ad?.image) return null;
 
