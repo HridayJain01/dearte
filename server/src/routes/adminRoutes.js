@@ -37,7 +37,13 @@ import {
   notifyWhatsappOrderStatus,
 } from '../services/orderWhatsappNotifications.js';
 import { getEmailConfigStatus } from '../services/email/transport.js';
-import { getPushConfigStatus, sendPush } from '../services/webPush.js';
+import { getPushConfigStatus } from '../services/webPush.js';
+import {
+  PUSH_AUDIENCES,
+  notifyPushNewCollection,
+  notifyPushOrderStatus,
+  pushToAudience,
+} from '../services/pushNotifications.js';
 import { PushSubscription } from '../models/PushSubscription.js';
 import { invalidateGuestCatalogueCache } from '../utils/guestCatalogue.js';
 import { importUpdateFields, parseBulkUpdateRows, syncWeightSpecifications } from '../utils/bulkUpdate.js';
@@ -711,12 +717,46 @@ async function serializePromotionsPayload() {
 
 router.get('/whatsapp/status', (_req, res) => sendSuccess(res, getWhatsappConfigStatus()));
 
+// Counts per audience, plus the signed-in people whose phones are subscribed, for
+// Admin → Broadcasts to pick from. Phones that turned notifications on while signed
+// out carry no user, so they only count towards "everyone".
 router.get('/push/status', async (_req, res) => {
   const { configured, missing } = getPushConfigStatus();
-  return sendSuccess(res, { configured, missing, subscribers: await PushSubscription.countDocuments() });
+  const [subscribers, byUser] = await Promise.all([
+    PushSubscription.countDocuments(),
+    PushSubscription.aggregate([
+      { $match: { user: { $ne: null } } },
+      { $group: { _id: '$user', devices: { $sum: 1 }, lastSeen: { $max: '$updatedAt' } } },
+    ]),
+  ]);
+  const people = await User.find({ _id: { $in: byUser.map((row) => row._id) } })
+    .select('name email role')
+    .lean();
+  const peopleById = new Map(people.map((person) => [String(person._id), person]));
+  const users = byUser
+    .map((row) => ({ person: peopleById.get(String(row._id)), row }))
+    .filter(({ person }) => person)
+    .map(({ person, row }) => ({
+      id: String(person._id),
+      name: person.name,
+      email: person.email || '',
+      role: person.role,
+      devices: row.devices,
+      lastSeen: row.lastSeen,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const count = (roles) => users.filter((user) => roles.includes(user.role)).reduce((sum, user) => sum + user.devices, 0);
+  return sendSuccess(res, {
+    configured,
+    missing,
+    subscribers,
+    audiences: { all: subscribers, buyers: count(['buyer']), staff: count(['admin', 'sales']) },
+    users,
+  });
 });
 
-// A notification to every phone that installed the app and allowed notifications.
+// A notification to the phones of the chosen audience: everyone, signed-in buyers,
+// staff (admin and sales, handy for a test), or hand-picked people.
 router.post('/push/broadcast', async (req, res) => {
   if (!getPushConfigStatus().configured) {
     return sendError(res, 'Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY on the server first', 400);
@@ -724,30 +764,15 @@ router.post('/push/broadcast', async (req, res) => {
   const title = asString(req.body?.title, { maxLength: 80 });
   const body = asString(req.body?.body, { maxLength: 240 });
   const url = asString(req.body?.url, { maxLength: 300 }) || '/';
+  const audience = req.body?.audience || 'all';
+  const userIds = Array.isArray(req.body?.userIds) ? req.body.userIds : [];
   if (!title || !body) return sendError(res, 'A title and a message are required', 400);
   // Tapping the notification opens the app, so only a page of this site.
   if (!/^\/(?!\/)/.test(url)) return sendError(res, 'The link must be a page of this site, starting with /', 400);
+  if (!PUSH_AUDIENCES.includes(audience)) return sendError(res, `audience must be one of ${PUSH_AUDIENCES.join(', ')}`, 400);
+  if (audience === 'selected' && !userIds.length) return sendError(res, 'Pick at least one person', 400);
 
-  const subscriptions = await PushSubscription.find().lean();
-  const totals = { sent: 0, failed: 0, removed: 0 };
-  const gone = [];
-  // ponytail: every phone is sent from this one request, 10 at a time. Fine for a
-  // trade audience of hundreds; move it to a queue if it nears the function timeout.
-  await mapWithConcurrency(subscriptions, 10, async (subscription) => {
-    try {
-      const status = await sendPush(subscription, { title, body, url });
-      // 404/410: the phone uninstalled the app or turned notifications off.
-      if (status === 404 || status === 410) gone.push(subscription._id);
-      else if (status >= 200 && status < 300) totals.sent += 1;
-      else totals.failed += 1;
-    } catch {
-      totals.failed += 1;
-    }
-  });
-  if (gone.length) {
-    await PushSubscription.deleteMany({ _id: { $in: gone } });
-    totals.removed = gone.length;
-  }
+  const totals = await pushToAudience(audience, userIds, { title, body, url });
   return sendSuccess(res, { totals }, `Sent to ${totals.sent} device(s)`);
 });
 
@@ -1525,6 +1550,9 @@ router.post('/collections', async (req, res) => {
       await syncCollectionProducts(collection._id, req.body.productIds);
     }
     await collection.populate(['category', 'subCategory']);
+    if (collection.active) {
+      await notifyPushNewCollection(collection).catch((e) => console.error('[push] collection notify failed', e.message));
+    }
     return sendSuccess(
       res,
       serializeCollection(collection, toObjectIdArray(req.body.productIds).map(String)),
@@ -1551,6 +1579,7 @@ router.put('/collections/:id', async (req, res) => {
       collection.subCategory = toOptionalObjectId(req.body.subCategoryId, 'subCategoryId');
     }
     if (req.body.image !== undefined) collection.image = normalizeAsset(req.body.image);
+    const wasActive = collection.active;
     if (req.body.active !== undefined) {
       collection.active = parseBoolean(req.body.active, collection.active);
     }
@@ -1559,6 +1588,10 @@ router.put('/collections/:id', async (req, res) => {
       await syncCollectionProducts(collection._id, req.body.productIds);
     }
     await collection.populate(['category', 'subCategory']);
+    // A collection made hidden and switched on later is "added" the moment buyers can see it.
+    if (!wasActive && collection.active) {
+      await notifyPushNewCollection(collection).catch((e) => console.error('[push] collection notify failed', e.message));
+    }
     const productIdMap = await collectionProductIdMap([collection._id]);
     return sendSuccess(
       res,
@@ -1729,6 +1762,8 @@ router.put('/orders/:id', async (req, res) => {
           notifyEmailOrderStatus(order, notice).catch((e) =>
             console.error('[email] status notify failed', e.message),
           ),
+        // App notifications are free and only reach the buyer's own phones, so every change goes.
+        notifyPushOrderStatus(order, notice).catch((e) => console.error('[push] status notify failed', e.message)),
       ]);
     }
 

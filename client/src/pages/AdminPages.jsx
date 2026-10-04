@@ -2956,24 +2956,56 @@ export function AdminCollectionsPage() {
   );
 }
 
-// A notification on the phone of everyone who installed the app and allowed
-// notifications (components/layout/AppInstallPrompt.jsx asks them to).
+// A notification on the phones that installed the app and allowed notifications
+// (components/layout/AppInstallPrompt.jsx asks them to). Orders, status changes,
+// new collections and new blog posts also send one on their own
+// (server/src/services/pushNotifications.js); this panel is for anything else.
+const PUSH_AUDIENCES = [
+  { value: 'all', label: 'Everyone' },
+  { value: 'buyers', label: 'Signed-in buyers' },
+  { value: 'staff', label: 'Admin & sales team (test)' },
+  { value: 'selected', label: 'Pick people' },
+];
+
 function PushBroadcastPanel() {
   const queryClient = useQueryClient();
   const { data: status } = useQuery({ queryKey: ['admin-push-status'], queryFn: adminService.pushStatus });
   const [draft, setDraft] = useState({ title: '', body: '', url: '' });
+  const [audience, setAudience] = useState('all');
+  const [picked, setPicked] = useState(() => new Set());
+  const [search, setSearch] = useState('');
   const [sending, setSending] = useState(false);
   const edit = (key) => (event) => setDraft((current) => ({ ...current, [key]: event.target.value }));
+
+  const users = status?.users || [];
+  const shownUsers = users.filter((user) =>
+    `${user.name} ${user.email}`.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const togglePerson = (id) =>
+    setPicked((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const reach =
+    audience === 'selected'
+      ? users.filter((user) => picked.has(user.id)).reduce((sum, user) => sum + user.devices, 0)
+      : status?.audiences?.[audience] ?? 0;
 
   const send = async () => {
     if (!draft.title.trim() || !draft.body.trim()) {
       toast.error('Enter a title and a message.');
       return;
     }
-    if (!window.confirm(`Send this notification to ${status.subscribers} device(s)?`)) return;
+    if (!window.confirm(`Send this notification to ${reach} device(s)?`)) return;
     setSending(true);
     try {
-      const { totals } = await adminService.pushBroadcast(draft);
+      const { totals } = await adminService.pushBroadcast({
+        ...draft,
+        audience,
+        userIds: audience === 'selected' ? [...picked] : [],
+      });
       toast.success(`Sent to ${totals.sent} device(s)${totals.failed ? `, ${totals.failed} failed` : ''}.`);
       setDraft({ title: '', body: '', url: '' });
       queryClient.invalidateQueries({ queryKey: ['admin-push-status'] });
@@ -2990,16 +3022,56 @@ function PushBroadcastPanel() {
         compact
         eyebrow="App notifications"
         title="Notify app users"
-        description="Appears on the phone of everyone who installed the DeArte app and allowed notifications, like a message from any other app. Tapping it opens the page you link inside the app."
+        description="Appears on the phone of people who installed the DeArte app and allowed notifications, like a message from any other app. Tapping it opens the page you link inside the app. New orders (to the team), order status changes (to that buyer), new collections and new blog posts are sent automatically."
       />
       <Panel className="space-y-4">
         <p className="text-sm text-[var(--color-text-muted)]">
           {!status
             ? 'Checking set-up…'
             : status.configured
-              ? `${status.subscribers} device(s) will receive it.`
+              ? `${status.subscribers} device(s) have notifications on.`
               : `Not ready: set ${status.missing.join(' and ')} on the server (node server/scripts/vapid-keys.mjs makes the pair).`}
         </p>
+
+        <div className="space-y-3">
+          <p className="lux-label">Send to</p>
+          <div className="flex flex-wrap gap-4 text-sm">
+            {PUSH_AUDIENCES.map((option) => (
+              <label key={option.value} className="flex cursor-pointer items-center gap-2">
+                <input type="radio" checked={audience === option.value} onChange={() => setAudience(option.value)} />
+                {option.label}
+                {option.value === 'selected' ? ` (${picked.size})` : ` (${status?.audiences?.[option.value] ?? 0})`}
+              </label>
+            ))}
+          </div>
+          {audience === 'selected' ? (
+            <div className="space-y-2">
+              <input className={textInput} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email" />
+              <div className="max-h-[260px] space-y-2 overflow-y-auto border border-[var(--color-border)] p-3">
+                {shownUsers.length ? (
+                  shownUsers.map((user) => (
+                    <label key={user.id} className="flex cursor-pointer items-start gap-3 text-sm">
+                      <input type="checkbox" className="mt-1" checked={picked.has(user.id)} onChange={() => togglePerson(user.id)} />
+                      <span className="min-w-0">
+                        <span className="block font-medium text-[var(--color-text)]">
+                          {user.name} <span className="font-normal text-[var(--color-text-muted)]">· {user.role}</span>
+                        </span>
+                        <span className="block text-[var(--color-text-muted)] wrap-anywhere">
+                          {user.email || 'No email'} · {user.devices} device(s) · last opened {formatWhen(user.lastSeen)}
+                        </span>
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-[var(--color-text-muted)]">
+                    {users.length ? 'No one matches that search.' : 'No signed-in person has turned notifications on yet.'}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
         <Field label="Title">
           <input className={textInput} maxLength={80} value={draft.title} onChange={edit('title')} placeholder="New: the Aurora collection" />
         </Field>
@@ -3009,8 +3081,8 @@ function PushBroadcastPanel() {
         <Field label="Opens (optional, a page of this site)">
           <input className={textInput} value={draft.url} onChange={edit('url')} placeholder="/collections" />
         </Field>
-        <Button loading={sending} onClick={send} disabled={!status?.configured || !status?.subscribers}>
-          Send notification
+        <Button loading={sending} onClick={send} disabled={!status?.configured || !reach}>
+          Send notification{status?.configured ? ` to ${reach} device(s)` : ''}
         </Button>
       </Panel>
     </>

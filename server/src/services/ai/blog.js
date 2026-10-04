@@ -24,6 +24,7 @@ import {
 } from './guards.js';
 import { getAiSettings, invalidateAiSettings, sanitizeTopics } from './settings.js';
 import { claimCronRun, deadlineIn, notifyAdmins, runJob, storefrontUrl, timeLeft, triggerClientRebuild } from './jobs.js';
+import { notifyPushBlogPost } from '../pushNotifications.js';
 import { accessFilterFor, displayName, primaryImage, productFacts, productPopulate, withAccess } from './catalogue.js';
 
 export const PASS_SCORE = 7;
@@ -509,9 +510,10 @@ export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), 
   return { post, summary: `${verdict}: “${title}” (${review ? `score ${review.score}/10` : 'not reviewed'})` };
 }
 
-/** Rebuild the storefront so the post is prerendered, and tell the ops list. */
+/** Rebuild the storefront so the post is prerendered, tell the ops list, and notify the app. */
 export async function afterPublish(post) {
   const rebuilding = await triggerClientRebuild();
+  await notifyPushBlogPost(post).catch((e) => console.error('[push] blog post notify failed', e.message));
   await notifyAdmins({
     subject: `New blog post live: ${post.title}`,
     heading: 'A new post is live on the blog',

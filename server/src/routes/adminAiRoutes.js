@@ -12,6 +12,7 @@ import { getAiSettings, saveAiSettings } from '../services/ai/settings.js';
 import { recentRuns, triggerClientRebuild } from '../services/ai/jobs.js';
 import { generateDraftNow, serializePost } from '../services/ai/blog.js';
 import { runPhotoIndexNow } from '../services/ai/photoSearch.js';
+import { notifyPushBlogPost } from '../services/pushNotifications.js';
 import { bannerCopy } from '../services/ai/banner.js';
 import { askData } from '../services/ai/insights.js';
 
@@ -128,9 +129,12 @@ router.put('/blog/posts/:id', async (req, res) => {
 
   const post = await BlogPost.findById(req.params.id);
   if (!post) return sendError(res, 'Post not found', 404);
+  // Only a post's first time live goes to the app; re-publishing after a fix does not.
+  const firstPublish = status === 'published' && !post.publishedAt;
   post.status = status;
-  if (status === 'published' && !post.publishedAt) post.publishedAt = new Date();
+  if (firstPublish) post.publishedAt = new Date();
   await post.save();
+  if (firstPublish) await notifyPushBlogPost(post).catch((e) => console.error('[push] blog post notify failed', e.message));
 
   // Either way the storefront's prerendered pages and sitemap have to change.
   const rebuilding = await triggerClientRebuild();

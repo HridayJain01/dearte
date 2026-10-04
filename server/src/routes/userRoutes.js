@@ -10,6 +10,7 @@ import { sendError, sendSuccess } from '../utils/responses.js';
 import { serializeCatalogue, serializeOrder, serializeProduct, serializeUser } from '../utils/serializers.js';
 import { notifyWhatsappOrderPlaced } from '../services/orderWhatsappNotifications.js';
 import { notifyEmailOrderPlaced, notifyEmailOrderChangeRequest } from '../services/orderEmailNotifications.js';
+import { notifyPushOrderPlaced } from '../services/pushNotifications.js';
 import { defaultSizeFor, isValidSize, resolveSizeChart } from '../data/sizeMaster.js';
 import { DIAMOND_QUALITY } from '../data/taxonomy.js';
 import { asString, isObjectId } from '../utils/validation.js';
@@ -546,6 +547,7 @@ router.post('/orders', async (req, res) => {
     notifyEmailOrderPlaced(order).catch((e) =>
       console.error('[email] order-placed notifications failed', e.message),
     ),
+    notifyPushOrderPlaced(order).catch((e) => console.error('[push] order-placed notify failed', e.message)),
   ]);
 
   return sendSuccess(res, serializeOrder(order), 'Order placed successfully');
