@@ -27,7 +27,7 @@ export const PUSH_AUDIENCES = ['all', 'buyers', 'staff', 'selected'];
 async function deliver(filter, payload) {
   if (!getPushConfigStatus().configured) return { skipped: true, sent: 0, failed: 0, removed: 0 };
   const subscriptions = await PushSubscription.find(filter).lean();
-  const totals = { sent: 0, failed: 0, removed: 0 };
+  const totals = { sent: 0, failed: 0, removed: 0, errors: [] };
   const gone = [];
   // ponytail: every phone is sent from the one request, 10 at a time. Fine for a
   // trade audience of hundreds; move it to a queue if it nears the function timeout.
@@ -40,9 +40,14 @@ async function deliver(filter, payload) {
         // 404/410: the phone uninstalled the app or turned notifications off.
         if (status === 404 || status === 410) gone.push(subscription._id);
         else if (status >= 200 && status < 300) totals.sent += 1;
-        else totals.failed += 1;
-      } catch {
+        else {
+          totals.failed += 1;
+          totals.errors.push(`HTTP ${status}`);
+        }
+      } catch (error) {
+        console.error('[push] send failed', error.message);
         totals.failed += 1;
+        totals.errors.push(error.message);
       }
     }
   };
@@ -51,6 +56,7 @@ async function deliver(filter, payload) {
     await PushSubscription.deleteMany({ _id: { $in: gone } });
     totals.removed = gone.length;
   }
+  totals.errors = [...new Set(totals.errors)].slice(0, 3);
   return totals;
 }
 

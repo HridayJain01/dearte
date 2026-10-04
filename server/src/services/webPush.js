@@ -76,7 +76,7 @@ function vapidAuthorization(endpoint) {
   return `vapid t=${unsigned}.${b64url(signature)}, k=${process.env.VAPID_PUBLIC_KEY}`;
 }
 
-/** Sends one notification. Resolves to the push service's HTTP status (201 = queued). */
+/** Sends one notification. Resolves to the push service's HTTP status (201 = queued); logs a refusal's reason. */
 export async function sendPush(subscription, payload) {
   const response = await fetch(subscription.endpoint, {
     method: 'POST',
@@ -90,6 +90,10 @@ export async function sendPush(subscription, payload) {
     body: encryptPayload(JSON.stringify(payload), subscription.keys),
     signal: AbortSignal.timeout(10_000),
   });
+  if (!response.ok) {
+    const reason = (await response.text().catch(() => '')).slice(0, 300);
+    console.error(`[push] ${new URL(subscription.endpoint).host} refused with ${response.status}: ${reason}`);
+  }
   return response.status;
 }
 

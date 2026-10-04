@@ -3006,7 +3006,8 @@ function PushBroadcastPanel() {
         audience,
         userIds: audience === 'selected' ? [...picked] : [],
       });
-      toast.success(`Sent to ${totals.sent} device(s)${totals.failed ? `, ${totals.failed} failed` : ''}.`);
+      if (totals.failed) toast.error(`Sent to ${totals.sent} device(s), ${totals.failed} failed: ${(totals.errors || []).join('; ')}`, { duration: 15000 });
+      else toast.success(`Sent to ${totals.sent} device(s).`);
       setDraft({ title: '', body: '', url: '' });
       queryClient.invalidateQueries({ queryKey: ['admin-push-status'] });
     } catch (error) {
