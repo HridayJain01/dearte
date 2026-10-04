@@ -281,7 +281,8 @@ router.post('/forgot-password', credentialLimiter, async (req, res) => {
 
 router.post('/reset-password', credentialLimiter, async (req, res) => {
   const email = normalizeEmail(req.body?.email);
-  const otp = asString(req.body?.otp, { maxLength: 12 });
+  // Codes pasted from email often carry spaces or a trailing newline.
+  const otp = asString(req.body?.otp, { maxLength: 12 }).replace(/\D/g, '');
   const newPassword = req.body?.newPassword;
 
   const passwordError = validatePassword(newPassword);
