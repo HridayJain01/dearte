@@ -7,6 +7,7 @@ import { ADMIN_LINKS } from '../../utils/constants';
 import { brandLogoAlt, brandLogoUrl } from '../../utils/brandLogo';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../ui/Primitives';
+import { usePushLink } from '../../hooks/usePushLink';
 
 // Phone tab bar: the sections an admin opens on the go. Everything else is one
 // tap away under "More", which opens the full menu.
@@ -60,6 +61,7 @@ function AdminNav({ onNavigate }) {
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
+  usePushLink(user?.id);
   const location = useLocation();
   const menuRef = useRef(null);
   const waiting = useWaitingCounts();

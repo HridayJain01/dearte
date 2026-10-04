@@ -10,6 +10,7 @@ import { useWishlist } from '../../hooks/useWishlist';
 import { Button } from '../ui/Primitives';
 import { PageBoundary } from './PageBoundary';
 import { AppInstallPrompt } from './AppInstallPrompt';
+import { usePushLink } from '../../hooks/usePushLink';
 import { useSiteSettings, whatsappHref } from '../../hooks/useSiteSettings';
 
 // Single source of truth for nav typography so the desktop links, the Collections
@@ -365,6 +366,7 @@ export function AppLayout() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  usePushLink(user?.id);
   const { cart } = useCart();
   const { wishlist } = useWishlist();
   const { data: navCategories } = useNavCategories();
