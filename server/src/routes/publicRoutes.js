@@ -568,4 +568,12 @@ router.post('/push/subscribe', async (req, res) => {
   return sendSuccess(res, null, 'Subscribed');
 });
 
+// The account page's "Notifications" switch turning off. Knowing the endpoint is
+// proof enough: only the phone that holds it can read it.
+router.post('/push/unsubscribe', async (req, res) => {
+  const endpoint = asString(req.body?.endpoint, { maxLength: 1000 });
+  if (endpoint) await PushSubscription.deleteOne({ endpoint });
+  return sendSuccess(res, null, 'Unsubscribed');
+});
+
 export default router;

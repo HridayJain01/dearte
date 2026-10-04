@@ -3,7 +3,7 @@ import { BellRing, Download, Share, SquarePlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api, { unwrap } from '../../services/api';
 import { Button } from '../ui/Primitives';
-import { canPush, isStandalone, subscribe } from '../../hooks/usePushLink';
+import { canPush, currentSubscription, isStandalone, subscribe, unsubscribe } from '../../hooks/usePushLink';
 
 /*
  * On the website: an invitation to install the app — Chrome/Edge/Android get
@@ -169,6 +169,70 @@ export function AppInstallPrompt() {
             <Button icon={BellRing} loading={busy} disabled={busy} onClick={turnOnNotifications}>Turn on</Button>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** The account page's on/off switch for this phone's notifications. */
+export function NotificationToggle() {
+  const [state, setState] = useState('loading'); // 'on' | 'off' | 'blocked' | 'unsupported' | 'loading'
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!isStandalone() || !canPush()) return setState('unsupported');
+    if (Notification.permission === 'denied') return setState('blocked');
+    currentSubscription()
+      .then((subscription) => setState(subscription && Notification.permission === 'granted' ? 'on' : 'off'))
+      .catch(() => setState('off'));
+  }, []);
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      if (state === 'on') {
+        await unsubscribe();
+        setState('off');
+        toast.success('Notifications are off');
+      } else {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return setState(permission === 'denied' ? 'blocked' : 'off');
+        const { publicKey } = await unwrap(api.get('/push/key'));
+        if (!publicKey) throw new Error('Push is not set up');
+        await subscribe(publicKey);
+        setState('on');
+        toast.success('Notifications are on');
+      }
+    } catch {
+      toast.error('Could not change notifications. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const hint = {
+    unsupported: 'Install the DeArte app on your phone to get notifications.',
+    blocked: "Notifications are blocked for this app. Allow them in your phone's settings, then come back here.",
+  }[state];
+
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="font-medium text-[var(--color-text)]">Notifications on this phone</p>
+        <p className="mt-0.5 text-[13px] text-[var(--color-text-muted)]">{hint || 'Orders, new collections and offers.'}</p>
+      </div>
+      {hint ? null : (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={state === 'on'}
+          aria-label="Notifications on this phone"
+          disabled={busy || state === 'loading'}
+          onClick={toggle}
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:opacity-60 ${state === 'on' ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'}`}
+        >
+          <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${state === 'on' ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
       )}
     </div>
   );

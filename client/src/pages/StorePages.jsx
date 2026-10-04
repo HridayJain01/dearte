@@ -19,6 +19,7 @@ import { Seo } from '../components/seo/Seo';
 import { FilterSheetButton, FilterSidebar } from '../components/product/ProductFilters';
 import { SizeChartModal } from '../components/product/SizeChartModal';
 import { CombinationSelector } from '../components/product/CombinationSelector';
+import { NotificationToggle } from '../components/layout/AppInstallPrompt';
 import { CatalogueBuilder, PhotoSearchButton, RestockPanel, SmartSearchButton } from '../components/ai/StorefrontAi';
 import { defaultSizeFor, resolveSizeChart, sizeLabel } from '../data/sizeMaster';
 import { cdnImage, formatDate, formatWeight } from '../utils/formatters';
@@ -1954,6 +1955,9 @@ export function ProfilePage() {
       <SectionHeading as="h1" eyebrow="Account" title="Your account and orders" />
       {/* Renders nothing unless restock suggestions are on and something is due. */}
       <RestockPanel />
+      <Panel className="mb-4 sm:mb-6">
+        <NotificationToggle />
+      </Panel>
       <Link to="/catalogue" className="mb-4 flex items-center justify-between gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-accent)] sm:mb-6">
         <span><span className="font-medium">My Catalogues</span> — pieces shared with you and the AI catalogue builder</span>
         <span className="text-[var(--color-primary)]">Open →</span>

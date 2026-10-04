@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import api, { unwrap } from '../services/api';
+import api from '../services/api';
 
 export const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 export const canPush = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -17,14 +17,26 @@ export async function subscribe(publicKey) {
   await api.post('/push/subscribe', subscription.toJSON());
 }
 
+export async function currentSubscription() {
+  return (await navigator.serviceWorker.ready).pushManager.getSubscription();
+}
+
+export async function unsubscribe() {
+  const subscription = await currentSubscription();
+  if (!subscription) return;
+  await api.post('/push/unsubscribe', { endpoint: subscription.endpoint });
+  await subscription.unsubscribe();
+}
+
 // Re-sends this phone's subscription whenever the signed-in person changes, so a
 // phone that switches accounts (or an admin who never sees the storefront) is
-// linked to whoever is using it now. Silent: asking is AppInstallPrompt's job.
+// linked to whoever is using it now. Only an existing one: a phone switched off
+// on the account page stays off.
 export function usePushLink(userId) {
   useEffect(() => {
     if (!userId || !isStandalone() || !canPush() || Notification.permission !== 'granted') return;
-    unwrap(api.get('/push/key'))
-      .then(({ publicKey }) => publicKey && subscribe(publicKey))
+    currentSubscription()
+      .then((subscription) => subscription && api.post('/push/subscribe', subscription.toJSON()))
       .catch(() => {});
   }, [userId]);
 }
