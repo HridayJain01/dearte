@@ -438,7 +438,14 @@ export async function generatePost({ trigger = 'cron', deadline = deadlineIn(), 
 
   // Cover: DeArte's own product photo first. A stock lifestyle photo is the
   // cover only when no product fits, and otherwise sits mid-article.
-  let coverImage = productCover(products[0]);
+  // Skip product photos another post already uses, or every post on a
+  // category shows the same best-seller.
+  const usedCovers = new Set(await BlogPost.distinct('coverImage.secureUrl', replacing ? { _id: { $ne: replacing } } : {}));
+  let coverImage = normalizeAsset(null);
+  for (const product of products) {
+    const candidate = productCover(product);
+    if (candidate.secureUrl && !usedCovers.has(candidate.secureUrl)) { coverImage = candidate; break; }
+  }
   let coverCredit = {};
   let inlineImage = normalizeAsset(null);
   let inlineCredit = {};
