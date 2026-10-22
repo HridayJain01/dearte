@@ -138,9 +138,13 @@ sees whatever `getGuestCatalogue()` allows — at the time of writing, 9 styles.
 The rest of the catalogue is invisible to search by design. Widening it is a
 merchandising decision, made in Admin → Configuration, not a code change.
 
-Product detail pages also get **no static shell**, only sitemap entries: a shell
-would be a build-time snapshot of a catalogue that changes from the admin panel,
-and a stale title is worse than a rendered one. Googlebot renders them fine.
+Product detail pages for those guest-visible styles get a static shell at build
+time (`pageShell.mjs`): own title, canonical, `Product` JSON-LD and a text body, so
+AI crawlers that skip JavaScript can read them. It is a snapshot, so a catalogue
+edit in the admin shows to crawlers at the next deploy. `about`, `faq` and the
+education guides get text bodies the same way, and `llms.txt` is generated.
+The About copy in `pageShell.mjs` is restated by hand; keep it in step with
+`AboutPage`.
 
 ## After deploying
 

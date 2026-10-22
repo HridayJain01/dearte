@@ -20,6 +20,10 @@
  *      the full article (blogShell.mjs), plus sitemap entries, and new posts
  *      are announced to IndexNow on production builds.
  *
+ *   6. Give the pages above real text bodies (pageShell.mjs): about, FAQ, the
+ *      education guides, and one shell per guest-visible product, each with
+ *      its own canonical and JSON-LD; and write llms.txt.
+ *
  * Nothing here is allowed to fail the build. A sitemap without product URLs is
  * a small loss; a deploy that does not happen is a large one.
  */
@@ -43,9 +47,10 @@ for (const [key, value] of Object.entries(viteEnv)) {
 
 // Imported after the env is in place: seo.js reads process.env at module scope,
 // and a static import would be hoisted above the loop above.
-const { PLACEHOLDER_SITE_URL, SITE_URL, clampDescription } = await import('../src/utils/seo.js');
+const { PLACEHOLDER_SITE_URL, SITE_URL, breadcrumbSchema, clampDescription, faqSchema, productSchema } = await import('../src/utils/seo.js');
 const { INDEXABLE_PATHS, ROUTE_SEO } = await import('../src/utils/seoRoutes.js');
-const { productDisplayName } = await import('../src/utils/productTitle.js');
+const { productDescription, productDisplayName, productTitle } = await import('../src/utils/productTitle.js');
+const { renderAboutHtml, renderEducationHtml, renderFaqHtml, renderLlmsTxt, renderProductHtml } = await import('./pageShell.mjs');
 const {
   INDEXNOW_KEY,
   articleSchemas,
@@ -265,6 +270,88 @@ async function announceNewPosts(posts) {
   }
 }
 
+
+/** One public API GET, unwrapped; null on any failure so callers just skip. */
+async function fetchData(path) {
+  if (!API_BASE) return null;
+  try {
+    const response = await fetch(`${API_BASE}${path}`, { signal: AbortSignal.timeout(60000) });
+    if (!response.ok) return null;
+    return (await response.json())?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeShell(path, html) {
+  const filePath = join(DIST, path.replace(/^\//, ''), 'index.html');
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, html, 'utf8');
+}
+
+/** Text bodies for about, FAQ and the education guides, overwriting the bare shells. */
+async function writeContentPages(template, publicPaths) {
+  const has = (path) => publicPaths.includes(path);
+  const jobs = [];
+  if (has('/about')) jobs.push({ path: '/about', body: renderAboutHtml(), schema: [] });
+
+  if (has('/faq')) {
+    const faqs = await fetchData('/faq');
+    if (faqs?.length) {
+      jobs.push({
+        path: '/faq',
+        body: renderFaqHtml(faqs),
+        schema: [faqSchema(faqs), breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'FAQ', path: '/faq' }])],
+      });
+    }
+  }
+
+  const educationPaths = publicPaths.filter((path) => path.startsWith('/education/'));
+  for (const path of educationPaths) {
+    const data = await fetchData(path);
+    if (!data?.sections) continue;
+    jobs.push({
+      path,
+      body: renderEducationHtml(data),
+      schema: [
+        { '@context': 'https://schema.org', '@type': 'Article', headline: data.title, description: data.intro, dateModified: BUILD_DATE, author: { '@id': `${SITE_URL}/#organization` }, publisher: { '@id': `${SITE_URL}/#organization` } },
+        breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Education', path: '/education/diamond' }, { name: data.title, path }]),
+      ],
+    });
+  }
+
+  for (const { path, body, schema } of jobs) {
+    let html = buildShell(template, path, ROUTE_SEO[path]);
+    html = beforeClose(html, 'head', jsonLdScripts(schema));
+    await writeShell(path, fillRoot(html, body));
+  }
+  log(`wrote text bodies for ${jobs.length} content page(s)`);
+  return educationPaths;
+}
+
+/** A shell per guest-visible style: own title, canonical, Product JSON-LD, body text. */
+async function writeProductPages(template, products) {
+  let written = 0;
+  for (const raw of products) {
+    const product = { ...raw, images: raw.images?.length ? raw.images : (raw.media || []).map((item) => item.secureUrl).filter(Boolean) };
+    const path = `/products/${encodeURIComponent(product.styleCode)}`;
+    const description = productDescription(product);
+    let html = buildShell(template, path, { title: productTitle(product), description });
+    if (product.images[0]) {
+      html = replaceTag(html, /<meta property="og:image" content="[^"]*" \/>/, `<meta property="og:image" content="${escapeHtml(product.images[0])}" />`);
+      html = replaceTag(html, /<meta name="twitter:image" content="[^"]*" \/>/, `<meta name="twitter:image" content="${escapeHtml(product.images[0])}" />`);
+      html = html.replace(/\s*<meta property="og:image:(width|height)" content="[^"]*" \/>/g, '');
+    }
+    html = beforeClose(html, 'head', jsonLdScripts([
+      productSchema(product, { path }),
+      breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Products', path: '/products' }, { name: productDisplayName(product), path }]),
+    ]));
+    await writeShell(path, fillRoot(html, renderProductHtml(product, { name: productDisplayName(product), description })));
+    written += 1;
+  }
+  log(`products: wrote ${written} shell(s)`);
+}
+
 function sitemapEntry({ path, lastmod, changefreq, priority }) {
   return [
     '  <url>',
@@ -315,6 +402,8 @@ async function main() {
   }
   log(`wrote ${shells} static route shells`);
 
+  const educationPaths = await writeContentPages(template, publicPaths);
+
   // 3. robots.txt has to name the sitemap at the live host to be useful.
   //    Read from public/ rather than dist/ so re-running this step never tries
   //    to substitute a host into a file it already rewrote.
@@ -350,6 +439,8 @@ async function main() {
     );
   }
 
+  await writeProductPages(template, products.filter((item, index, all) => all.findIndex((other) => other.styleCode === item.styleCode) === index));
+
   // 5. The blog: prerendered pages, sitemap entries, IndexNow.
   const posts = await fetchPublishedPosts();
   if (posts.length) {
@@ -366,6 +457,8 @@ async function main() {
     }
     await announceNewPosts(posts);
   }
+
+  await writeFile(join(DIST, 'llms.txt'), renderLlmsTxt({ siteUrl: SITE_URL, siteName: SITE_NAME, posts, educationPaths }), 'utf8');
 
   const sitemap = [
     '<?xml version="1.0" encoding="UTF-8"?>',
