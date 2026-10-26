@@ -7,7 +7,7 @@ import { adminService } from '../services/adminService';
 import { BottomSheet, Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
 import { ArrowLeft, ArrowRight, ChevronDown, Download, MessageCircle, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
-import { totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
+import { diamondWeightFor, goldWeightFor, totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
 import { DIAMOND_QUALITY } from '../utils/constants';
 import { cdnImage, formatWhen } from '../utils/formatters';
 import { whatsappHref } from '../hooks/useSiteSettings';
@@ -2360,6 +2360,7 @@ function OrderDetail({ order }) {
             </>
           ) : null}
           <Button variant="ghost" icon={Download} loading={downloading} onClick={download}>PDF</Button>
+          <Button variant="ghost" icon={Download} onClick={() => downloadOrdersExcel([order], `dearte-order-${order.orderId}.xlsx`)}>Excel</Button>
         </div>
       </div>
 
@@ -2483,6 +2484,39 @@ function OrderDetail({ order }) {
   );
 }
 
+// One row per ordered line, so a sheet of several orders still filters by style.
+function downloadOrdersExcel(orders, filename) {
+  const rows = orders.flatMap((order) =>
+    (order.items || []).map((item) => {
+      const product = item.product || {};
+      const custom = item.customization || {};
+      return {
+        'Order ID': order.orderId,
+        Placed: order.createdAt ? new Date(order.createdAt).toLocaleString() : '',
+        Status: order.status,
+        Buyer: order.user?.name || 'Buyer removed',
+        Company: order.user?.companyName || '',
+        City: order.user?.city || '',
+        Mobile: order.user?.mobile || '',
+        'Style code': product.styleCode || '',
+        Product: productDisplayName(product) || '',
+        Quantity: item.quantity,
+        'Gold colour': custom.goldColor || '',
+        'Gold karat': custom.goldCarat || '',
+        'Diamond quality': custom.diamondQuality || '',
+        Size: custom.size || '',
+        'Diamond (ct)': diamondWeightFor(product) || '',
+        'Gold (g)': goldWeightFor(product, custom.goldCarat) || '',
+        'Custom request': custom.note || '',
+        'Order notes': order.notes || '',
+      };
+    }),
+  );
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), 'Orders');
+  XLSX.writeFile(book, filename);
+}
+
 export function AdminOrdersPage() {
   const { data = [], isLoading } = useQuery({ queryKey: ['admin-orders'], queryFn: adminService.orders });
   const [searchParams] = useSearchParams();
@@ -2509,7 +2543,12 @@ export function AdminOrdersPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <SectionHeading compact eyebrow="Orders" title="Buyer orders" />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SectionHeading compact eyebrow="Orders" title="Buyer orders" />
+        <Button variant="secondary" icon={Download} disabled={!visible.length} onClick={() => downloadOrdersExcel(visible, `dearte-orders-${statusFilter.toLowerCase()}.xlsx`)}>
+          Excel ({visible.length})
+        </Button>
+      </div>
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr] xl:items-start">
         <div className="min-w-0 space-y-3">
           <div className="relative">
