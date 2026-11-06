@@ -161,8 +161,7 @@ function BannerCopyPanel({ enabled }) {
   };
 
   return (
-    <Panel className="space-y-4">
-      <p className="lux-label">Banner and announcement copy</p>
+    <Panel title="Banner and announcement copy" className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
           <Field label="Brief (optional)" hint="Numbers and dates only appear if they are in the brief.">
@@ -245,8 +244,7 @@ function AskPanel({ enabled }) {
   };
 
   return (
-    <Panel className="space-y-4">
-      <p className="lux-label">Ask your data</p>
+    <Panel title="Ask your data" className="space-y-4">
       <form
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
         onSubmit={(event) => {
@@ -362,8 +360,7 @@ export function AdminAiStudioPage() {
         description="Every feature starts as a staff preview. Try it on the live site signed in as admin, then switch it to Everyone."
       />
 
-      <Panel className="space-y-4">
-        <p className="lux-label">Setup</p>
+      <Panel title="Setup" className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {SETUP.map((item) => <Pill key={item.key} ok={configured[item.key]}>{item.label}</Pill>)}
         </div>
@@ -374,8 +371,7 @@ export function AdminAiStudioPage() {
         </p>
       </Panel>
 
-      <Panel className="space-y-5">
-        <p className="lux-label">Buyer features</p>
+      <Panel title="Buyer features" className="space-y-5">
         <div className="grid gap-5 lg:grid-cols-2">
           {FEATURES.map((feature) => (
             <Field key={feature.key} label={feature.label} hint={feature.detail}>
@@ -391,8 +387,7 @@ export function AdminAiStudioPage() {
         </div>
       </Panel>
 
-      <Panel className="space-y-5">
-        <p className="lux-label">Scheduled jobs</p>
+      <Panel title="Scheduled jobs" className="space-y-5">
         <div className="space-y-3">
           <Check
             label="Photo index (five short runs a night, between 00:30 and 07:30 IST)"
@@ -430,8 +425,7 @@ export function AdminAiStudioPage() {
 
       <BannerCopyPanel enabled={configured.text} />
 
-      <Panel className="space-y-4">
-        <p className="lux-label">Recent runs</p>
+      <Panel title="Recent runs" className="space-y-4">
         <SimpleTable
           columns={[
             { key: 'job', label: 'Job' },
@@ -645,8 +639,7 @@ export function AdminBlogPage() {
 
       {previewPost ? <PostPreview post={previewPost} onClose={() => setPreviewId(null)} /> : null}
 
-      <Panel className="space-y-4">
-        <p className="lux-label">Posts</p>
+      <Panel title="Posts" className="space-y-4">
         <SimpleTable
           columns={[
             {
@@ -689,8 +682,7 @@ export function AdminBlogPage() {
         />
       </Panel>
 
-      <Panel className="space-y-5">
-        <p className="lux-label">Autopilot</p>
+      <Panel title="Autopilot" className="space-y-5">
         <div className="space-y-3">
           <Check
             label="Write and publish on schedule"

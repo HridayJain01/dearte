@@ -5,7 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { adminService } from '../services/adminService';
 import { BottomSheet, Button, LoadingBlock, Panel, SectionHeading, StatCard, StatusBadge } from '../components/ui/Primitives';
-import { ArrowLeft, ArrowRight, ChevronDown, Download, MessageCircle, Phone, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, MessageCircle, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { diamondWeightFor, goldWeightFor, totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
 import { DEFAULT_CATEGORY_TILES, DIAMOND_QUALITY } from '../utils/constants';
@@ -1145,17 +1145,12 @@ function BulkProductImportPanel({ onImported }) {
   };
 
   return (
-    <details className="lux-panel group space-y-4 p-3 sm:p-6" open={startOpen}>
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
-        <div>
-          <p className="lux-label">Bulk Excel Import / Update</p>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            New styles need their images. To change weights or other values of styles already
-            uploaded, just upload the Excel again and press Import / Update: photos stay as they are.
-          </p>
-        </div>
-        <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-[var(--color-text-muted)] transition group-open:rotate-180" />
-      </summary>
+    <Panel
+      title="Bulk Excel Import / Update"
+      description="New styles need their images. To change weights or other values of styles already uploaded, just upload the Excel again and press Import / Update: photos stay as they are."
+      className="space-y-4"
+      defaultOpen={startOpen}
+    >
       <div className="flex flex-wrap gap-3">
         <label className="inline-flex cursor-pointer items-center gap-2 border border-[var(--color-border)] px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] transition hover:border-[var(--color-border-active)]">
           Upload Sheet
@@ -1273,7 +1268,7 @@ function BulkProductImportPanel({ onImported }) {
                 : 'Importing...'}
         </Button>
       </div>
-    </details>
+    </Panel>
   );
 }
 
@@ -1444,8 +1439,7 @@ export function AdminPromotionsPage() {
     <div className="space-y-5 sm:space-y-8">
       <SectionHeading compact eyebrow="Promotions" title="Manage banners, popups, and events" description="Home page banners, the welcome popup and events." />
 
-      <Panel className="space-y-3">
-        <p className="lux-label">Banner order</p>
+      <Panel title="Banner order" className="space-y-3">
         {bannerOrder.map((id, index) => {
           const banner = data.banners.find((item) => item.id === id);
           if (!banner) return null;
@@ -1480,8 +1474,7 @@ export function AdminPromotionsPage() {
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <Panel className="space-y-4">
-          <p className="lux-label">Banners</p>
+        <Panel title="Banners" className="space-y-4">
           <div className="space-y-2">
             {data.banners.map((banner) => (
               <button key={banner.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
@@ -1520,8 +1513,7 @@ export function AdminPromotionsPage() {
           </div>
         </Panel>
 
-        <Panel className="space-y-4">
-          <p className="lux-label">Popup ads</p>
+        <Panel title="Popup ads" className="space-y-4">
           <div className="space-y-2">
             {data.popupAds.map((popup) => (
               <button key={popup.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
@@ -1558,8 +1550,7 @@ export function AdminPromotionsPage() {
           </div>
         </Panel>
 
-        <Panel className="space-y-4">
-          <p className="lux-label">Events</p>
+        <Panel title="Events" className="space-y-4">
           <div className="space-y-2">
             {data.events.map((event) => (
               <button key={event.id} className="flex w-full items-center gap-3 border border-[var(--color-border)] p-3 text-left hover:border-[var(--color-border-active)]" onClick={() => {
@@ -1779,8 +1770,7 @@ export function AdminUsersPage() {
       <SectionHeading compact eyebrow="Users" title="Buyers" description="Approve new accounts, set roles and choose what each buyer can see." />
 
       {waiting.length ? (
-        <Panel className="space-y-3">
-          <p className="lux-label">Waiting for approval ({waiting.length})</p>
+        <Panel title={`Waiting for approval (${waiting.length})`} className="space-y-3">
           <div className="divide-y divide-[var(--color-border)]">
             {waiting.map((user) => (
               <div key={user.id} className="flex flex-wrap items-center gap-3 py-3">
@@ -3265,8 +3255,7 @@ export function AdminWhatsAppPage() {
         description="Send trade updates with optional CDN-hosted media (image, video, or document link). Recipient phones must accept messages from your business number and use international format on profiles."
       />
 
-      <Panel className="space-y-4">
-        <p className="lux-label">Connection status</p>
+      <Panel title="Connection status" className="space-y-4">
         {waStatus?.configured ? (
           <p className="text-sm text-[var(--color-text-muted)]">WhatsApp Cloud API credentials are configured on the server.</p>
         ) : (
@@ -3276,8 +3265,7 @@ export function AdminWhatsAppPage() {
         )}
       </Panel>
 
-      <Panel className="space-y-4">
-        <p className="lux-label">Audience</p>
+      <Panel title="Audience" className="space-y-4">
         <div className="flex flex-wrap gap-4 text-sm">
           <label className="flex cursor-pointer items-center gap-2">
             <input type="radio" checked={audience === 'selected'} onChange={() => setAudience('selected')} /> Selected buyers ({selectedBuyerIds.size})
@@ -3338,8 +3326,7 @@ export function AdminWhatsAppPage() {
         description="Send a branded email to the audience selected above. Uses the same buyer selection as the WhatsApp panel."
       />
 
-      <Panel className="space-y-4">
-        <p className="lux-label">Connection status</p>
+      <Panel title="Connection status" className="space-y-4">
         {emailStatus?.configured ? (
           <p className="text-sm text-[var(--color-text-muted)]">Email is configured on the server (from {emailStatus?.from || 'configured sender'}).</p>
         ) : (
@@ -3438,16 +3425,11 @@ function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collec
   ].filter(Boolean);
 
   return (
-    <Panel className="order-4 space-y-5">
-      <div>
-        <p className="lux-label">Guest Catalogue (which products guests can browse)</p>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Pick which products signed-out visitors may see. A product is shown to guests if it matches
-          <span className="font-medium"> any</span> rule below — one of the three tick-boxes, or a
-          selected category, sub-category, collection or occasion. The tick-boxes keep themselves current:
-          flag a product Best Seller next month and guests see it without anyone coming back here.
-        </p>
-      </div>
+    <Panel
+      title="Guest Catalogue (which products guests can browse)"
+      description={<>Pick which products signed-out visitors may see. A product is shown to guests if it matches<span className="font-medium"> any</span> rule below — one of the three tick-boxes, or a selected category, sub-category, collection or occasion. The tick-boxes keep themselves current: flag a product Best Seller next month and guests see it without anyone coming back here.</>}
+      className="order-4 space-y-5"
+    >
 
       <div className="space-y-3">
         {[
@@ -3524,14 +3506,11 @@ function CategoryTilesEditor({ tiles, onChange }) {
   };
 
   return (
-    <Panel className="space-y-4">
-      <div>
-        <p className="lux-label">Category tiles</p>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          The picture tiles above the product list and under "Shop by category" on the home page. The first one is the large tile on the home page.
-          A tile needs a label and a photo, or it is left out when you save.
-        </p>
-      </div>
+    <Panel
+      title="Category tiles"
+      description={'The picture tiles above the product list and under "Shop by category" on the home page. The first one is the large tile on the home page. A tile needs a label and a photo, or it is left out when you save.'}
+      className="space-y-4"
+    >
       {tiles.length ? null : <p className="text-sm text-[var(--color-text)]">No tiles: the storefront hides this section.</p>}
       {tiles.map((tile, index) => (
         <div key={index} className="grid gap-4 border border-[var(--color-border)] p-3 sm:p-4 md:grid-cols-2">
@@ -3739,8 +3718,7 @@ export function AdminConfigPage() {
       ) : null}
 
       {tab === 'site' ? (
-      <Panel className="space-y-4">
-        <p className="lux-label">Site settings</p>
+      <Panel title="Site settings" className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Company Name"><input className={textInput} value={siteSettings.companyName} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), companyName: event.target.value }))} /></Field>
           <Field label="Email"><input className={textInput} value={siteSettings.email} onChange={(event) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), email: event.target.value }))} /></Field>
@@ -3762,11 +3740,11 @@ export function AdminConfigPage() {
 
       {tab === 'access' ? (
         <div className="space-y-4 sm:space-y-6">
-      <Panel className="space-y-4">
-        <div>
-          <p className="lux-label">General Access (Home Page)</p>
-          <p className="mb-4 mt-1 text-sm text-[var(--color-text-muted)]">Select which sections should be visible to guests (users who are not signed in).</p>
-        </div>
+      <Panel
+        title="General Access (Home Page)"
+        description={'Select which sections should be visible to guests (users who are not signed in).'}
+        className="space-y-4"
+      >
         <div className="grid gap-4 md:grid-cols-3">
           {[
             { key: 'showPopupPromo', label: 'Popup Promo' },

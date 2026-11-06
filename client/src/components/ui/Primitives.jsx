@@ -1,5 +1,5 @@
 import { forwardRef, useState } from 'react';
-import { Eye, EyeOff, LoaderCircle, Sparkles, TriangleAlert, X } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, LoaderCircle, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { describeError } from '../../utils/errors';
 
 // Mobile keeps the same letterspaced, uppercase voice as desktop, just tighter,
@@ -96,8 +96,21 @@ export function BottomSheet({ sheetRef, title, children, footer }) {
   );
 }
 
-export function Panel({ children, className = '' }) {
-  return <div className={`lux-panel p-3 sm:p-6 ${className}`}>{children}</div>;
+// With a title the panel folds: the heading becomes a click-to-collapse summary.
+export function Panel({ children, className = '', title, description, defaultOpen = true }) {
+  if (!title) return <div className={`lux-panel p-3 sm:p-6 ${className}`}>{children}</div>;
+  return (
+    <details className={`lux-panel group/panel p-3 sm:p-6 ${className}`} open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0">
+          <p className="lux-label">{title}</p>
+          {description ? <p className="mt-1 text-sm text-[var(--color-text-muted)]">{description}</p> : null}
+        </div>
+        <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-[var(--color-text-muted)] transition group-open/panel:rotate-180" />
+      </summary>
+      {children}
+    </details>
+  );
 }
 
 export function StatCard({ label, title, value, caption, detail }) {
