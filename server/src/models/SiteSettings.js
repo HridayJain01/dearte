@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { assetSchema } from './schemas.js';
 
 const siteSettingsSchema = new mongoose.Schema(
   {
@@ -19,6 +20,20 @@ const siteSettingsSchema = new mongoose.Schema(
     whatsappOperationsNumbers: { type: String, default: '' },
     /** Email ops: comma-separated admin emails who receive a copy of each new order. */
     orderNotificationEmails: { type: String, default: '' },
+    /**
+     * Picture tiles above the product list and in the home page's "Shop by
+     * category". Unset until an admin first saves them, and the storefront then
+     * shows its built-in four; an empty list hides the tiles.
+     */
+    categoryTiles: {
+      type: [
+        new mongoose.Schema(
+          { label: String, link: String, image: { type: assetSchema, default: () => ({}) } },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
+    },
     /** General access settings for guest users on the home page */
     guestAccess: {
       showPopupPromo: { type: Boolean, default: true },

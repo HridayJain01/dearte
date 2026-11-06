@@ -19,6 +19,7 @@ import {
 import { seedData } from '../data/seed.js';
 import { DIAMOND_QUALITIES, DIAMOND_QUALITY, OCCASIONS } from '../data/taxonomy.js';
 import { normalizeAsset, normalizeAssetArray } from '../utils/assets.js';
+import { sanitizeCategoryTiles } from '../utils/categoryTiles.js';
 import { sendError, sendSuccess } from '../utils/responses.js';
 import { asString, escapeRegex, isValidEmail, normalizeEmail } from '../utils/validation.js';
 import {
@@ -639,6 +640,7 @@ function sanitizeSiteSettings(body, current = null) {
     orderNotificationEmails: body.orderNotificationEmails ?? current?.orderNotificationEmails ?? '',
     guestAccess: sanitizeGuestAccess(body, current),
     guestCatalogue: sanitizeGuestCatalogue(body, current),
+    categoryTiles: sanitizeCategoryTiles(body.categoryTiles ?? current?.categoryTiles),
   };
 }
 

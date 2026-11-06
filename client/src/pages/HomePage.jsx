@@ -85,7 +85,7 @@ export function HomePage() {
           rendered here. */}
       <Seo {...routeSeo('/')} path="/" />
       {data && show('showPopupPromo') && <PopupPromo ads={data.popupAds} />}
-      {show('showHeroSlider') && (data ? <HeroSlider banners={data.banners} /> : <HeroSkeleton />)}
+      {show('showHeroSlider') && (data ? <HeroSlider banners={data.banners} products={data.bestSellers} /> : <HeroSkeleton />)}
       {show('showBrandExpression') && <BrandExpressionFrame />}
       {show('showProcessImage') && <ProcessImageFrame />}
       {show('showCollections') && <CollectionsShowcase />}

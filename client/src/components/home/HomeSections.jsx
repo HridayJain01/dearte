@@ -4,8 +4,11 @@ import { Link } from 'react-router-dom';
 import brandExpressionImage from '../../assets/Cormorant Garamond.png';
 import processImage from '../../assets/process.png';
 import { useAuth } from '../../hooks/useAuth';
+import { useCategoryTiles } from '../../hooks/useSiteSettings';
 import { Button } from '../ui/Primitives';
-import { cdnImage } from '../../utils/formatters';
+import { cdnImage, formatWeight } from '../../utils/formatters';
+import { productDisplayName } from '../../utils/productTitle';
+import { goldColorSwatch, variantFor, variantImages } from '../../utils/productVariants';
 import { Parallax, Reveal } from '../ui/motion';
 import { ProductCard } from '../product/ProductCard';
 
@@ -55,8 +58,7 @@ function RailLink({ to, children }) {
   );
 }
 
-function ShopCategoryCard({ label, categorySlug, imageSrc, className, delay = 0 }) {
-  const to = `/products?category=${encodeURIComponent(categorySlug)}`;
+function ShopCategoryCard({ label, to, imageSrc, className, delay = 0 }) {
 
   return (
     <Reveal
@@ -124,142 +126,193 @@ export function ProcessImageFrame() {
   );
 }
 
+// The admin's tiles (Settings > Category tiles): the first runs large on the
+// left, the rest share the right in pairs, and an odd one out spans the pair.
 export function CollectionsShowcase() {
+  const tiles = useCategoryTiles();
+  if (!tiles.length) return null;
+  const [first, ...rest] = tiles;
+  const tile = (item, className, delay = 0) => (
+    <ShopCategoryCard
+      key={`${item.label}-${item.link}`}
+      label={item.label}
+      to={item.link}
+      imageSrc={cdnImage(item.image?.secureUrl, 1200)}
+      className={className}
+      delay={delay}
+    />
+  );
+
   return (
     <section className="page-shell pb-10 pt-6 sm:pb-20 sm:pt-10 md:pb-28 md:pt-12">
       <SectionIntro
         title="Shop by category"
-        description="Lab-grown diamond rings, earrings, bracelets and pendants, for everyday wear and special occasions."
+        description="Lab-grown diamond jewellery for everyday wear and special occasions."
       />
 
       <div className="flex flex-col gap-4 sm:gap-4.5 lg:flex-row lg:items-stretch">
-        <ShopCategoryCard
-          label="Rings"
-          categorySlug="Rings"
-          imageSrc="/images/shop-category/rings.jpg"
-          className="aspect-3/2 min-h-40 w-full sm:aspect-4/5 sm:min-h-70 lg:aspect-auto lg:w-1/2 lg:self-stretch lg:min-h-144"
-        />
+        {tile(first, `aspect-3/2 min-h-40 w-full sm:aspect-4/5 sm:min-h-70 lg:aspect-auto lg:self-stretch lg:min-h-144 ${rest.length ? 'lg:w-1/2' : 'sm:aspect-16/7'}`)}
 
-        <div className="flex w-full min-h-0 flex-col gap-3 sm:gap-4.5 lg:w-1/2 lg:min-h-144">
-          <ShopCategoryCard
-            label="Earring"
-            categorySlug="Earring"
-            imageSrc="/images/shop-category/earrings.jpg"
-            className="aspect-16/9 min-h-32 w-full sm:aspect-16/11 sm:min-h-48 lg:aspect-auto lg:min-h-0 lg:flex-1"
-            delay={90}
-          />
-
-          <div className="grid grid-cols-2 gap-3 sm:gap-4.5 lg:flex-1 lg:min-h-0">
-            <ShopCategoryCard
-              label="Bracelet"
-              categorySlug="Bracelet"
-              imageSrc="/images/shop-category/bracelets.jpg"
-              className="aspect-square min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 lg:h-full"
-              delay={180}
-            />
-            <ShopCategoryCard
-              label="Pendant"
-              categorySlug="Pendant"
-              imageSrc="/images/shop-category/pendants.jpg"
-              className="aspect-square min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 lg:h-full"
-              delay={270}
-            />
+        {rest.length ? (
+          <div className="grid w-full auto-rows-fr grid-cols-2 gap-3 sm:gap-4.5 lg:min-h-144 lg:w-1/2">
+            {rest.map((item, index) => {
+              const wide = rest.length % 2 === 1 && index === 0;
+              return tile(
+                item,
+                `min-h-32 w-full sm:min-h-42 lg:aspect-auto lg:min-h-0 ${wide ? 'col-span-2 aspect-16/9 sm:aspect-16/11' : 'aspect-square'}`,
+                (index + 1) * 90,
+              );
+            })}
           </div>
-        </div>
+        ) : null}
       </div>
     </section>
   );
 }
 
-export function HeroSlider({ banners }) {
+// A best seller photographed in more than one metal, for the hero to show off.
+function pickFeatured(products = []) {
+  return products.find((product) => heroMetals(product).length > 1) || null;
+}
+
+function heroMetals(product) {
+  return (product.customizationOptions?.goldColors || []).filter((color) => variantFor(product, color)?.views?.length);
+}
+
+// The hero's moving picture: one real style that turns from metal to metal on
+// its own until the visitor picks one. Reduced motion keeps it still.
+function MetalPicker({ product }) {
+  const metals = heroMetals(product);
   const [active, setActive] = useState(0);
+  const [held, setHeld] = useState(false);
+  // The name leads with the photographed metal ("Yellow Gold ..."), which is
+  // wrong as soon as the picture turns to another one.
+  const name = productDisplayName(product).replace(/^(yellow|rose|white)\s+gold\s+/i, '');
 
   useEffect(() => {
-    if (!banners?.length) return undefined;
-    const timer = setInterval(() => {
-      setActive((current) => (current + 1) % banners.length);
-    }, 5000);
+    if (held || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const timer = setInterval(() => setActive((current) => (current + 1) % metals.length), 3200);
+    return () => clearInterval(timer);
+  }, [held, metals.length]);
 
+  return (
+    <div className="order-1 flex h-full flex-col bg-white lg:order-2">
+      <Link to={`/products/${product.styleCode}`} className="relative block min-h-[15rem] flex-1 overflow-hidden sm:min-h-[24rem]">
+        {metals.map((metal, index) => (
+          <img
+            key={metal}
+            src={cdnImage(variantImages(product, metal)[0], 1200)}
+            alt={index === active ? `${name} in ${metal}` : ''}
+            aria-hidden={index !== active}
+            loading={index === 0 ? 'eager' : 'lazy'}
+            fetchPriority={index === 0 ? 'high' : 'auto'}
+            decoding="async"
+            className={`absolute inset-0 h-full w-full object-contain p-2 transition duration-700 [transition-timing-function:var(--ease-lux)] sm:p-6 ${index === active ? 'scale-110 opacity-100' : 'scale-100 opacity-0'}`}
+          />
+        ))}
+      </Link>
+      <div className="flex flex-col gap-3 px-4 pb-5 sm:flex-row sm:items-end sm:justify-between sm:px-10 sm:pb-9">
+        <div className="min-w-0">
+          <Link to={`/products/${product.styleCode}`} className="font-serif text-2xl leading-tight text-[var(--color-text)] hover:text-[var(--color-primary)] sm:text-3xl">
+            {name}
+          </Link>
+          <p className="mt-1 text-[15px] text-[var(--color-text)]">
+            Diamond {formatWeight(product.diamondWeight, 'ct')} · Gold {formatWeight(product.goldWeight, 'g')}
+          </p>
+        </div>
+        <div role="group" aria-label="Show it in" className="flex shrink-0 gap-2">
+          {metals.map((metal, index) => (
+            <button
+              key={metal}
+              type="button"
+              aria-pressed={index === active}
+              onClick={() => {
+                setActive(index);
+                setHeld(true);
+              }}
+              className={`flex min-h-11 flex-1 items-center justify-center gap-2 border px-3 text-[15px] transition sm:flex-none ${
+                index === active
+                  ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                  : 'border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-primary)]'
+              }`}
+            >
+              <span className="h-4 w-4 flex-none" style={{ backgroundColor: goldColorSwatch(metal) }} aria-hidden />
+              {metal.replace(/\s*gold$/i, '')}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function HeroSlider({ banners = [], products }) {
+  const { isAuthenticated } = useAuth();
+  const [active, setActive] = useState(0);
+  const featured = pickFeatured(products);
+
+  // Admin banners now rotate as a one-line "new" link under the buttons.
+  useEffect(() => {
+    if (banners.length < 2) return undefined;
+    const timer = setInterval(() => setActive((current) => (current + 1) % banners.length), 5000);
     return () => clearInterval(timer);
   }, [banners.length]);
-
-  if (!banners?.length) {
-    return null;
-  }
 
   const slide = banners[active];
 
   return (
-    // The copy gets its own flat crimson field beside the photo. Banners are shot on
-    // white, so laying type over them needed a scrim that turned the jewellery mauve.
     <section className="grid lg:min-h-[calc(88svh-6.5rem)] lg:grid-cols-2">
-      <div className="relative h-[34svh] min-h-[14rem] overflow-hidden bg-white sm:h-[46svh] lg:order-2 lg:h-auto">
-        {banners.map((banner, index) => (
-          <div
-            key={banner.id}
-            aria-hidden={index !== active}
-            className={`hero-slide absolute inset-0 ${index === active ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <img
-              src={cdnImage(banner.image, 1920)}
-              srcSet={`${cdnImage(banner.image, 828)} 828w, ${cdnImage(banner.image, 1920)} 1920w`}
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              alt={banner.title}
-              // The first slide is the home page's LCP element. Lazy-loading it
-              // would push the largest paint behind layout for no benefit; the
-              // slides behind it are off-screen and can wait.
-              loading={index === 0 ? 'eager' : 'lazy'}
-              fetchPriority={index === 0 ? 'high' : 'low'}
-              decoding="async"
-              className={`h-full w-full object-contain ${index === active ? 'animate-ken-burns' : ''}`}
-            />
-          </div>
-        ))}
-      </div>
-
       {/* The left edge lines up with .page-shell. */}
-      <div className="flex flex-col justify-center bg-[var(--color-primary)] px-4 py-8 text-white sm:px-6 sm:py-12 lg:order-1 lg:pl-[max(20px,calc((100vw-var(--container))/2))] lg:pr-12">
-        <h1 className="lux-heading text-[1.875rem] text-white! sm:text-5xl lg:text-[clamp(2.5rem,4.2vw,3.75rem)]">
+      <div className="order-2 flex flex-col justify-center bg-[var(--color-primary)] px-4 py-10 text-white sm:px-6 sm:py-14 lg:order-1 lg:pl-[max(20px,calc((100vw-var(--container))/2))] lg:pr-12">
+        <h1 className="animate-hero-line lux-heading text-[2.1rem] text-white! sm:text-5xl lg:text-[clamp(2.75rem,4.3vw,3.9rem)]">
           Lab-grown diamond jewellery for retailers
         </h1>
-        <p className="mt-3 max-w-xl text-base leading-relaxed text-white sm:mt-5 sm:text-lg">
+        <p className="animate-hero-line mt-4 max-w-xl text-base leading-relaxed text-white sm:mt-6 sm:text-lg" style={{ '--line-delay': '120ms' }}>
           De Arté makes rings, earrings, bracelets and pendants for jewellery retailers and wholesale buyers.
         </p>
-
-        <div key={slide.id} className="animate-hero-line mt-6 sm:mt-10">
-          {slide.offerBadge ? (
-            <p className="mb-2 text-[13px] font-medium text-[var(--color-accent)]">{slide.offerBadge}</p>
-          ) : null}
-          <p className="font-serif text-2xl leading-tight sm:text-3xl">{slide.title}</p>
-          {slide.subtitle ? <p className="mt-1 text-base text-white/85">{slide.subtitle}</p> : null}
-          <div className="mt-4 flex flex-wrap gap-2 sm:mt-6 sm:gap-3">
-            <Button as={Link} to={bannerPath(slide.ctaLink)} variant="secondary">{slide.ctaLabel}</Button>
-            <Button as={Link} to="/contact" variant="ghost" className="border-white/40! text-white! hover:bg-white/10!">Talk to Sales</Button>
-          </div>
+        <div className="animate-hero-line mt-6 flex flex-wrap gap-2 sm:mt-9 sm:gap-3" style={{ '--line-delay': '240ms' }}>
+          {isAuthenticated ? (
+            <Button as={Link} to="/products" variant="secondary">Explore products</Button>
+          ) : (
+            <Button as={Link} to="/register" variant="secondary">Open a buyer account</Button>
+          )}
+          <Button
+            as={Link}
+            to={isAuthenticated ? '/contact' : '/products'}
+            variant="ghost"
+            className="border-white/40! text-white! hover:bg-white/10!"
+          >
+            {isAuthenticated ? 'Talk to sales' : 'Browse the catalogue'}
+          </Button>
         </div>
 
-        {banners.length > 1 ? (
-          <div className="mt-4 flex items-center gap-3 sm:mt-8 sm:gap-4">
-            {banners.map((banner, index) => (
-              <button
-                key={banner.id}
-                onClick={() => setActive(index)}
-                aria-label={`Go to slide ${index + 1}`}
-                className="relative flex h-10 w-10 items-center sm:w-14"
-              >
-                <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/30" aria-hidden />
-                {index === active ? (
-                  <span
-                    key={slide.id}
-                    className="animate-slide-progress absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 bg-[var(--color-accent)]"
-                    aria-hidden
-                  />
-                ) : null}
-              </button>
-            ))}
-          </div>
+        {slide ? (
+          <Link
+            key={slide.id}
+            to={bannerPath(slide.ctaLink)}
+            className="animate-hero-line group mt-8 inline-flex max-w-full items-center gap-3 self-start text-base text-white sm:mt-12"
+            style={{ '--line-delay': '360ms' }}
+          >
+            <span className="bg-[var(--color-accent)] px-2 py-0.5 text-[13px] font-medium text-[var(--color-text)]">New</span>
+            <span className="truncate underline-offset-4 group-hover:underline">{slide.title}</span>
+            <ArrowRight className="h-4 w-4 flex-none transition-transform group-hover:translate-x-1" aria-hidden />
+          </Link>
         ) : null}
       </div>
+
+      {featured ? (
+        <MetalPicker product={featured} />
+      ) : slide ? (
+        <div className="relative order-1 min-h-[17rem] bg-white sm:min-h-[24rem] lg:order-2">
+          <img
+            src={cdnImage(slide.image, 1600)}
+            alt={slide.title}
+            fetchPriority="high"
+            decoding="async"
+            className="animate-ken-burns absolute inset-0 h-full w-full object-contain"
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

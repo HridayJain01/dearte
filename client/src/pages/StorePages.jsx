@@ -8,7 +8,7 @@ import { useProducts, useProduct } from '../hooks/useProducts';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
 import { useWishlist } from '../hooks/useWishlist';
-import { useSiteSettings, whatsappHref } from '../hooks/useSiteSettings';
+import { useCategoryTiles, useSiteSettings, whatsappHref } from '../hooks/useSiteSettings';
 import { recentlyViewed, rememberViewed } from '../utils/recentlyViewed';
 import { orderService } from '../services/orderService';
 import { userService } from '../services/userService';
@@ -80,12 +80,6 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, to }) {
 
 // `categorySlug` must match a category name in the product master
 // (server/src/data/taxonomy.js) or the tile links to an empty result set.
-const PRODUCT_CATEGORY_TILES = [
-  { label: 'Rings', categorySlug: 'Rings', imageSrc: '/images/shop-category/rings.jpg' },
-  { label: 'Earring', categorySlug: 'Earring', imageSrc: '/images/shop-category/earrings.jpg' },
-  { label: 'Bracelet', categorySlug: 'Bracelet', imageSrc: '/images/shop-category/bracelets.jpg' },
-  { label: 'Pendant', categorySlug: 'Pendant', imageSrc: '/images/shop-category/pendants.jpg' },
-];
 
 /** Shop-by-collection landing: curated collection cards like Ocean Collection, Lunar Collection, and more. */
 export function CollectionsPage() {
@@ -259,6 +253,7 @@ function ProductGridSkeleton() {
 }
 
 export function ProductListPage() {
+  const categoryTiles = useCategoryTiles();
   const { category } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = category ? decodeURIComponent(category) : searchParams.get('category') || '';
@@ -503,14 +498,14 @@ export function ProductListPage() {
       <div className="space-y-3 sm:space-y-5">
         {/* A short row of tiles, not a 2x2 wall: the tiles used to fill the
             first screen and push every product below the fold. */}
-        {!activeCategory && !activeSubCategory && !activeCollection && !activeOccasion && (
+        {categoryTiles.length > 0 && !activeCategory && !activeSubCategory && !activeCollection && !activeOccasion && (
           <div className="snap-rail -mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:gap-3 sm:px-0">
-            {PRODUCT_CATEGORY_TILES.map((tile) => (
+            {categoryTiles.map((tile) => (
               <ShopCategoryCard
-                key={tile.label}
+                key={`${tile.label}-${tile.link}`}
                 label={tile.label}
-                categorySlug={tile.categorySlug}
-                imageSrc={tile.imageSrc}
+                to={tile.link}
+                imageSrc={cdnImage(tile.image?.secureUrl, 640)}
                 className="h-24 w-32 flex-none snap-start sm:h-28 sm:w-60 lg:w-auto lg:flex-1"
               />
             ))}
@@ -656,15 +651,27 @@ function WeightTable({ product, carat }) {
   const colourStone = Number(weights.colourStone || 0);
   const active = String(carat || '').replace(/\s/g, '').toUpperCase();
 
+  // One precision throughout: the sheet mixes "3", "3.26" and "2.892", and
+  // buyers price on the third decimal, so nothing is rounded away.
+  const fixed = (value) => (Number(value) > 0 ? Number(value).toFixed(3) : '—');
+  const extras = [
+    diamond ? ['Diamond', `${fixed(diamond)} ct`] : null,
+    colourStone ? ['Colour stone', `${fixed(colourStone)} ct`] : null,
+  ].filter(Boolean);
+  const band = (label) => (active === label ? 'bg-[var(--color-surface-alt)] text-[var(--color-primary)] font-semibold' : 'text-[var(--color-text)]');
+
   return (
     <Panel>
       {columns.length ? (
-        <table className="w-full text-left text-[13px] sm:text-sm">
+        <table className="w-full border-collapse text-left text-[15px] tabular-nums sm:text-base">
+          <caption className="sr-only">Gold weight in grams for each karat{active ? `, ${active} selected` : ''}</caption>
           <thead>
-            <tr className="text-[13px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-              <th className="pb-2 font-normal">Weight (g)</th>
+            <tr>
+              <th className="pb-3 pr-3 align-bottom text-[14px] font-normal text-[var(--color-text-muted)]">Gold weight (g)</th>
+              {/* The selected karat's band runs from its heading to its last figure. */}
               {columns.map(([label]) => (
-                <th key={label} className={`pb-2 text-right ${active === label ? 'font-semibold text-[var(--color-primary)]' : 'font-normal'}`}>
+                <th key={label} scope="col" className={`px-3 pb-3 pt-3 text-right align-bottom font-medium ${band(label)}`}>
+                  {active === label ? <span className="block text-[13px] font-normal text-[var(--color-text-muted)]">Selected</span> : null}
                   {label}
                 </th>
               ))}
@@ -676,41 +683,37 @@ function WeightTable({ product, carat }) {
               ['Net', 'net'],
             ].map(([label, group]) => (
               <tr key={group} className="border-t border-[var(--color-border)]">
-                <th className="py-2 font-normal text-[var(--color-text-muted)]">{label}</th>
+                <th scope="row" className="py-3 pr-3 font-normal text-[var(--color-text)]">{label}</th>
                 {columns.map(([columnLabel, key]) => (
-                  <td
-                    key={key}
-                    className={`py-2 text-right tabular-nums ${active === columnLabel ? 'bg-[var(--color-surface-alt)] font-semibold text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`}
-                  >
-                    {Number(weights[group]?.[key]) || '—'}
+                  <td key={key} className={`px-3 py-3 text-right ${band(columnLabel)}`}>
+                    {fixed(weights[group]?.[key])}
                   </td>
                 ))}
+              </tr>
+            ))}
+            {extras.map(([label, value]) => (
+              <tr key={label} className="border-t border-[var(--color-border)]">
+                <th scope="row" className="py-3 pr-3 font-normal text-[var(--color-text)]">{label}</th>
+                <td colSpan={columns.length} className="px-3 py-3 text-right font-semibold text-[var(--color-text)]">{value}</td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : null}
-      {columns.length && (diamond || colourStone) ? (
-        <p className="mt-1 border-t border-[var(--color-border)] pt-2 text-[13px] text-[var(--color-text)] sm:text-sm">
-          {diamond ? <>Diamond <span className="font-semibold tabular-nums">{diamond} ct</span></> : null}
-          {diamond && colourStone ? ' · ' : null}
-          {colourStone ? <>Colour stone <span className="font-semibold tabular-nums">{colourStone} ct</span></> : null}
-        </p>
-      ) : null}
       {specs.length ? (
         <div className={`grid grid-cols-2 gap-1.5 sm:gap-3 ${columns.length ? 'mt-3' : ''}`}>
           {specs.map((spec, specIndex) => (
-            <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-2 sm:p-4">
-              <p className="text-[13px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.2em]">{spec.attribute}</p>
-              <p className="mt-0.5 text-[13px] leading-tight text-[var(--color-text)] sm:mt-2 sm:text-sm">{spec.value}</p>
+            <div key={`${spec.attribute}-${specIndex}`} className="bg-[var(--color-surface-alt)] p-3 sm:p-4">
+              <p className="text-[13px] leading-tight text-[var(--color-text-muted)]">{spec.attribute}</p>
+              <p className="mt-1 text-[15px] leading-tight text-[var(--color-text)] sm:text-base">{spec.value}</p>
             </div>
           ))}
         </div>
       ) : null}
-      <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[13px] text-[var(--color-text-muted)] sm:mt-3 sm:pt-3 sm:text-[13px]">
-        <span>* All weights are approximate.</span>
+      <p className="mt-4 flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)]">
+        All weights are approximate.
         <WeightDisclaimerTrigger />
-      </div>
+      </p>
     </Panel>
   );
 }

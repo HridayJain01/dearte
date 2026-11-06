@@ -8,7 +8,7 @@ import { BottomSheet, Button, LoadingBlock, Panel, SectionHeading, StatCard, Sta
 import { ArrowLeft, ArrowRight, ChevronDown, Download, MessageCircle, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import { downloadDeArteOrderPdf } from '../utils/orderPdf';
 import { diamondWeightFor, goldWeightFor, totalDiamondWeight, totalGoldWeight, totalPieces, variantImage } from '../utils/productVariants';
-import { DIAMOND_QUALITY } from '../utils/constants';
+import { DEFAULT_CATEGORY_TILES, DIAMOND_QUALITY } from '../utils/constants';
 import { cdnImage, formatWhen } from '../utils/formatters';
 import { whatsappHref } from '../hooks/useSiteSettings';
 import { chunkRowsByStyle, getRowStyleCode, normalizeSheetHeader, parseImageFileName } from '../utils/importChunks';
@@ -3512,11 +3512,58 @@ function GuestCataloguePanel({ guestCatalogue, categories, subCategories, collec
   );
 }
 
+// The picture tiles over the product list and in the home page's "Shop by
+// category". Saved with the rest of the site settings by the page's save bar.
+function CategoryTilesEditor({ tiles, onChange }) {
+  const update = (index, patch) => onChange(tiles.map((tile, i) => (i === index ? { ...tile, ...patch } : tile)));
+  const move = (index, step) => {
+    const next = [...tiles];
+    const [tile] = next.splice(index, 1);
+    next.splice(index + step, 0, tile);
+    onChange(next);
+  };
+
+  return (
+    <Panel className="space-y-4">
+      <div>
+        <p className="lux-label">Category tiles</p>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          The picture tiles above the product list and under "Shop by category" on the home page. The first one is the large tile on the home page.
+          A tile needs a label and a photo, or it is left out when you save.
+        </p>
+      </div>
+      {tiles.length ? null : <p className="text-sm text-[var(--color-text)]">No tiles: the storefront hides this section.</p>}
+      {tiles.map((tile, index) => (
+        <div key={index} className="grid gap-4 border border-[var(--color-border)] p-3 sm:p-4 md:grid-cols-2">
+          <div className="space-y-3">
+            <Field label="Label">
+              <input className={textInput} maxLength={40} value={tile.label || ''} onChange={(event) => update(index, { label: event.target.value })} />
+            </Field>
+            <Field label="Opens (a page on this site, e.g. /products?category=Rings; blank filters by the label)">
+              <input className={textInput} value={tile.link || ''} placeholder="/products?category=Rings" onChange={(event) => update(index, { link: event.target.value })} />
+            </Field>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="ghost" disabled={index === 0} onClick={() => move(index, -1)}>Move up</Button>
+              <Button type="button" variant="ghost" disabled={index === tiles.length - 1} onClick={() => move(index, 1)}>Move down</Button>
+              <Button type="button" variant="ghost" icon={Trash2} onClick={() => onChange(tiles.filter((_, i) => i !== index))}>Delete</Button>
+            </div>
+          </div>
+          <AssetField label="Photo" value={tile.image} onChange={(image) => update(index, { image })} folder="dearte/category-tiles" />
+        </div>
+      ))}
+      <Button type="button" variant="secondary" icon={Plus} onClick={() => onChange([...tiles, { label: '', link: '', image: { ...emptyAsset } }])}>
+        Add a tile
+      </Button>
+    </Panel>
+  );
+}
+
 const CONFIG_TABS = [
   ['taxonomy', 'Categories'],
   ['brands', 'Trusted brands'],
   ['site', 'Site details'],
   ['access', 'Guest access'],
+  ['tiles', 'Category tiles'],
 ];
 
 export function AdminConfigPage() {
@@ -3537,6 +3584,8 @@ export function AdminConfigPage() {
     queryClient.invalidateQueries({ queryKey: ['admin-config'] });
     queryClient.invalidateQueries({ queryKey: ['home'] });
     queryClient.invalidateQueries({ queryKey: ['trusted-by'] });
+    // The storefront's settings, which carry the category tiles.
+    queryClient.invalidateQueries({ queryKey: ['contact'] });
   };
 
   // Site details, guest access and the guest catalogue are one settings
@@ -3800,6 +3849,13 @@ export function AdminConfigPage() {
         }
       />
         </div>
+      ) : null}
+
+      {tab === 'tiles' ? (
+        <CategoryTilesEditor
+          tiles={siteSettings.categoryTiles ?? DEFAULT_CATEGORY_TILES}
+          onChange={(categoryTiles) => setSiteSettingsDraft((current) => ({ ...(current || siteSettings), categoryTiles }))}
+        />
       ) : null}
 
       {siteSettingsDraft ? (

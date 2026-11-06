@@ -15,6 +15,15 @@ import {
   WandSparkles,
 } from 'lucide-react';
 
+// The category tiles the storefront shows until an admin saves their own in
+// Settings > Category tiles.
+export const DEFAULT_CATEGORY_TILES = [
+  { label: 'Rings', link: '/products?category=Rings', image: { secureUrl: '/images/shop-category/rings.jpg' } },
+  { label: 'Earring', link: '/products?category=Earring', image: { secureUrl: '/images/shop-category/earrings.jpg' } },
+  { label: 'Bracelet', link: '/products?category=Bracelet', image: { secureUrl: '/images/shop-category/bracelets.jpg' } },
+  { label: 'Pendant', link: '/products?category=Pendant', image: { secureUrl: '/images/shop-category/pendants.jpg' } },
+];
+
 export const NAV_LINKS = [
   { label: 'Home', to: '/' },
   // Links to the full product list; AppLayout also adds a category dropdown on
