@@ -1195,12 +1195,24 @@ export const SIZE_CHARTS = {
   }
 };
 
+// Kadas are sold under Bracelet, so the bracelet chart offers both tables:
+// bracelet lengths first, then kada sizes. `sections` drives the size guide;
+// `rows` is every selectable size, which is what cart validation checks.
+const BRACELET_LENGTHS = SIZE_CHARTS.bracelet;
+SIZE_CHARTS.bracelet = {
+  ...BRACELET_LENGTHS,
+  label: 'Bracelet & Kada',
+  noun: 'Bracelet / Kada Size',
+  rows: [...BRACELET_LENGTHS.rows, ...SIZE_CHARTS.kada.rows],
+  sections: [BRACELET_LENGTHS, SIZE_CHARTS.kada],
+};
+
 // Keywords are matched against a product's category and sub-category names.
 // Longer, more specific keywords are checked first so "kada" never falls
 // through to "bangle" and "bracelet" never matches on a stray "ban".
 const CATEGORY_KEYWORDS = [
-  ['kada', 'kada'],
-  ['kadaa', 'kada'],
+  ['kada', 'bracelet'],
+  ['kadaa', 'bracelet'],
   ['bangle', 'bangle'],
   ['bracelet', 'bracelet'],
   ['anklet', 'anklet'],
@@ -1253,7 +1265,9 @@ export function isValidSize(product, size) {
 }
 
 export function defaultSizeFor(product) {
-  const rows = sizeOptionsFor(product);
+  const chart = resolveSizeChart(product);
+  // A multi-table chart opens on its first table (bracelet length, not kada).
+  const rows = chart?.sections?.[0].rows || chart?.rows || [];
   if (!rows.length) return '';
   // Mid-range sizes are the most commonly ordered, so open on one.
   return rows[Math.floor(rows.length / 2)].size;

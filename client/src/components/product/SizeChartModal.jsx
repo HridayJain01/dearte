@@ -56,7 +56,8 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
 
   if (!open || !chart) return null;
 
-  const tips = MEASURING_TIPS[chart.key] || [];
+  // The bracelet chart carries two tables (bracelet length and kada size).
+  const sections = chart.sections || [chart];
 
   return createPortal(
     <div
@@ -94,11 +95,21 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
+          {sections.map((section) => {
+            const tips = MEASURING_TIPS[section.key] || [];
+
+            return (
+          <section key={section.key} className="border-b border-[var(--color-border)] last:border-b-0">
+          {sections.length > 1 ? (
+            <h3 className="lux-label border-b border-[var(--color-border)] px-3 py-2.5 text-[13px] text-[var(--color-primary)] sm:px-7 sm:py-3">
+              {section.noun}
+            </h3>
+          ) : null}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[420px] border-collapse text-[13px] sm:min-w-[520px] sm:text-sm">
               <thead className="sticky top-0 z-10 bg-[var(--color-surface-alt)]">
                 <tr>
-                  {chart.columns.map((column, index) => (
+                  {section.columns.map((column, index) => (
                     <th
                       key={column}
                       scope="col"
@@ -112,7 +123,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
                 </tr>
               </thead>
               <tbody>
-                {chart.rows.map((row) => {
+                {section.rows.map((row) => {
                   const isSelected = row.size === selectedSize;
 
                   return (
@@ -127,7 +138,7 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
                     >
                       {row.cells.map((cell, index) => (
                         <td
-                          key={chart.columns[index]}
+                          key={section.columns[index]}
                           className={`px-2.5 py-2 sm:px-4 sm:py-3 ${
                             index === 0
                               ? `font-medium ${isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'}`
@@ -157,6 +168,9 @@ export function SizeChartModal({ chart, open, onClose, selectedSize, onSelectSiz
               </ul>
             </div>
           ) : null}
+          </section>
+            );
+          })}
         </div>
 
         <footer className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] px-3 py-2.5 sm:gap-4 sm:px-7 sm:py-4">

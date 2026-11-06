@@ -25,7 +25,7 @@ export const BLOG_TOPICS = [
   { title: 'Rose, White or Yellow Gold: Matching Metal to Skin Tone', angle: 'A practical guide sales staff can use with customers.', keywords: ['gold colour skin tone', 'rose gold vs yellow gold'], hints: {} },
   { title: 'Layering Necklaces and Pendants: A Styling Guide', angle: 'Lengths, weights and combinations that look intentional.', keywords: ['layering necklaces', 'diamond pendant styling'], hints: { category: 'Necklace' } },
   { title: 'Modern Mangalsutras: Tradition Meets Everyday Wear', angle: 'How contemporary designs keep the meaning while suiting daily wear.', keywords: ['modern mangalsutra designs', 'diamond mangalsutra'], hints: { category: 'Necklace' } },
-  { title: "Men's Diamond Jewellery: Rings, Studs and Kadas", angle: 'A growing category and how to merchandise it.', keywords: ['mens diamond jewellery', 'diamond kada for men'], hints: { category: 'Kada' } },
+  { title: "Men's Diamond Jewellery: Rings, Studs and Kadas", angle: 'A growing category and how to merchandise it.', keywords: ['mens diamond jewellery', 'diamond kada for men'], hints: { category: 'Bracelet' } },
 
   // Seasonal
   { title: 'Festive Jewellery Edit: Diwali Looks with Lab-Grown Diamonds', angle: 'Festive styling ideas across price points and categories.', keywords: ['diwali jewellery', 'festive diamond jewellery'], hints: { occasion: 'Festive' }, months: [9, 10] },

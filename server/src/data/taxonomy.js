@@ -99,6 +99,8 @@ export const CATEGORY_TREE = [
       'Bracelet',
       'Toi et Moi Bracelet',
       'Ladies\' Bracelet',
+      'Ladies\' Kada',
+      'Mens\' Kada',
     ],
   },
   {
@@ -106,13 +108,6 @@ export const CATEGORY_TREE = [
     subCategories: [
       'Bangle',
       'Solitaire Bangle',
-    ],
-  },
-  {
-    name: 'Kada',
-    subCategories: [
-      'Ladies\' Kada',
-      'Mens\' Kada',
     ],
   },
   {
