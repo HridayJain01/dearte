@@ -10,7 +10,7 @@ import { isEmailConfigured } from '../services/email/transport.js';
 import { aiFailure, aiStatus } from '../services/ai/llm.js';
 import { getAiSettings, saveAiSettings } from '../services/ai/settings.js';
 import { recentRuns, triggerClientRebuild } from '../services/ai/jobs.js';
-import { generateDraftNow, serializePost } from '../services/ai/blog.js';
+import { generateDraftNow, normaliseDraft, serializePost, wordCount } from '../services/ai/blog.js';
 import { runPhotoIndexNow } from '../services/ai/photoSearch.js';
 import { notifyPushBlogPost } from '../services/pushNotifications.js';
 import { bannerCopy } from '../services/ai/banner.js';
@@ -124,25 +124,44 @@ router.post('/blog/posts/:id/regenerate', async (req, res) => {
 
 router.put('/blog/posts/:id', async (req, res) => {
   if (!isObjectId(req.params.id)) return sendError(res, 'Post not found', 404);
-  const status = req.body?.status;
-  if (!['published', 'unpublished'].includes(status)) return sendError(res, 'status must be published or unpublished', 400);
+  const { status, content } = req.body || {};
+  if (status !== undefined && !['published', 'unpublished'].includes(status)) {
+    return sendError(res, 'status must be published or unpublished', 400);
+  }
+  if (status === undefined && !content) return sendError(res, 'Nothing to update', 400);
 
   const post = await BlogPost.findById(req.params.id);
   if (!post) return sendError(res, 'Post not found', 404);
+
+  // A manual edit goes through the same cleaning as a model's draft. The slug
+  // stays as it was, so links and search results keep working.
+  if (content) {
+    const draft = normaliseDraft({ ...content, tags: content.tags ?? post.tags });
+    if (!draft.title) return sendError(res, 'A title is required', 400);
+    if (!draft.sections.length) return sendError(res, 'At least one section with a heading and text is required', 400);
+    Object.assign(post, {
+      title: draft.title,
+      metaDescription: draft.metaDescription,
+      excerpt: draft.excerpt,
+      sections: draft.sections,
+      faq: draft.faq,
+      tags: draft.tags,
+      wordCount: wordCount(draft),
+    });
+  }
+
   // Only a post's first time live goes to the app; re-publishing after a fix does not.
   const firstPublish = status === 'published' && !post.publishedAt;
-  post.status = status;
+  if (status) post.status = status;
   if (firstPublish) post.publishedAt = new Date();
   await post.save();
   if (firstPublish) await notifyPushBlogPost(post).catch((e) => console.error('[push] blog post notify failed', e.message));
 
-  // Either way the storefront's prerendered pages and sitemap have to change.
-  const rebuilding = await triggerClientRebuild();
-  return sendSuccess(
-    res,
-    { post: serializePost(post.toObject(), { admin: true }), rebuilding },
-    status === 'published' ? 'Post published' : 'Post unpublished',
-  );
+  // The storefront's prerendered pages and sitemap change with a status change
+  // or with an edit to a live post.
+  const rebuilding = status || post.status === 'published' ? await triggerClientRebuild() : false;
+  const message = status ? (status === 'published' ? 'Post published' : 'Post unpublished') : 'Post saved';
+  return sendSuccess(res, { post: serializePost(post.toObject(), { admin: true }), rebuilding }, message);
 });
 
 router.delete('/blog/posts/:id', async (req, res) => {

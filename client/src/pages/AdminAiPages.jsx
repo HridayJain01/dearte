@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Eye, Play, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
+import { Eye, Pencil, Play, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { Button, ErrorState, LoadingBlock, Panel, SectionHeading, StatusBadge } from '../components/ui/Primitives';
 import { aiErrorMessage, aiService } from '../services/aiService';
 import { adminService } from '../services/adminService';
@@ -516,6 +516,120 @@ function PostPreview({ post, onClose }) {
   );
 }
 
+// Paragraphs are separated by a blank line, bullets are one per line.
+const toEditable = (post) => ({
+  title: post.title || '',
+  metaDescription: post.metaDescription || '',
+  excerpt: post.excerpt || '',
+  tags: (post.tags || []).join(', '),
+  sections: (post.sections || []).map((section) => ({
+    heading: section.heading,
+    paragraphs: section.paragraphs.join('\n\n'),
+    bullets: section.bullets.join('\n'),
+  })),
+  faq: (post.faq || []).map((entry) => ({ ...entry })),
+});
+
+const fromEditable = (form) => ({
+  title: form.title,
+  metaDescription: form.metaDescription,
+  excerpt: form.excerpt,
+  tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+  sections: form.sections.map((section) => ({
+    heading: section.heading,
+    paragraphs: section.paragraphs.split(/\n\s*\n/).map((text) => text.trim()).filter(Boolean),
+    bullets: section.bullets.split('\n').map((text) => text.trim()).filter(Boolean),
+  })),
+  faq: form.faq,
+});
+
+function PostEditor({ post, saving, onSave, onClose }) {
+  const [form, setForm] = useState(() => toEditable(post));
+  const set = (patch) => setForm({ ...form, ...patch });
+  const setSection = (index, patch) => set({ sections: form.sections.map((section, i) => (i === index ? { ...section, ...patch } : section)) });
+  const setFaq = (index, patch) => set({ faq: form.faq.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)) });
+  const move = (index, step) => {
+    const next = [...form.sections];
+    const [section] = next.splice(index, 1);
+    next.splice(index + step, 0, section);
+    set({ sections: next });
+  };
+
+  return (
+    <Panel className="space-y-4 border-[var(--color-border-active)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="lux-label">Edit · {POST_STATUS[post.status]?.label}</p>
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+            The link (/blog/{post.slug}) stays the same.{post.status === 'published' ? ' Saving updates the live post.' : ''}
+          </p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close editor" className="inline-flex h-10 w-10 shrink-0 items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <Field label="Title" hint="Up to 90 characters.">
+        <input className={inputClass} value={form.title} maxLength={90} onChange={(event) => set({ title: event.target.value })} />
+      </Field>
+      <Field label="Search snippet" hint={`${form.metaDescription.length} characters. Longer ones are trimmed for search results.`}>
+        <textarea className={inputClass} rows={2} value={form.metaDescription} onChange={(event) => set({ metaDescription: event.target.value })} />
+      </Field>
+      <Field label="Excerpt" hint="Up to 300 characters.">
+        <textarea className={inputClass} rows={3} maxLength={300} value={form.excerpt} onChange={(event) => set({ excerpt: event.target.value })} />
+      </Field>
+      <Field label="Tags" hint="Separated by commas, up to 6.">
+        <input className={inputClass} value={form.tags} onChange={(event) => set({ tags: event.target.value })} />
+      </Field>
+
+      {form.sections.map((section, index) => (
+        <div key={index} className="space-y-3 border border-[var(--color-border)] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="lux-label">Section {index + 1}</p>
+            <div className="flex gap-1">
+              <Button variant="ghost" disabled={index === 0} onClick={() => move(index, -1)}>Up</Button>
+              <Button variant="ghost" disabled={index === form.sections.length - 1} onClick={() => move(index, 1)}>Down</Button>
+              <Button variant="ghost" icon={Trash2} aria-label={`Remove section ${index + 1}`} onClick={() => set({ sections: form.sections.filter((_, i) => i !== index) })} />
+            </div>
+          </div>
+          <Field label="Heading">
+            <input className={inputClass} value={section.heading} onChange={(event) => setSection(index, { heading: event.target.value })} />
+          </Field>
+          <Field label="Paragraphs" hint="Leave a blank line between paragraphs.">
+            <textarea className={inputClass} rows={6} value={section.paragraphs} onChange={(event) => setSection(index, { paragraphs: event.target.value })} />
+          </Field>
+          <Field label="Bullets" hint="One per line. Optional.">
+            <textarea className={inputClass} rows={3} value={section.bullets} onChange={(event) => setSection(index, { bullets: event.target.value })} />
+          </Field>
+        </div>
+      ))}
+      <Button variant="ghost" icon={Plus} onClick={() => set({ sections: [...form.sections, { heading: '', paragraphs: '', bullets: '' }] })}>Add section</Button>
+
+      <p className="lux-label">FAQ</p>
+      {form.faq.map((entry, index) => (
+        <div key={index} className="space-y-3 border border-[var(--color-border)] p-3">
+          <div className="flex justify-end">
+            <Button variant="ghost" icon={Trash2} aria-label={`Remove question ${index + 1}`} onClick={() => set({ faq: form.faq.filter((_, i) => i !== index) })} />
+          </div>
+          <Field label="Question">
+            <input className={inputClass} value={entry.question} onChange={(event) => setFaq(index, { question: event.target.value })} />
+          </Field>
+          <Field label="Answer">
+            <textarea className={inputClass} rows={3} value={entry.answer} onChange={(event) => setFaq(index, { answer: event.target.value })} />
+          </Field>
+        </div>
+      ))}
+      {form.faq.length < 6 ? (
+        <Button variant="ghost" icon={Plus} onClick={() => set({ faq: [...form.faq, { question: '', answer: '' }] })}>Add question</Button>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2 border-t border-[var(--color-border)] pt-4">
+        <Button loading={saving} onClick={() => onSave(fromEditable(form))}>Save changes</Button>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+      </div>
+    </Panel>
+  );
+}
+
 const emptyTopic = { title: '', angle: '', category: '', occasion: '' };
 
 export function AdminBlogPage() {
@@ -528,6 +642,7 @@ export function AdminBlogPage() {
   const [topicForm, setTopicForm] = useState(emptyTopic);
   const [busy, setBusy] = useState('');
   const [previewId, setPreviewId] = useState(null);
+  const [editId, setEditId] = useState(null);
 
   if (status.isLoading || posts.isLoading) return <LoadingBlock label="Loading the blog..." />;
   if (status.isLoadingError) return <ErrorState error={status.error} onRetry={status.refetch} retrying={status.isFetching} />;
@@ -580,6 +695,14 @@ export function AdminBlogPage() {
       return `${next === 'published' ? 'Published' : 'Unpublished'}.${suffix}`;
     });
 
+  const saveEdit = (post, content) =>
+    act(`edit-${post.id}`, async () => {
+      const result = await aiService.updatePost(post.id, { content });
+      setEditId(null);
+      setPreviewId(post.id);
+      return result.rebuilding ? 'Saved. The site is rebuilding with the change.' : 'Saved.';
+    });
+
   const regenerate = (post) =>
     act(`regen-${post.id}`, async () => {
       const { run, post: fresh } = await aiService.regeneratePost(post.id);
@@ -617,6 +740,7 @@ export function AdminBlogPage() {
   };
 
   const previewPost = (posts.data || []).find((post) => post.id === previewId);
+  const editPost = (posts.data || []).find((post) => post.id === editId);
   const configured = status.data.configured;
 
   return (
@@ -643,7 +767,11 @@ export function AdminBlogPage() {
         <Panel className="text-sm text-[var(--color-text-muted)]">Writing, checking and reviewing a draft. This takes up to a minute.</Panel>
       ) : null}
 
-      {previewPost ? <PostPreview post={previewPost} onClose={() => setPreviewId(null)} /> : null}
+      {editPost ? (
+        <PostEditor key={editPost.id} post={editPost} saving={busy === `edit-${editPost.id}`} onSave={(content) => saveEdit(editPost, content)} onClose={() => setEditId(null)} />
+      ) : previewPost ? (
+        <PostPreview post={previewPost} onClose={() => setPreviewId(null)} />
+      ) : null}
 
       <Panel className="space-y-4">
         <p className="lux-label">Posts</p>
@@ -670,7 +798,8 @@ export function AdminBlogPage() {
               label: 'Actions',
               render: (_value, row) => (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="ghost" icon={Eye} onClick={() => setPreviewId(previewId === row.id ? null : row.id)}>Preview</Button>
+                  <Button variant="ghost" icon={Eye} onClick={() => { setEditId(null); setPreviewId(previewId === row.id ? null : row.id); }}>Preview</Button>
+                  <Button variant="ghost" icon={Pencil} onClick={() => { setPreviewId(null); setEditId(editId === row.id ? null : row.id); }}>Edit</Button>
                   {row.status === 'published' ? (
                     <Button variant="ghost" loading={busy === `status-${row.id}`} onClick={() => changeStatus(row, 'unpublished')}>Unpublish</Button>
                   ) : (
