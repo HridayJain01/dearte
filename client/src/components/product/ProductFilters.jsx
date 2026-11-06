@@ -33,7 +33,7 @@ function activeFilterCount(activeFilters) {
 function Group({ title, selectedCount = 0, defaultOpen = false, children }) {
   return (
     <details open={defaultOpen || selectedCount > 0} className="group border-b border-[var(--color-border)] last:border-b-0">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-2 text-[13px] font-medium uppercase tracking-[0.12em] text-[var(--color-text)] [&::-webkit-details-marker]:hidden">
         <span>
           {title}
           {selectedCount ? <span className="ml-1.5 text-[var(--color-primary)]">({selectedCount})</span> : null}
@@ -64,7 +64,7 @@ function CheckList({ options, selected, onChange, empty }) {
         <button
           type="button"
           onClick={() => setShowAll((value) => !value)}
-          className="mt-1 min-h-10 text-[12px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline underline-offset-4"
+          className="mt-1 min-h-10 text-[13px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline underline-offset-4"
         >
           {showAll ? 'Show fewer' : `Show all ${options.length}`}
         </button>
@@ -108,7 +108,7 @@ function FilterGroups({ filters, activeFilters, setFilter }) {
                 type="button"
                 aria-pressed={on}
                 onClick={() => setFilter('metalColor', toggleArrayValue(activeFilters.metalColor, metalColor))}
-                className={`min-h-10 border px-3 text-[12px] uppercase tracking-[0.08em] ${
+                className={`min-h-10 border px-3 text-[13px] uppercase tracking-[0.08em] ${
                   on
                     ? 'border-[var(--color-border-active)] bg-[var(--color-surface-alt)] text-[var(--color-primary)]'
                     : 'border-[var(--color-border)] text-[var(--color-text-muted)]'
@@ -123,7 +123,7 @@ function FilterGroups({ filters, activeFilters, setFilter }) {
       <Group title="Weight" selectedCount={rangeCount}>
         <div className="grid grid-cols-2 gap-3">
           {RANGE_FIELDS.map(([field, label]) => (
-            <label key={field} className="text-[12px] text-[var(--color-text-muted)]">
+            <label key={field} className="text-[13px] text-[var(--color-text-muted)]">
               <span className="mb-1.5 block">{label}</span>
               <input
                 type="number"
@@ -164,11 +164,11 @@ export function FilterSheetButton({ total, onClear, ...props }) {
       <button
         type="button"
         onClick={() => sheetRef.current?.showModal()}
-        className="inline-flex min-h-11 shrink-0 items-center gap-2 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] font-medium uppercase tracking-[0.1em] text-[var(--color-text)]"
+        className="inline-flex min-h-11 shrink-0 items-center gap-2 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--color-text)]"
       >
         <SlidersHorizontal className="h-4 w-4" />
         Filters
-        {count ? <span className="bg-[var(--color-primary)] px-1.5 text-[12px] leading-5 text-white">{count}</span> : null}
+        {count ? <span className="bg-[var(--color-primary)] px-1.5 text-[13px] leading-5 text-white">{count}</span> : null}
       </button>
       <BottomSheet
         sheetRef={sheetRef}

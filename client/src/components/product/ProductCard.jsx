@@ -103,13 +103,13 @@ export function ProductCard({ product, priority = false }) {
               <p className="line-clamp-2 font-serif text-[13px] leading-[1.25] text-[var(--color-text)] sm:text-[1.35rem]">
                 {displayName}
               </p>
-              <p className="mt-0.5 text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[11px]">
+              <p className="mt-0.5 text-[13px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[13px]">
                 {product.styleCode}
               </p>
             </div>
           </div>
 
-          <p className="flex items-center gap-1 text-[12px] leading-snug text-[var(--color-text-muted)] sm:gap-1.5 sm:text-xs">
+          <p className="flex items-center gap-1 text-[13px] leading-snug text-[var(--color-text-muted)] sm:gap-1.5 sm:text-[13px]">
             <span>
               Diamond: {formatWeight(product.diamondWeight, 'ct')} | Gold: {formatWeight(product.goldWeight, 'g')}
             </span>
@@ -173,7 +173,7 @@ export function ProductCard({ product, priority = false }) {
               </Button>
             )}
             {otherVariantCount ? (
-              <p className="mt-1 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[11px] sm:tracking-[0.12em]">
+              <p className="mt-1 text-[13px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:mt-1.5 sm:text-[13px] sm:tracking-[0.12em]">
                 {otherVariantCount} other {otherVariantCount === 1 ? 'variant' : 'variants'} in cart
               </p>
             ) : null}

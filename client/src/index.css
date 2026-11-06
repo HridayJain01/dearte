@@ -40,11 +40,7 @@
 
   /* ── Light & Depth (derived from brand tokens only) ── */
   --gold-hairline: linear-gradient(90deg, transparent, rgba(212, 168, 42, 0.9) 50%, transparent);
-  --gold-sheen: linear-gradient(100deg, transparent 42%, rgba(212, 168, 42, 0.14) 48%, rgba(255, 244, 214, 0.28) 50%, rgba(212, 168, 42, 0.14) 52%, transparent 58%);
-  --scrim-hero: linear-gradient(78deg, rgba(43, 5, 17, 0.78) 0%, rgba(107, 15, 46, 0.5) 30%, rgba(107, 15, 46, 0.16) 58%, rgba(107, 15, 46, 0.02) 78%, transparent 100%);
-  --scrim-photo: linear-gradient(180deg, transparent 42%, rgba(26, 4, 12, 0.72) 100%);
   --scrim-veil: rgba(26, 4, 12, 0.72);
-  --glow-crimson: radial-gradient(120% 90% at 50% 0%, rgba(139, 26, 58, 0.55), transparent 62%);
   --glass-surface: rgba(250, 240, 243, 0.86);
 }
 
@@ -128,18 +124,17 @@ body {
 
 @media (max-width: 767px) {
   .page-shell {
-    width: min(calc(100% - 24px), var(--container));
+    width: min(calc(100% - 32px), var(--container));
   }
 
   .section-gap {
-    padding-block: 2rem;
+    padding-block: 3rem;
   }
 }
 
 .lux-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-soft);
 }
 
 /* Native checkbox, brand-dressed: a sharp hairline square that fills crimson and
@@ -211,7 +206,7 @@ body {
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-text-muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 500;
   }
 }
@@ -240,8 +235,8 @@ body {
   font-family: var(--font-serif);
   color: var(--color-primary);
   font-weight: 400;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
 }
 
 .soft-border {
@@ -317,69 +312,6 @@ body {
 .hairline-draw:hover::after,
 .group:hover .hairline-draw::after {
   transform: scaleX(1);
-}
-
-/* Signature facet shimmer — slow gold light sweep (hero + CTA only) */
-.light-sweep {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.light-sweep::after {
-  content: '';
-  position: absolute;
-  inset: -20% 0;
-  background: var(--gold-sheen);
-  transform: translateX(-80%);
-  animation: lightSweep 9s var(--ease-cinema) 2s infinite;
-}
-
-@keyframes lightSweep {
-  0% {
-    transform: translateX(-80%);
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
-  }
-  32% {
-    transform: translateX(80%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(80%);
-    opacity: 0;
-  }
-}
-
-/* Cinematic scrims */
-.scrim-hero {
-  background: var(--scrim-hero);
-}
-
-/* Pale banner imagery needs extra help on narrow screens where the
-   copy spans the full width of the frame. */
-@media (max-width: 639px) {
-  .scrim-hero {
-    background:
-      linear-gradient(180deg, rgba(43, 5, 17, 0.2), rgba(43, 5, 17, 0.5)),
-      var(--scrim-hero);
-  }
-}
-
-/* Soft crimson glow behind hero copy for legibility on light imagery */
-.hero-copy {
-  text-shadow: 0 2px 28px rgba(26, 4, 12, 0.55);
-}
-
-.scrim-photo {
-  background: var(--scrim-photo);
-}
-
-.cta-glow {
-  background: var(--glow-crimson);
 }
 
 /* Slow Ken Burns drift for full-bleed imagery */
@@ -553,10 +485,6 @@ html:has(.bottom-sheet[open]) {
     transition: none;
   }
 
-  .light-sweep::after {
-    animation: none;
-    opacity: 0;
-  }
 
   .hero-slide {
     transition: none;

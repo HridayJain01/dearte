@@ -170,7 +170,7 @@ export function Select({
   return (
     <div ref={rootRef} className={`relative ${className}`}>
       {label ? (
-        <span id={`${controlId}-label`} className="mb-1 block text-xs text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">
+        <span id={`${controlId}-label`} className="mb-1 block text-[13px] text-[var(--color-text-muted)] sm:mb-2 sm:text-sm">
           {label}
         </span>
       ) : null}
@@ -200,7 +200,7 @@ export function Select({
                 {/* The hint only ever half-fits a narrow control, so mobile
                     keeps the label alone and leaves the detail to the list. */}
                 {selected.hint ? (
-                  <span className="hidden truncate text-xs text-[var(--color-text-muted)] sm:inline">{selected.hint}</span>
+                  <span className="hidden truncate text-[13px] text-[var(--color-text-muted)] sm:inline">{selected.hint}</span>
                 ) : null}
               </span>
             )
@@ -251,7 +251,7 @@ export function Select({
                       {option.label}
                     </span>
                     {option.hint ? (
-                      <span className="mt-0.5 block truncate text-xs text-[var(--color-text-muted)]">
+                      <span className="mt-0.5 block truncate text-[13px] text-[var(--color-text-muted)]">
                         {option.hint}
                       </span>
                     ) : null}

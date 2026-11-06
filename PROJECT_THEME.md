@@ -42,7 +42,7 @@ Restrained, editorial luxury. Maximum 10 colour variables. No contrasting extern
 - **Shadows:** Extremely subtle, tinted with Deep Crimson `rgba(107, 15, 46, 0.06)`.
 - **Whitespace:** Generous padding. Sections use 5rem padding-block.
 - **Typography:** `Cormorant Garamond` (serif) for headings. `Jost` (sans-serif) for body/labels.
-- **Label Style:** Uppercase, wide tracking (0.14em), small font, `text-muted` colour.
+- **Label Style:** Uppercase, wide tracking (0.14em), 13px minimum, `text-muted` colour. Navigation, buttons and footer columns only: no eyebrow labels above headings on the storefront.
 - **Consistency:** Only use these 10 tokens. Never introduce `red-500`, `emerald-100`, or any external Tailwind colours.
 
 ---
@@ -60,7 +60,7 @@ Restrained, editorial luxury. Maximum 10 colour variables. No contrasting extern
 
 ## Dark-on-Dark Pattern (Footer, Auth Shell, CTA Banner)
 When the background is `--color-primary`:
-- Text uses `white/60` to `white/80`
+- Text uses `white/80` to `white`
 - Labels use `--color-accent`
 - Borders use `white/15` to `white/20`
 - Inputs use `white/40` placeholder, `--color-accent` focus
@@ -87,11 +87,7 @@ components; extend the tokens instead.
 | Token | Purpose |
 |---|---|
 | `--gold-hairline` | Gold hairline gradient (rules, draw-in underlines) |
-| `--gold-sheen` | The single "facet shimmer" sweep gradient |
-| `--scrim-hero` | Multi-stop crimson-to-transparent hero scrim (left-weighted) |
-| `--scrim-photo` | Bottom photo scrim for white-on-image labels |
 | `--scrim-veil` | Modal/backdrop veil (popup promo) |
-| `--glow-crimson` | Radial burgundy depth for crimson fields (CTA banner) |
 | `--glass-surface` | Frosted surface value (header treatment) |
 | `--shadow-lifted` | Hover-elevation shadow, crimson-tinted |
 
@@ -102,8 +98,6 @@ components; extend the tokens instead.
 - `<Parallax speed={0.05–0.15}>` — gentle scroll drift, rAF-throttled.
 - `.gold-hairline` — 1px gold rule; size with `w-*`.
 - `.hairline-draw` — gold underline that draws in on hover (own or `.group`).
-- `.light-sweep` — the one sparkle motif. **Hero and CTA banner only.**
-- `.scrim-hero`, `.scrim-photo`, `.cta-glow`, `.hero-copy` — scrim/glow helpers.
 - `.animate-ken-burns`, `.hero-slide`, `.animate-hero-line`,
   `.animate-slide-progress` — hero choreography (crossfade, staggered copy
   entrances via `--line-delay`, 5s gold progress indicators).
@@ -115,7 +109,8 @@ components; extend the tokens instead.
 - Everything falls back to a static, fully-visible render under
   `prefers-reduced-motion: reduce` (CSS media query + JS `matchMedia` in the
   motion primitives).
-- Reveal travel is 20px max; hover lifts are 4px max; one sweep motif per view.
+- Reveal travel is 20px max; hover lifts are 4px max.
+- No scrims over product photos: they are shot on white or pale pink, and a dark fade turns them grey. Copy goes on a flat crimson field beside the photo, labels on a flat crimson tag.
 
 ### Geometry Ruling
 Razor-sharp everywhere, **zero exceptions**: avatars, brand logos, metal

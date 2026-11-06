@@ -27,7 +27,7 @@ function HeroSkeleton() {
   return (
     <div
       aria-hidden
-      className="relative left-1/2 right-1/2 h-[58svh] min-h-[22rem] w-screen -translate-x-1/2 animate-pulse bg-[var(--color-surface-alt)] sm:h-[calc(88svh-6.5rem)]"
+      className="h-[70svh] animate-pulse bg-[var(--color-surface-alt)] lg:h-[calc(88svh-6.5rem)]"
     />
   );
 }
@@ -125,12 +125,8 @@ export function HomePage() {
         <section className="page-shell section-gap">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="gold-hairline w-8" aria-hidden />
-                <p className="lux-label">Trusted by</p>
-              </div>
-              <h2 className="lux-heading text-3xl sm:text-4xl md:text-6xl">Brands that keep coming back.</h2>
-              <p className="mt-4 text-sm text-text-muted md:text-base">The houses and retail partners who return to DeArte, season after season.</p>
+              <h2 className="lux-heading text-[1.75rem] sm:text-4xl md:text-5xl">Brands that keep coming back.</h2>
+              <p className="mt-4 text-base text-[var(--color-text)]">The houses and retail partners who return to De Arté, season after season.</p>
             </div>
           </div>
           <div className="mt-8">

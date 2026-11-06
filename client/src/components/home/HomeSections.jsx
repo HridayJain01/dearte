@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import brandExpressionImage from '../../assets/Cormorant Garamond.png';
 import processImage from '../../assets/process.png';
-import { Button, Panel } from '../ui/Primitives';
+import { useAuth } from '../../hooks/useAuth';
+import { Button } from '../ui/Primitives';
 import { cdnImage } from '../../utils/formatters';
 import { Parallax, Reveal } from '../ui/motion';
 import { ProductCard } from '../product/ProductCard';
@@ -12,24 +13,29 @@ function getEventStatus(date) {
   return new Date(date) < new Date() ? 'Previous' : 'Upcoming';
 }
 
-// Shared editorial section intro — eyebrow with gold hairline, display
-// serif title, optional description and trailing action.
-function SectionIntro({ eyebrow, title, description, action, align = 'left', className = '' }) {
-  const centered = align === 'center';
+// Banner links are typed by hand in the admin, and <Link> treats anything without
+// a leading slash as a path on this site: "www.google.com" became a 404. Our own
+// full URLs are reduced to their path; anything else lands on the catalogue.
+function bannerPath(link = '') {
+  if (link.startsWith('/')) return link;
+  try {
+    const url = new URL(link);
+    if (url.hostname.endsWith('deartejewels.com')) return `${url.pathname}${url.search}`;
+  } catch {
+    // Not a full URL, so not a destination we can trust.
+  }
+  return '/products';
+}
 
+// Shared section intro: display serif title, optional description and trailing action.
+function SectionIntro({ title, description, action, className = '' }) {
   return (
-    <Reveal className={`mb-4 sm:mb-14 ${centered ? 'text-center' : ''} ${className}`}>
-      <div className={`flex flex-col gap-2.5 sm:gap-4 ${centered ? 'items-center' : 'md:flex-row md:items-end md:justify-between'}`}>
-        <div className={`max-w-2xl ${centered ? 'mx-auto' : ''}`}>
-          {eyebrow ? (
-            <div className={`mb-2 flex items-center gap-2 sm:mb-4 sm:gap-3 ${centered ? 'justify-center' : ''}`}>
-              <span className="gold-hairline w-6 sm:w-8" aria-hidden />
-              <p className="lux-label text-[11px] sm:text-xs">{eyebrow}</p>
-            </div>
-          ) : null}
-          <h2 className="lux-heading text-xl sm:text-4xl md:text-6xl">{title}</h2>
+    <Reveal className={`mb-5 sm:mb-12 ${className}`}>
+      <div className="flex flex-col gap-2.5 sm:gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-2xl">
+          <h2 className="lux-heading text-[1.75rem] sm:text-4xl md:text-5xl">{title}</h2>
           {description ? (
-            <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-4 sm:text-sm md:text-base">{description}</p>
+            <p className="mt-2 text-base leading-relaxed text-[var(--color-text)] sm:mt-4">{description}</p>
           ) : null}
         </div>
         {action}
@@ -42,21 +48,10 @@ function RailLink({ to, children }) {
   return (
     <Link
       to={to}
-      className="hairline-draw tap-area inline-flex items-center gap-1.5 whitespace-nowrap pb-1 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] sm:gap-2 sm:pb-1.5 sm:text-[13px] sm:tracking-[0.14em]"
+      className="hairline-draw tap-area inline-flex items-center gap-1.5 whitespace-nowrap pb-1 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] sm:gap-2 sm:pb-1.5 sm:text-[13px] sm:tracking-[0.14em]"
     >
       {children} <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
     </Link>
-  );
-}
-
-function ShopCategoryDiamondIcon({ className }) {
-  // Strokes inherit currentColor so the icon stays inside the token system.
-  return (
-    <svg className={className} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M24 6L41 18.5L24 42L7 18.5L24 6Z" stroke="currentColor" strokeWidth="1.35" strokeLinejoin="round" />
-      <path d="M7 18.5H41" stroke="currentColor" strokeWidth="1.35" />
-      <path d="M13.5 18.5L24 6L34.5 18.5" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
-    </svg>
   );
 }
 
@@ -77,20 +72,10 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, delay = 0 
         loading="lazy"
         decoding="async"
       />
-      <div className="scrim-photo pointer-events-none absolute inset-x-0 bottom-0 h-[54%]" aria-hidden />
-      <span
-        className="pointer-events-none absolute left-3 top-3 h-5 w-5 border-l border-t border-[var(--color-accent)] opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        aria-hidden
-      />
-      <span
-        className="pointer-events-none absolute bottom-3 right-3 h-5 w-5 border-b border-r border-[var(--color-accent)] opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        aria-hidden
-      />
-      <span className="absolute bottom-4.5 left-4.5 z-10 sm:bottom-5 sm:left-5">
-        <span className="block text-lg font-medium leading-tight tracking-[-0.01em] text-white transition-transform duration-500 [transition-timing-function:var(--ease-lux)] group-hover:-translate-y-1 sm:text-xl">
-          {label}
-        </span>
-        <span className="mt-1.5 block h-px w-10 origin-left scale-x-0 bg-[var(--color-accent)] transition-transform duration-500 [transition-timing-function:var(--ease-lux)] group-hover:scale-x-100" aria-hidden />
+      {/* A flat label, not a scrim: a dark fade over these pale pink photos turned
+          the bottom half of every tile grey. */}
+      <span className="absolute bottom-0 left-0 z-10 bg-[var(--color-primary)] px-4 py-2 text-base font-medium leading-tight text-white transition-colors duration-300 group-hover:bg-[var(--color-primary-hover)] sm:px-5 sm:py-3 sm:text-lg">
+        {label}
       </span>
     </Reveal>
   );
@@ -119,26 +104,20 @@ export function BrandExpressionFrame() {
 
 export function ProcessImageFrame() {
   return (
-    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 overflow-hidden pb-6 pt-2 sm:pb-14 sm:pt-8">
-      <Reveal className="page-shell mb-5 sm:mb-12">
-        <div className="flex items-center gap-3">
-          <span className="gold-hairline w-8" aria-hidden />
-          <p className="lux-label">The Atelier</p>
-        </div>
-        <h2 className="lux-heading mt-3 max-w-3xl text-2xl sm:text-4xl md:text-6xl">
+    <section className="pb-10 pt-2 sm:pb-16 sm:pt-8">
+      <Reveal className="page-shell mb-5 sm:mb-10">
+        <h2 className="lux-heading max-w-4xl text-[1.75rem] sm:text-4xl md:text-5xl">
           From rough brilliance to finished radiance.
         </h2>
       </Reveal>
-      <Parallax speed={0.05}>
-        <Reveal delay={100}>
-          <img
-            src={processImage}
-            alt="Jewellery creation process"
-            className="mx-auto block h-auto max-h-[18rem] w-full object-contain sm:max-h-none sm:object-cover"
-            loading="lazy"
-          />
-        </Reveal>
-      </Parallax>
+      <Reveal delay={100} className="bg-[var(--color-primary)]">
+        <img
+          src={processImage}
+          alt="How a piece is made: your vision, responsible materials, the atelier, your creation."
+          className="mx-auto block h-auto w-full max-w-[var(--container)] lg:max-h-[34rem] lg:object-contain"
+          loading="lazy"
+        />
+      </Reveal>
     </section>
   );
 }
@@ -146,13 +125,10 @@ export function ProcessImageFrame() {
 export function CollectionsShowcase() {
   return (
     <section className="page-shell pb-10 pt-6 sm:pb-20 sm:pt-10 md:pb-28 md:pt-12">
-      <Reveal as="header" className="mb-6 text-center sm:mb-12 md:mb-14">
-        <ShopCategoryDiamondIcon className="mx-auto h-9 w-9 text-[var(--color-accent)] sm:h-12 sm:w-12 md:h-13 md:w-13" />
-        <h2 className="lux-heading mt-4 text-2xl sm:text-4xl md:text-5xl">Shop by Category</h2>
-        <p className="mx-auto mt-2 max-w-160 text-sm leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-lg">
-          Discover the perfect lab-grown diamond jewellery for everyday and special occasions.
-        </p>
-      </Reveal>
+      <SectionIntro
+        title="Shop by category"
+        description="Lab-grown diamond rings, earrings, bracelets and pendants, for everyday wear and special occasions."
+      />
 
       <div className="flex flex-col gap-4 sm:gap-4.5 lg:flex-row lg:items-stretch">
         <ShopCategoryCard
@@ -212,8 +188,10 @@ export function HeroSlider({ banners }) {
   const slide = banners[active];
 
   return (
-    <section className="relative left-1/2 right-1/2 w-screen -translate-x-1/2">
-      <div className="relative h-[58svh] min-h-[22rem] overflow-hidden sm:h-[calc(88svh-6.5rem)]">
+    // The copy gets its own flat crimson field beside the photo. Banners are shot on
+    // white, so laying type over them needed a scrim that turned the jewellery mauve.
+    <section className="grid lg:min-h-[calc(88svh-6.5rem)] lg:grid-cols-2">
+      <div className="relative h-[34svh] min-h-[14rem] overflow-hidden bg-white sm:h-[46svh] lg:order-2 lg:h-auto">
         {banners.map((banner, index) => (
           <div
             key={banner.id}
@@ -223,7 +201,7 @@ export function HeroSlider({ banners }) {
             <img
               src={cdnImage(banner.image, 1920)}
               srcSet={`${cdnImage(banner.image, 828)} 828w, ${cdnImage(banner.image, 1920)} 1920w`}
-              sizes="100vw"
+              sizes="(min-width: 1024px) 50vw, 100vw"
               alt={banner.title}
               // The first slide is the home page's LCP element. Lazy-loading it
               // would push the largest paint behind layout for no benefit; the
@@ -231,55 +209,35 @@ export function HeroSlider({ banners }) {
               loading={index === 0 ? 'eager' : 'lazy'}
               fetchPriority={index === 0 ? 'high' : 'low'}
               decoding="async"
-              className={`h-full w-full object-cover ${index === active ? 'animate-ken-burns' : ''}`}
+              className={`h-full w-full object-contain ${index === active ? 'animate-ken-burns' : ''}`}
             />
           </div>
         ))}
+      </div>
 
-        <div className="scrim-hero absolute inset-0" aria-hidden />
-        <div className="scrim-photo absolute inset-x-0 bottom-0 h-36 opacity-70" aria-hidden />
-        <div className="light-sweep" aria-hidden />
+      {/* The left edge lines up with .page-shell. */}
+      <div className="flex flex-col justify-center bg-[var(--color-primary)] px-4 py-8 text-white sm:px-6 sm:py-12 lg:order-1 lg:pl-[max(20px,calc((100vw-var(--container))/2))] lg:pr-12">
+        <h1 className="lux-heading text-[1.875rem] text-white! sm:text-5xl lg:text-[clamp(2.5rem,4.2vw,3.75rem)]">
+          Lab-grown diamond jewellery for retailers
+        </h1>
+        <p className="mt-3 max-w-xl text-base leading-relaxed text-white sm:mt-5 sm:text-lg">
+          De Arté makes rings, earrings, bracelets and pendants for jewellery retailers and wholesale buyers.
+        </p>
 
-        <div className="relative z-10 flex h-full items-center">
-          <div className="page-shell w-full">
-            <div key={slide.id} className="hero-copy flex max-w-3xl flex-col gap-3 py-6 sm:gap-5 sm:py-10">
-              <div className="animate-hero-line flex items-center gap-4" style={{ '--line-delay': '80ms' }}>
-                <span className="gold-hairline w-10" aria-hidden />
-                <p className="lux-label text-white/75!">Luxury B2B Jewellery Platform</p>
-              </div>
-              {slide.offerBadge ? (
-                <p
-                  className="animate-hero-line inline-flex w-fit border border-[var(--color-accent)]/50 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-white backdrop-blur-sm"
-                  style={{ '--line-delay': '180ms' }}
-                >
-                  {slide.offerBadge}
-                </p>
-              ) : null}
-              <h1
-                className="animate-hero-line lux-heading text-3xl text-white! sm:text-6xl md:text-8xl"
-                style={{ '--line-delay': '280ms' }}
-              >
-                {slide.title}
-              </h1>
-              <p
-                className="animate-hero-line max-w-xl text-sm text-white/75 sm:text-base md:text-lg"
-                style={{ '--line-delay': '420ms' }}
-              >
-                {slide.subtitle}
-              </p>
-              <div
-                className="animate-hero-line mt-1 flex flex-wrap gap-2 sm:gap-3"
-                style={{ '--line-delay': '540ms' }}
-              >
-                <Button as={Link} to={slide.ctaLink} variant="primary">{slide.ctaLabel}</Button>
-                <Button as={Link} to="/contact" variant="ghost" className="border-white/30! text-white! hover:bg-white/10!">Talk to Sales</Button>
-              </div>
-            </div>
+        <div key={slide.id} className="animate-hero-line mt-6 sm:mt-10">
+          {slide.offerBadge ? (
+            <p className="mb-2 text-[13px] font-medium text-[var(--color-accent)]">{slide.offerBadge}</p>
+          ) : null}
+          <p className="font-serif text-2xl leading-tight sm:text-3xl">{slide.title}</p>
+          {slide.subtitle ? <p className="mt-1 text-base text-white/85">{slide.subtitle}</p> : null}
+          <div className="mt-4 flex flex-wrap gap-2 sm:mt-6 sm:gap-3">
+            <Button as={Link} to={bannerPath(slide.ctaLink)} variant="secondary">{slide.ctaLabel}</Button>
+            <Button as={Link} to="/contact" variant="ghost" className="border-white/40! text-white! hover:bg-white/10!">Talk to Sales</Button>
           </div>
         </div>
 
-        <div className="absolute bottom-3 left-0 right-0 z-10 sm:bottom-7">
-          <div className="page-shell flex items-center gap-3 sm:gap-4">
+        {banners.length > 1 ? (
+          <div className="mt-4 flex items-center gap-3 sm:mt-8 sm:gap-4">
             {banners.map((banner, index) => (
               <button
                 key={banner.id}
@@ -298,7 +256,7 @@ export function HeroSlider({ banners }) {
               </button>
             ))}
           </div>
-        </div>
+        ) : null}
       </div>
     </section>
   );
@@ -312,17 +270,18 @@ export function ProductRail({ title, description, products, link, bgClass = 'bg-
     <section className={`py-8 sm:py-20 ${bgClass}`}>
       <div className="page-shell">
         <SectionIntro
-          eyebrow="Curated Edit"
           title={title}
           description={description}
           action={link ? <RailLink to={link}>View All</RailLink> : null}
         />
-        <div className="hide-scrollbar snap-rail flex gap-3 overflow-x-auto pb-4 sm:gap-6">
+        {/* A swipeable rail on touch screens; on desktop a clean row of four, since
+            a card cut off at the edge reads as clipped. View All has the rest. */}
+        <div className="hide-scrollbar snap-rail flex gap-3 overflow-x-auto pb-4 sm:gap-6 lg:grid lg:grid-cols-4 lg:overflow-visible lg:pb-0 lg:[&>*:nth-child(n+5)]:hidden">
           {products.map((product, index) => (
             <Reveal
               key={product.id}
               delay={Math.min(index, 4) * 80}
-              className="min-w-[160px] max-w-[160px] flex-none snap-start sm:min-w-[320px] sm:max-w-[320px]"
+              className="min-w-[160px] max-w-[160px] flex-none snap-start sm:min-w-[320px] sm:max-w-[320px] lg:min-w-0 lg:max-w-none"
             >
               <ProductCard product={product} />
             </Reveal>
@@ -342,29 +301,21 @@ export function TestimonialRail({ testimonials }) {
   return (
     <section className="page-shell section-gap">
       <SectionIntro
-        eyebrow="Trade Feedback"
         title="Trusted by premium retail partners."
         description="Words from the retailers who build their collections with us."
       />
-      <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
-        <Reveal className="relative overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-10">
-          <span
-            className="pointer-events-none absolute -top-8 right-4 select-none font-serif text-[7rem] leading-none text-[var(--color-primary)]/8 sm:text-[13rem]"
-            aria-hidden
-          >
-            &ldquo;
-          </span>
-          <p className="lux-label mb-3 text-[11px] sm:mb-6 sm:text-xs">Featured testimony</p>
+      {/* The single-column form runs the full width, so one review doesn't leave half the page empty. */}
+      <div className={`grid gap-6 lg:gap-10 ${supporting.length ? 'lg:grid-cols-[1.15fr_0.85fr]' : ''}`}>
+        <Reveal className="bg-[var(--color-surface)] p-4 sm:p-10">
           <div className="mb-3 flex gap-1 text-[var(--color-accent)] sm:mb-6 sm:gap-1.5">
             {Array.from({ length: featured.rating }).map((_, index) => (
               <Star key={`${featured.id}-${index}`} className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
             ))}
           </div>
-          <blockquote className="max-w-2xl font-serif text-base leading-[1.5] text-[var(--color-text)] sm:text-[1.85rem]">
+          <blockquote className="max-w-3xl font-serif text-xl leading-[1.4] text-[var(--color-text)] sm:text-[2rem]">
             &ldquo;{featured.review}&rdquo;
           </blockquote>
-          <span className="gold-hairline mt-4 w-12 sm:mt-8 sm:w-14" aria-hidden />
-          <div className="mt-3 flex items-center gap-3 sm:mt-6 sm:gap-4">
+          <div className="mt-4 flex items-center gap-3 sm:mt-8 sm:gap-4">
             <img
               src={cdnImage(featured.avatar, 128)}
               alt={featured.name}
@@ -374,7 +325,7 @@ export function TestimonialRail({ testimonials }) {
             />
             <div>
               <p className="text-[13px] font-semibold text-[var(--color-text)] sm:text-base">{featured.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">{featured.company}</p>
+              <p className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">{featured.company}</p>
             </div>
           </div>
         </Reveal>
@@ -395,9 +346,9 @@ export function TestimonialRail({ testimonials }) {
                     <Star key={`${testimonial.id}-${starIndex}`} className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
                   ))}
                 </div>
-                <p className="text-xs leading-relaxed text-[var(--color-text-muted)] sm:text-sm sm:leading-7">{testimonial.review}</p>
+                <p className="text-[15px] leading-relaxed text-[var(--color-text)] sm:text-base sm:leading-7">{testimonial.review}</p>
                 <p className="mt-2 text-[13px] font-semibold text-[var(--color-text)] sm:mt-4 sm:text-base">{testimonial.name}</p>
-                <p className="text-xs text-[var(--color-text-muted)] sm:text-sm">{testimonial.company}</p>
+                <p className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">{testimonial.company}</p>
               </div>
             </Reveal>
           ))}
@@ -409,41 +360,42 @@ export function TestimonialRail({ testimonials }) {
 
 export function EventsRail({ events }) {
   if (!events?.length) return null;
+  // One or two events can't fill a rail: they run full width, photo beside text.
+  const wide = events.length < 3;
 
   return (
     <section className="page-shell section-gap">
       <SectionIntro
-        eyebrow="Events"
         title="Previous and upcoming events."
         description="Private previews, trunk shows and showroom moments from the house."
         action={<RailLink to="/events">View All</RailLink>}
       />
-      <div className="hide-scrollbar snap-rail flex gap-4 overflow-x-auto pb-3 sm:gap-5">
+      <div className={wide ? 'grid gap-4 sm:gap-5' : 'hide-scrollbar snap-rail flex gap-4 overflow-x-auto pb-3 sm:gap-5'}>
         {events.map((event, index) => {
           const status = getEventStatus(event.date);
 
           return (
-            <Reveal key={event.id} delay={Math.min(index, 3) * 90} className="min-w-[210px] flex-none snap-start sm:min-w-[360px]">
-              <article className="group h-full border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)]">
+            <Reveal key={event.id} delay={Math.min(index, 3) * 90} className={wide ? '' : 'min-w-[210px] flex-none snap-start sm:min-w-[360px]'}>
+              <article className={`group h-full bg-[var(--color-surface)] ${wide ? 'md:grid md:grid-cols-2 md:items-center' : ''}`}>
                 <div className="relative overflow-hidden">
                   <img
-                    src={cdnImage(event.image, 720)}
+                    src={cdnImage(event.image, wide ? 1200 : 720)}
                     alt={event.title}
-                    className="h-28 w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] sm:h-64"
+                    className={`w-full object-cover transition-transform duration-700 [transition-timing-function:var(--ease-lux)] group-hover:scale-[1.05] ${wide ? 'h-52 sm:h-80' : 'h-28 sm:h-64'}`}
                     loading="lazy"
                     decoding="async"
                   />
-                  <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-xs sm:tracking-[0.16em]">
+                  <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-2 border border-[var(--color-accent)]/50 bg-[var(--color-primary-bg)]/95 px-2 py-0.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)] sm:left-4 sm:top-4 sm:px-3 sm:py-1 sm:text-[13px] sm:tracking-[0.16em]">
                     {status}
                   </span>
                 </div>
                 <div className="space-y-1.5 p-2.5 sm:space-y-4 sm:p-6">
-                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-xs sm:tracking-[0.14em]">
+                  <div className="flex items-center gap-1.5 text-[13px] uppercase tracking-[0.1em] text-[var(--color-text-muted)] sm:gap-2 sm:text-[13px] sm:tracking-[0.14em]">
                     <CalendarDays className="h-3.5 w-3.5 text-[var(--color-accent)] sm:h-4 sm:w-4" />
                     <span>{new Date(event.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </div>
                   <h3 className="font-serif text-base leading-tight text-[var(--color-text)] sm:text-[1.7rem]">{event.title}</h3>
-                  <p className="line-clamp-3 text-xs leading-relaxed text-[var(--color-text-muted)] sm:line-clamp-none sm:text-sm sm:leading-7">{event.description}</p>
+                  <p className="line-clamp-3 text-[15px] leading-relaxed text-[var(--color-text)] sm:line-clamp-none sm:text-base sm:leading-7">{event.description}</p>
                 </div>
               </article>
             </Reveal>
@@ -469,7 +421,7 @@ export function TrustedBrandGrid({ brands }) {
           <Reveal key={brand.id} delay={Math.min(index, 5) * 60}>
             <Card
               {...cardProps}
-              className="group flex h-full min-h-[96px] flex-col justify-between border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)] sm:min-h-[132px] sm:p-4"
+              className="group flex h-full flex-col justify-center border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 transition-all duration-500 [transition-timing-function:var(--ease-lux)] hover:-translate-y-1 hover:border-[var(--color-border-active)] hover:shadow-[var(--shadow-lifted)] sm:p-4"
             >
               <div className="flex items-center gap-2 sm:gap-3">
                 {brand.logo ? (
@@ -486,15 +438,13 @@ export function TrustedBrandGrid({ brands }) {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="hairline-draw inline-block max-w-full truncate pb-0.5 text-[12px] font-semibold text-[var(--color-text)] sm:text-sm">{brand.name}</p>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.16em]">{brand.sector || 'Trusted partner'}</p>
+                  <p className="hairline-draw inline-block max-w-full truncate pb-0.5 text-[13px] font-semibold text-[var(--color-text)] sm:text-sm">{brand.name}</p>
+                  <p className="text-[13px] text-[var(--color-text-muted)]">{brand.sector || 'Trusted partner'}</p>
                 </div>
               </div>
               {brand.websiteUrl ? (
-                <p className="mt-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--color-primary)] transition-colors group-hover:text-[var(--color-accent)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Visit website</p>
-              ) : (
-                <p className="mt-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)] sm:mt-4 sm:text-xs sm:tracking-[0.16em]">Brand profile</p>
-              )}
+                <p className="mt-2.5 text-[13px] uppercase tracking-[0.12em] text-[var(--color-primary)] transition-colors group-hover:text-[var(--color-accent)] sm:mt-4 sm:text-[13px] sm:tracking-[0.16em]">Visit website</p>
+              ) : null}
             </Card>
           </Reveal>
         );
@@ -504,16 +454,26 @@ export function TrustedBrandGrid({ brands }) {
 }
 
 export function CTABanner() {
+  const { isAuthenticated } = useAuth();
+
   return (
-    <section className="relative w-full overflow-hidden bg-[var(--color-primary)] py-10 text-center sm:py-28">
-      <div className="cta-glow pointer-events-none absolute inset-0" aria-hidden />
-      <div className="light-sweep" aria-hidden />
-      <Reveal className="page-shell relative mx-auto max-w-3xl">
-        <span className="gold-hairline mx-auto w-16" aria-hidden />
-        <p className="lux-label mt-5 text-[var(--color-accent)]! sm:mt-6">The atelier awaits</p>
-        <h2 className="lux-heading mb-6 mt-3 text-2xl text-white! sm:mb-8 sm:mt-4 sm:text-4xl md:text-6xl">Ready to curate your collection?</h2>
+    <section className="w-full bg-[var(--color-primary)] py-12 text-center sm:py-24">
+      <Reveal className="page-shell mx-auto max-w-3xl">
+        <h2 className="lux-heading mb-3 text-[1.75rem] text-white! sm:text-4xl md:text-5xl">Ready to curate your collection?</h2>
+        {/* Guests only see a preview of the catalogue, so the next step for them is an account. */}
+        {isAuthenticated ? null : (
+          <p className="mb-6 text-base text-white sm:mb-8">Open a buyer account to see the full catalogue and place orders.</p>
+        )}
         <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
-          <Button as={Link} to="/products" variant="secondary">Explore products</Button>
+          {isAuthenticated ? null : <Button as={Link} to="/register" variant="secondary">Open a buyer account</Button>}
+          <Button
+            as={Link}
+            to="/products"
+            variant={isAuthenticated ? 'secondary' : 'ghost'}
+            className={isAuthenticated ? '' : 'border-white/40! text-white! hover:bg-white/10!'}
+          >
+            Explore products
+          </Button>
         </div>
       </Reveal>
     </section>

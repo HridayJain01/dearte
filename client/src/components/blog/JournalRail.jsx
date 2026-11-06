@@ -29,17 +29,17 @@ export function PostCard({ post }) {
       </Link>
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         {post.publishedAt ? (
-          <p className="lux-label text-[11px] sm:text-xs">{formatDate(post.publishedAt)}</p>
+          <p className="lux-label text-[13px] sm:text-[13px]">{formatDate(post.publishedAt)}</p>
         ) : null}
         <h3 className="lux-heading mt-2 text-xl leading-snug sm:text-2xl">
           <Link to={href} className="hover:text-[var(--color-primary-hover)]">{post.title}</Link>
         </h3>
         {post.excerpt ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:text-sm">{post.excerpt}</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[var(--color-text)] sm:text-base">{post.excerpt}</p>
         ) : null}
         <Link
           to={href}
-          className="mt-auto inline-flex items-center gap-1.5 pt-4 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--color-primary)] hover:underline"
+          className="mt-auto inline-flex items-center gap-1.5 pt-4 text-[13px] font-medium uppercase tracking-[0.12em] text-[var(--color-primary)] hover:underline"
         >
           Read the article <ArrowRight className="h-3.5 w-3.5" aria-hidden />
         </Link>
@@ -67,15 +67,11 @@ export function JournalRail() {
     <section className="page-shell section-gap">
       <div className="mb-4 flex flex-col gap-3 sm:mb-10 md:flex-row md:items-end md:justify-between">
         <div className="max-w-2xl">
-          <div className="mb-2 flex items-center gap-2 sm:mb-4 sm:gap-3">
-            <span className="gold-hairline w-6 sm:w-8" aria-hidden />
-            <p className="lux-label text-[11px] sm:text-xs">From the journal</p>
-          </div>
-          <h2 className="lux-heading text-xl sm:text-4xl md:text-5xl">Lab-grown know-how for the trade</h2>
+          <h2 className="lux-heading text-[1.75rem] sm:text-4xl md:text-5xl">Lab-grown know-how for the trade</h2>
         </div>
         <Link
           to="/blog"
-          className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--color-primary)] hover:underline sm:text-[13px]"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium uppercase tracking-[0.1em] text-[var(--color-primary)] hover:underline sm:text-[13px]"
         >
           All articles <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
         </Link>

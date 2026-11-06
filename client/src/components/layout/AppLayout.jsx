@@ -437,7 +437,14 @@ export function AppLayout() {
                 );
               }
               return (
-                <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  // NavLink ignores the query string, so "Best Sellers" lit up on every product page.
+                  className={({ isActive }) =>
+                    navLinkClass({ isActive: isActive && (!link.to.includes('?') || location.search === link.to.slice(link.to.indexOf('?'))) })
+                  }
+                >
                   {link.label}
                 </NavLink>
               );
@@ -621,16 +628,16 @@ export function AppLayout() {
             the last row clear of the fixed WhatsApp button at the end of the page. */}
         <div className="page-shell grid grid-cols-2 gap-x-4 gap-y-5 pb-10 sm:gap-10 sm:pb-0 lg:grid-cols-[1fr_0.65fr_0.65fr_0.8fr_1fr]">
           <div className="col-span-2 lg:col-span-1">
-            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-8 w-auto bg-white/95 p-1.5 sm:h-10 sm:p-2" loading="lazy" decoding="async" />
-            <h3 className="lux-heading mt-2 text-lg !text-white sm:mt-0 sm:text-4xl">Fine jewellery, consciously crafted.</h3>
-            <p className="mt-2 max-w-md text-xs leading-relaxed text-white/60 sm:mt-4 sm:text-sm">
+            <img src={brandLogoUrl} alt={brandLogoAlt} className="h-10 w-auto brightness-0 invert sm:h-12" loading="lazy" decoding="async" />
+            <p className="mt-3 max-w-xs font-serif text-2xl leading-tight sm:mt-5 sm:text-3xl">Fine jewellery, consciously crafted.</p>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-white/80 sm:mt-4">
               Discover pieces meant to be lived in, combining modern values with timeless aesthetics.
             </p>
           </div>
 
           <div>
-            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Explore</p>
-            <div className="text-xs text-white/60 sm:space-y-3 sm:text-sm">
+            <p className="lux-label mb-2 !text-[var(--color-accent)] sm:mb-4">Explore</p>
+            <div className="text-sm text-white/80 sm:space-y-3">
               {TRUST_LINKS.map((item) => (
                 <Link key={item.to} to={item.to} className="block py-2 hover:text-white sm:py-0">
                   {item.label}
@@ -644,8 +651,8 @@ export function AppLayout() {
               by typing the URL. A crawler treats a page with no inbound links as
               barely worth ranking, however good it is. */}
           <div>
-            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Guides</p>
-            <div className="text-xs text-white/60 sm:space-y-3 sm:text-sm">
+            <p className="lux-label mb-2 !text-[var(--color-accent)] sm:mb-4">Guides</p>
+            <div className="text-sm text-white/80 sm:space-y-3">
               {EDUCATION_ROUTES.map((item) => (
                 <Link key={item.slug} to={`/education/${item.slug}`} className="block py-2 hover:text-white sm:py-0">
                   {item.title}
@@ -654,31 +661,35 @@ export function AppLayout() {
             </div>
           </div>
 
-          <div>
-            <p className="lux-label mb-2 !text-[var(--color-accent)] text-[11px] sm:mb-4 sm:text-xs">Connect</p>
-            <div className="text-xs text-white/60 sm:space-y-3 sm:text-sm">
+          {/* Full width on a phone: half a screen split the email address mid-word. */}
+          <div className="col-span-2 lg:col-span-1">
+            <p className="lux-label mb-2 !text-[var(--color-accent)] sm:mb-4">Connect</p>
+            <div className="text-sm text-white/80 sm:space-y-3">
               {/* Only admin-set details render: placeholder contacts and bare
                   social homepages read as a fake business. */}
               {settings.email ? <a href={`mailto:${settings.email}`} className="block break-words py-2 hover:text-white sm:py-0">{settings.email}</a> : null}
               {settings.phone ? <a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`} className="block py-2 hover:text-white sm:py-0">{settings.phone}</a> : null}
               {settings.address ? <p className="py-2 sm:py-0">{settings.address}</p> : null}
-              <div className="-mx-2.5 flex pt-2.5 text-white/80 sm:-mx-3 sm:pt-2">
-                {[['instagram', 'IG', 'Instagram'], ['linkedin', 'IN', 'LinkedIn'], ['facebook', 'FB', 'Facebook']].map(([key, short, name]) =>
+              <div className="flex gap-4 pt-2 text-white/80">
+                {[['instagram', 'Instagram'], ['linkedin', 'LinkedIn'], ['facebook', 'Facebook']].map(([key, name]) =>
                   settings[key] ? (
-                    <a key={key} href={settings[key]} target="_blank" rel="noreferrer" aria-label={`DeArte on ${name}`} className="-my-2.5 inline-flex h-10 min-w-10 items-center justify-center text-[11px] tracking-[0.08em] hover:text-[var(--color-accent)] sm:-my-3 sm:h-11 sm:min-w-11 sm:text-xs">{short}</a>
+                    <a key={key} href={settings[key]} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center hover:text-[var(--color-accent)]">{name}</a>
                   ) : null,
                 )}
               </div>
             </div>
           </div>
 
-          <div className="col-span-2 border border-white/15 bg-white/5 p-3 sm:p-6 lg:col-span-1">
-            <p className="lux-label mb-1.5 !text-[var(--color-accent)] text-[11px] sm:mb-3 sm:text-xs">Newsletter</p>
-            <p className="text-xs text-white/60 sm:text-sm">{settings.newsletterBlurb || 'Sign up for early access to our exclusive collections.'}</p>
-            <div className="mt-2.5 flex gap-2 sm:mt-4 sm:flex-col sm:gap-3">
-              <input className="min-w-0 flex-1 border border-white/20 bg-transparent px-2.5 py-1.5 text-[12px] text-white placeholder:text-white/40 focus:border-[var(--color-accent)] focus:outline-none sm:px-4 sm:py-3 sm:text-base" placeholder="Email address" />
-              <Button variant="secondary" className="shrink-0">Subscribe</Button>
-            </div>
+          {/* This was a newsletter form with nothing behind it: the Subscribe button
+              did nothing and the address went nowhere. */}
+          <div className="col-span-2 bg-white/5 p-4 sm:p-6 lg:col-span-1">
+            <p className="font-serif text-2xl leading-tight">{isAuthenticated ? 'Need a hand?' : 'Buying for a store?'}</p>
+            <p className="mt-2 text-sm text-white/80">
+              {isAuthenticated ? 'Your sales team can help with orders and catalogues.' : 'Open a buyer account to see the full catalogue and place orders.'}
+            </p>
+            <Button as={Link} to={isAuthenticated ? '/contact' : '/register'} variant="secondary" className="mt-4 w-full">
+              {isAuthenticated ? 'Talk to sales' : 'Open a buyer account'}
+            </Button>
           </div>
         </div>
       </footer>

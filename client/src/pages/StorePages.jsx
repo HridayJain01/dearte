@@ -71,11 +71,7 @@ function ShopCategoryCard({ label, categorySlug, imageSrc, className, to }) {
         decoding="async"
         className="absolute inset-0 h-full w-full object-cover transition duration-[480ms] ease-out group-hover:scale-[1.03]"
       />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/62 via-black/28 to-transparent"
-        aria-hidden
-      />
-      <span className="absolute bottom-[1.125rem] left-[1.125rem] z-10 text-[1.0625rem] font-medium leading-tight tracking-[-0.01em] text-white sm:bottom-5 sm:left-5 sm:text-xl">
+      <span className="absolute bottom-0 left-0 z-10 bg-[var(--color-primary)] px-3 py-1.5 text-[15px] font-medium leading-tight text-white sm:px-4 sm:py-2 sm:text-base">
         {label}
       </span>
     </Link>
@@ -127,7 +123,7 @@ export function CollectionsPage() {
           Shop by Collection
         </h1>
         <p
-          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed text-[var(--color-text-muted)] sm:text-lg"
+          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed text-[var(--color-text)] sm:text-lg"
         >
           Browse the curated collection families that shape each story, mood, and launch.
         </p>
@@ -153,9 +149,9 @@ export function CollectionsPage() {
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
             </div>
             <div className="space-y-1 p-2.5 sm:space-y-2 sm:p-5">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Collection</p>
+              <p className="text-[13px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.2em]">Collection</p>
               <h2 className="lux-heading text-[15px] text-[var(--color-text)] sm:text-2xl">{collection.name}</h2>
-              <p className="text-[12px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces curated under this collection story.</p>
+              <p className="text-[13px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces curated under this collection story.</p>
             </div>
           </Link>
         ))}
@@ -202,7 +198,7 @@ export function OccasionsPage() {
           Shop by Occasion
         </h1>
         <p
-          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed text-[var(--color-text-muted)] sm:text-lg"
+          className="mx-auto mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed text-[var(--color-text)] sm:text-lg"
         >
           Find the piece made for the moment — bridal vows, everyday shine, or the perfect gift.
         </p>
@@ -221,9 +217,9 @@ export function OccasionsPage() {
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/25 via-black/5 to-transparent" />
               </div>
               <div className="space-y-1 p-2.5 sm:space-y-2 sm:p-5">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Occasion</p>
+                <p className="text-[13px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.2em]">Occasion</p>
                 <h2 className="lux-heading text-[15px] text-[var(--color-text)] sm:text-2xl">{occasion.name}</h2>
-                <p className="text-[12px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces styled for {occasion.name.toLowerCase()}.</p>
+                <p className="text-[13px] leading-snug text-[var(--color-text-muted)] sm:text-sm">Tap to shop the pieces styled for {occasion.name.toLowerCase()}.</p>
               </div>
             </Link>
           ))}
@@ -494,16 +490,15 @@ export function ProductListPage() {
       />
       <SectionHeading
         as="h1"
-        eyebrow="Products"
-        title={activeSubCategory || activeCategory || activeCollection || activeOccasion || 'Shop by Product'}
+        title={activeSubCategory || activeCategory || activeCollection || activeOccasion || 'All jewellery'}
       />
       {!isAuthenticated ? (
-        <Panel className="mb-4 flex flex-col gap-2.5 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <p className="text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:text-sm">
-            You're viewing a small preview of our catalogue. Sign in to your buyer account to browse the full collection.
-          </p>
-          <Button as={Link} to="/login" className="shrink-0">Sign in to see more</Button>
-        </Panel>
+        // One line rather than a boxed banner, so the products sit higher on the page.
+        <p className="mb-4 text-base leading-relaxed text-[var(--color-text)] sm:mb-6">
+          You're viewing a preview of the catalogue.{' '}
+          <Link to="/login" className="text-[var(--color-primary)] underline underline-offset-4">Sign in</Link> or{' '}
+          <Link to="/register" className="text-[var(--color-primary)] underline underline-offset-4">open a buyer account</Link> to see every piece.
+        </p>
       ) : null}
       <div className="space-y-3 sm:space-y-5">
         {/* A short row of tiles, not a 2x2 wall: the tiles used to fill the
@@ -516,7 +511,7 @@ export function ProductListPage() {
                 label={tile.label}
                 categorySlug={tile.categorySlug}
                 imageSrc={tile.imageSrc}
-                className="h-24 w-32 flex-none snap-start sm:h-36 sm:w-60 lg:w-auto lg:flex-1"
+                className="h-24 w-32 flex-none snap-start sm:h-28 sm:w-60 lg:w-auto lg:flex-1"
               />
             ))}
           </div>
@@ -560,7 +555,7 @@ export function ProductListPage() {
               <div className="lg:hidden">
                 <FilterSheetButton total={data.total} onClear={clearAll} filters={data.filters} activeFilters={filters} setFilter={setFilter} />
               </div>
-              <p className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)] sm:text-sm">
+              <p className="min-w-0 flex-1 truncate text-[13px] text-[var(--color-text-muted)] sm:text-sm">
                 {data.total} {data.total === 1 ? 'piece' : 'pieces'}
               </p>
               <Select
@@ -584,7 +579,7 @@ export function ProductListPage() {
                 {activeChips.map((chip) => (
                   <span
                     key={chip.key}
-                    className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] pl-2.5 text-[11px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.08em]"
+                    className="flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] pl-2.5 text-[13px] uppercase tracking-[0.06em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.08em]"
                   >
                     {chip.label}
                     <button
@@ -600,7 +595,7 @@ export function ProductListPage() {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="min-h-10 px-1 text-[11px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-xs sm:tracking-[0.12em]"
+                  className="min-h-10 px-1 text-[13px] uppercase tracking-[0.1em] text-[var(--color-primary)] underline sm:text-[13px] sm:tracking-[0.12em]"
                 >
                   Clear all
                 </button>
@@ -624,7 +619,7 @@ export function ProductListPage() {
               <Button variant="secondary" onClick={() => setPage(page - 1)} disabled={page === 1}>
                 Previous
               </Button>
-              <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">
+              <p className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">
                 Page {data.page} of {data.totalPages}
               </p>
               <Button variant="secondary" onClick={() => setPage(Math.min(data.totalPages, page + 1))} disabled={page >= data.totalPages}>
@@ -666,7 +661,7 @@ function WeightTable({ product, carat }) {
       {columns.length ? (
         <table className="w-full text-left text-[13px] sm:text-sm">
           <thead>
-            <tr className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+            <tr className="text-[13px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
               <th className="pb-2 font-normal">Weight (g)</th>
               {columns.map(([label]) => (
                 <th key={label} className={`pb-2 text-right ${active === label ? 'font-semibold text-[var(--color-primary)]' : 'font-normal'}`}>
@@ -706,13 +701,13 @@ function WeightTable({ product, carat }) {
         <div className={`grid grid-cols-2 gap-1.5 sm:gap-3 ${columns.length ? 'mt-3' : ''}`}>
           {specs.map((spec, specIndex) => (
             <div key={`${spec.attribute}-${specIndex}`} className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-2 sm:p-4">
-              <p className="text-[11px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{spec.attribute}</p>
+              <p className="text-[13px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.2em]">{spec.attribute}</p>
               <p className="mt-0.5 text-[13px] leading-tight text-[var(--color-text)] sm:mt-2 sm:text-sm">{spec.value}</p>
             </div>
           ))}
         </div>
       ) : null}
-      <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[12px] text-[var(--color-text-muted)] sm:mt-3 sm:pt-3 sm:text-xs">
+      <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--color-border)] pt-2.5 text-[13px] text-[var(--color-text-muted)] sm:mt-3 sm:pt-3 sm:text-[13px]">
         <span>* All weights are approximate.</span>
         <WeightDisclaimerTrigger />
       </div>
@@ -903,7 +898,7 @@ export function ProductDetailPage() {
 
         <div className="space-y-3 sm:space-y-6">
           <div>
-            <p className="font-[var(--font-accent)] text-[11px] tracking-[0.25em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">{data.styleCode}</p>
+            <p className="font-[var(--font-accent)] text-[13px] tracking-[0.25em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.3em]">{data.styleCode}</p>
             {/* The style code already sits directly above this as the eyebrow,
                 so nothing is lost by giving the heading a readable name. */}
             <h1 className="lux-heading mt-1 text-2xl sm:mt-3 sm:text-5xl">{displayName}</h1>
@@ -911,7 +906,7 @@ export function ProductDetailPage() {
                 BreadcrumbList in the head, it stops rendering a dangling "&gt;"
                 for the styles that have no collection, and every crumb is a link
                 back to a facet page that wants the internal link. */}
-            <nav aria-label="Breadcrumb" className="mt-1.5 text-xs text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">
+            <nav aria-label="Breadcrumb" className="mt-1.5 text-[13px] text-[var(--color-text-muted)] sm:mt-3 sm:text-sm">
               <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                 {[
                   { label: 'Products', to: '/products' },
@@ -941,12 +936,12 @@ export function ProductDetailPage() {
             </nav>
             {data.occasions?.length ? (
               <div className="mt-2.5 sm:mt-4">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">Perfect for</p>
+                <p className="text-[13px] uppercase tracking-[0.16em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.2em]">Perfect for</p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-2 sm:gap-2">
                   {data.occasions.map((occasion) => (
                     <span
                       key={occasion}
-                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-[12px] text-[var(--color-text)] sm:px-3 sm:py-1.5 sm:text-xs"
+                      className="border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1 text-[13px] text-[var(--color-text)] sm:px-3 sm:py-1.5 sm:text-[13px]"
                     >
                       {occasion}
                     </span>
@@ -974,7 +969,7 @@ export function ProductDetailPage() {
               }}
               onOpenChart={() => setIsSizeChartOpen(true)}
             />
-            <label className="mt-3.5 block text-[12px] sm:mt-5 sm:text-sm">
+            <label className="mt-3.5 block text-[13px] sm:mt-5 sm:text-sm">
               <span className="mb-1.5 block text-[var(--color-text-muted)] sm:mb-2">
                 Custom request (optional) — applies to every combination above
               </span>
@@ -1017,7 +1012,7 @@ export function ProductDetailPage() {
               {orderLines.length > 1 ? `Add ${orderLines.length} Combinations to Cart` : 'Add to Cart'}
             </Button>
             {existingCartLines.length ? (
-              <Link to="/cart" className="block text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+              <Link to="/cart" className="block text-center text-[13px] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
                 Already in your cart: {existingCartLines.reduce((sum, line) => sum + line.quantity, 0)} pieces across{' '}
                 {existingCartLines.length} {existingCartLines.length === 1 ? 'combination' : 'combinations'}
               </Link>
@@ -1147,7 +1142,7 @@ function RecentlyViewedRail({ products }) {
 function OptionChips({ legend, options, value, onChange, swatch }) {
   return (
     <fieldset className="mb-4">
-      <legend className="mb-2 text-[12px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{legend}</legend>
+      <legend className="mb-2 text-[13px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">{legend}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const optionValue = option.value ?? option;
@@ -1210,14 +1205,14 @@ function CartLine({ item, onUpdate, onRemove }) {
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div className="min-w-0 flex-1">
-          <p className="font-[var(--font-accent)] text-[11px] tracking-[0.16em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.2em]">{product.styleCode}</p>
+          <p className="font-[var(--font-accent)] text-[13px] tracking-[0.16em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.2em]">{product.styleCode}</p>
           <h3 className="mt-1 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-lg">{productDisplayName(product)}</h3>
 
           <div className="mt-2 flex flex-wrap gap-1 sm:mt-2.5 sm:gap-1.5">
             {customizationChips(customization, { sizeNoun: chart?.noun || 'Size' }).map((chip) => (
               <span
                 key={chip.label}
-                className="inline-flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[12px] text-[var(--color-text)] sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs"
+                className="inline-flex items-center gap-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-1.5 py-0.5 text-[13px] text-[var(--color-text)] sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[13px]"
               >
                 {chip.swatch ? (
                   <span
@@ -1231,7 +1226,7 @@ function CartLine({ item, onUpdate, onRemove }) {
             ))}
           </div>
 
-          <p className="mt-1.5 flex items-center gap-1.5 text-[12px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-xs">
+          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] leading-snug text-[var(--color-text-muted)] sm:mt-2 sm:text-[13px]">
             <span>
               Gold {formatWeight(goldWeight, 'g')}
               {customization.goldCarat ? ` (${customization.goldCarat})` : ''} · Diamond {formatWeight(diamondWeight, 'ct')}
@@ -1240,7 +1235,7 @@ function CartLine({ item, onUpdate, onRemove }) {
           </p>
 
           {customization.note ? (
-            <p className="mt-1.5 text-xs text-[var(--color-text-muted)] sm:mt-2 sm:text-sm">
+            <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)] sm:mt-2 sm:text-sm">
               <span className="text-[var(--color-text)]">Custom request:</span> {customization.note}
             </p>
           ) : null}
@@ -1270,7 +1265,7 @@ function CartLine({ item, onUpdate, onRemove }) {
           <button
             type="button"
             onClick={() => editRef.current?.showModal()}
-            className="inline-flex h-10 items-center gap-1.5 border border-[var(--color-border)] px-2.5 text-[12px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:border-[var(--color-border-active)]"
+            className="inline-flex h-10 items-center gap-1.5 border border-[var(--color-border)] px-2.5 text-[13px] uppercase tracking-[0.1em] text-[var(--color-primary)] transition hover:border-[var(--color-border-active)]"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -1300,7 +1295,7 @@ function CartLine({ item, onUpdate, onRemove }) {
             onChange={(size) => editSelection({ size })}
           />
         ) : null}
-        <p className="pb-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
+        <p className="pb-2 text-[13px] leading-snug text-[var(--color-text-muted)]">
           Changes save as you tap. If this matches another line in your cart, the two are combined.
         </p>
       </BottomSheet>
@@ -1380,7 +1375,7 @@ export function CartPage() {
     <dl className="space-y-2">
       <div className="flex items-baseline justify-between">
         <dt className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">
-          Pieces <span className="text-[12px]">· {cart.items.length} {cart.items.length === 1 ? 'line' : 'lines'}</span>
+          Pieces <span className="text-[13px]">· {cart.items.length} {cart.items.length === 1 ? 'line' : 'lines'}</span>
         </dt>
         <dd className="text-2xl font-light text-[var(--color-primary)]">{pieces}</dd>
       </div>
@@ -1436,14 +1431,14 @@ export function CartPage() {
 
         {/* Desktop: the summary and the order button stay in view beside the lines. */}
         <Panel className="space-y-4 max-lg:hidden lg:sticky lg:top-28">
-          <p className="lux-label text-xs">Order summary</p>
+          <p className="lux-label text-[13px]">Order summary</p>
           {totals}
           {notesField}
           <Button className="w-full" loading={placing} disabled={placing} onClick={placeOrder}>
             Place order
           </Button>
           {pdfButton}
-          <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+          <p className="flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)]">
             * All weights are approximate.
             <WeightDisclaimerTrigger />
           </p>
@@ -1459,7 +1454,7 @@ export function CartPage() {
           <p className="text-[15px] font-semibold text-[var(--color-primary)]">
             {pieces} {pieces === 1 ? 'piece' : 'pieces'}
           </p>
-          <p className="text-[12px] text-[var(--color-text-muted)]">
+          <p className="text-[13px] text-[var(--color-text-muted)]">
             {diamondWeightTotal.toFixed(2)} ct · {goldWeightTotal.toFixed(2)} g
           </p>
         </div>
@@ -1514,7 +1509,7 @@ function downloadWishlistCsv(items, collectionName, fileName) {
 }
 
 const WISHLIST_TAB =
-  'min-h-10 whitespace-nowrap border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
+  'min-h-10 whitespace-nowrap border px-2.5 py-1 text-[13px] font-medium uppercase tracking-[0.08em] transition sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.12em]';
 
 export function WishlistPage() {
   const { wishlist, removeFromWishlist, createWishlistCollection, error: wishlistError, refreshWishlist } = useWishlist();
@@ -1643,10 +1638,10 @@ export function WishlistPage() {
                   decoding="async"
                 />
               </Link>
-              <span className="mb-2 inline-block border border-[var(--color-border)] px-1.5 py-px text-[11px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:px-2 sm:py-0.5 sm:text-[11px] sm:tracking-[0.2em]">
+              <span className="mb-2 inline-block border border-[var(--color-border)] px-1.5 py-px text-[13px] uppercase tracking-[0.14em] text-[var(--color-primary)] sm:mb-3 sm:px-2 sm:py-0.5 sm:text-[13px] sm:tracking-[0.2em]">
                 {getCollectionName(item.collectionId)}
               </span>
-              <p className="font-[var(--font-accent)] text-[11px] tracking-[0.22em] text-[var(--color-text-muted)] sm:text-xs sm:tracking-[0.3em]">
+              <p className="font-[var(--font-accent)] text-[13px] tracking-[0.22em] text-[var(--color-text-muted)] sm:text-[13px] sm:tracking-[0.3em]">
                 {item.product.styleCode}
               </p>
               <h3 className="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-[var(--color-text)] sm:mt-1.5 sm:text-xl">
@@ -1735,7 +1730,7 @@ export function CataloguePage() {
                 </div>
                 <h3 className="text-2xl font-semibold text-[var(--color-text)]">{catalogue.name}</h3>
                 <p className="mt-2 text-sm text-[var(--color-text-muted)]">{catalogue.description}</p>
-                <p className="mt-3 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                <p className="mt-3 flex items-center justify-between gap-3 text-[13px] uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
                   <span>{formatDate(catalogue.createdAt)} • {catalogue.productIds.length} Items</span>
                   <span className="flex items-center gap-1 text-[var(--color-primary)]">
                     {open ? 'Hide pieces' : 'View all pieces'}
@@ -1744,7 +1739,7 @@ export function CataloguePage() {
                 </p>
               </button>
               {catalogue.savedByBuyer ? (
-                <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--color-text-muted)]">
+                <div className="mt-3 flex items-center justify-between gap-3 text-[13px] text-[var(--color-text-muted)]">
                   <span>Saved by you</span>
                   <button type="button" onClick={() => removeSaved(catalogue)} className="flex items-center gap-1 hover:text-[var(--color-primary)]">
                     <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -1888,23 +1883,23 @@ function OrderHistoryRow({ order, downloading, onDownload }) {
                     <div>
                       {/* Imported styles carry the code as their name; the code is on the next line. */}
                       <p className="text-sm font-medium text-[var(--color-text)]">{productDisplayName(item.product)}</p>
-                      <p className="text-xs text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
+                      <p className="text-[13px] text-[var(--color-text-muted)]">{item.product?.styleCode} • Qty {item.quantity}</p>
                       {/* The ordered combination, so a buyer can tell two lines of
                           the same style apart when raising a change request. */}
-                      <p className="mt-0.5 text-xs text-[var(--color-text)]">
+                      <p className="mt-0.5 text-[13px] text-[var(--color-text)]">
                         {customizationSummary(item.customization, {
                           sizeNoun: resolveSizeChart(item.product)?.noun || 'Size',
                         })}
                       </p>
                       {item.customization?.note ? (
-                        <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                        <p className="mt-0.5 text-[13px] text-[var(--color-text-muted)]">
                           Custom request: {item.customization.note}
                         </p>
                       ) : null}
                     </div>
                     {(item.changeRequests || []).map((cr) => (
                       <div key={cr.id} className="flex items-start justify-between gap-2 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2">
-                        <p className="text-xs text-[var(--color-text)]">{cr.message}</p>
+                        <p className="text-[13px] text-[var(--color-text)]">{cr.message}</p>
                         <StatusBadge status={cr.status} />
                       </div>
                     ))}
@@ -1964,7 +1959,7 @@ export function ProfilePage() {
       </Link>
       <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
-          <p className="lux-label mb-3 text-[11px] sm:mb-4 sm:text-xs">My Profile</p>
+          <p className="lux-label mb-3 text-[13px] sm:mb-4 sm:text-[13px]">My Profile</p>
           {profile ? (
             <div className="space-y-2 text-[13px] text-[var(--color-text-muted)] sm:space-y-4 sm:text-sm">
               <p><span className="text-[var(--color-text)] font-medium">Name:</span> {profile.name}</p>
@@ -1978,7 +1973,7 @@ export function ProfilePage() {
           ) : <LoadingBlock label="Loading profile..." />}
         </Panel>
         <Panel>
-          <p className="lux-label mb-3 text-[11px] sm:mb-4 sm:text-xs">Order History</p>
+          <p className="lux-label mb-3 text-[13px] sm:mb-4 sm:text-[13px]">Order History</p>
           {ordersQuery.isLoadingError ? (
             <ErrorState error={ordersQuery.error} onRetry={ordersQuery.refetch} retrying={ordersQuery.isFetching} />
           ) : (

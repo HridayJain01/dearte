@@ -21,9 +21,9 @@ function AuthShell({ title, description, seoTitle, children }) {
       <Seo title={seoTitle || title} description={description} noindex />
       <div className="grid overflow-hidden border border-[var(--color-border)] lg:grid-cols-2">
         <div className="relative bg-[var(--color-primary)] p-4 sm:min-h-[520px] sm:p-10">
-          <img src={brandLogoUrl} alt={brandLogoAlt} className="mb-3 h-9 w-auto bg-white/95 p-1.5 sm:mb-5 sm:h-12 sm:p-2" />
-          <h1 className="lux-heading max-w-md text-xl !text-white sm:text-6xl">{title}</h1>
-          <p className="mt-2 max-w-md text-[12px] leading-relaxed text-white/60 sm:mt-6 sm:text-base">{description}</p>
+          <img src={brandLogoUrl} alt={brandLogoAlt} className="mb-4 h-10 w-auto brightness-0 invert sm:mb-8 sm:h-14" />
+          <h1 className="lux-heading max-w-md text-[1.75rem] !text-white sm:text-5xl">{title}</h1>
+          <p className="mt-2 max-w-md text-base leading-relaxed text-white/85 sm:mt-6">{description}</p>
         </div>
         <div className="bg-[var(--color-surface)] p-4 sm:p-8 md:p-12">{children}</div>
       </div>
@@ -54,14 +54,13 @@ export function LoginPage() {
   return (
     <AuthShell seoTitle="Buyer Sign In" title="Sign in to your buyer account." description="Registered retailers can browse collections, save catalogues, and submit order requests.">
       <form noValidate className="space-y-3.5 sm:space-y-5" onSubmit={onSubmit}>
-        <SectionHeading eyebrow="Login" title="Welcome back" />
         <Input label="Email" type="email" autoComplete="username" error={form.formState.errors.email?.message} {...form.register('email')} />
         <PasswordInput label="Password" autoComplete="current-password" error={form.formState.errors.password?.message} {...form.register('password')} />
-        <div className="flex items-center justify-between text-[12px] sm:text-sm">
+        <div className="flex items-center justify-between text-[13px] sm:text-sm">
           <Link to="/forgot-password" className="tap-area text-[var(--color-primary)] hover:underline">Forgot Password?</Link>
           <Link to="/register" className="tap-area text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Create account</Link>
         </div>
-        <Button className="w-full" type="submit">Login</Button>
+        <Button className="w-full" type="submit">Sign in</Button>
       </form>
     </AuthShell>
   );
@@ -135,7 +134,7 @@ export function RegisterPage() {
         <PasswordInput label="Password" autoComplete="new-password" error={form.formState.errors.password?.message} {...form.register('password')} />
         <PasswordInput label="Confirm Password" autoComplete="new-password" error={form.formState.errors.confirmPassword?.message} {...form.register('confirmPassword')} />
         <div className="md:col-span-2">
-          <label className="flex items-start gap-2 text-[12px] text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
+          <label className="flex items-start gap-2 text-[13px] text-[var(--color-text-muted)] sm:gap-3 sm:text-sm">
             <input type="checkbox" className="mt-1" {...form.register('acceptedTerms')} />
             <span>
               I accept the <Link to="/terms" target="_blank" className="text-[var(--color-primary)] underline">Terms &amp; Conditions</Link> and
@@ -144,7 +143,7 @@ export function RegisterPage() {
             </span>
           </label>
           {form.formState.errors.acceptedTerms ? (
-            <span className="mt-1 block text-xs text-[var(--color-primary)] sm:text-xs">{form.formState.errors.acceptedTerms.message}</span>
+            <span className="mt-1 block text-[13px] text-[var(--color-primary)] sm:text-[13px]">{form.formState.errors.acceptedTerms.message}</span>
           ) : null}
         </div>
         <Button className="mt-1 md:col-span-2" type="submit">Submit Registration</Button>
@@ -200,18 +199,18 @@ export function ForgotPasswordPage() {
           <SectionHeading eyebrow="Forgot password" title="Request a reset code" />
           <Input label="Email" type="email" autoComplete="email" error={emailForm.formState.errors.email?.message} {...emailForm.register('email', { required: 'Email is required' })} />
           <Button className="w-full" type="submit">Send OTP</Button>
-          <p className="text-center text-[12px] text-[var(--color-text-muted)] sm:text-sm">
+          <p className="text-center text-[13px] text-[var(--color-text-muted)] sm:text-sm">
             <Link to="/login" className="tap-area text-[var(--color-primary)] hover:underline">Back to login</Link>
           </p>
         </form>
       ) : (
         <form noValidate className="space-y-3.5 sm:space-y-5" onSubmit={onResetPassword}>
           <SectionHeading eyebrow="Forgot password" title="Enter your new password" />
-          <p className="text-[12px] text-[var(--color-text-muted)] sm:text-sm">A code was sent to <strong>{sentEmail}</strong>.</p>
+          <p className="text-[13px] text-[var(--color-text-muted)] sm:text-sm">A code was sent to <strong>{sentEmail}</strong>.</p>
           <Input label="OTP" inputMode="numeric" autoComplete="one-time-code" error={resetForm.formState.errors.otp?.message} {...resetForm.register('otp', { required: 'OTP is required' })} />
           <PasswordInput label="New Password" autoComplete="new-password" error={resetForm.formState.errors.newPassword?.message} {...resetForm.register('newPassword', { required: 'Password is required', minLength: { value: 8, message: 'At least 8 characters' } })} />
           <Button className="w-full" type="submit">Reset Password</Button>
-          <p className="text-center text-[12px] text-[var(--color-text-muted)] sm:text-sm">
+          <p className="text-center text-[13px] text-[var(--color-text-muted)] sm:text-sm">
             <button type="button" className="text-[var(--color-primary)] hover:underline" onClick={() => setStep('request')}>Resend code</button>
           </p>
         </form>

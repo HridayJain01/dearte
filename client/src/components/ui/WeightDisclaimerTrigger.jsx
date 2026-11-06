@@ -49,7 +49,7 @@ export function WeightDisclaimerTrigger({ className = '', text = WEIGHT_NOTE, la
         <span
           ref={tipRef}
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 z-[250] mb-2 w-56 -translate-x-1/2 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-left text-[12px] font-sans leading-relaxed text-[var(--color-text-muted)] shadow-[var(--shadow-lifted)]"
+          className="pointer-events-none absolute bottom-full left-1/2 z-[250] mb-2 w-56 -translate-x-1/2 border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-left text-[15px] font-sans leading-relaxed text-[var(--color-text)] shadow-[var(--shadow-lifted)]"
         >
           <span className="gold-hairline pointer-events-none absolute inset-x-0 top-0 h-px bg-[var(--color-accent)]" aria-hidden="true" />
           {text}

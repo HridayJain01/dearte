@@ -28,7 +28,7 @@ export function Button({
 
   return (
     <Tag
-      className={`inline-flex min-h-10 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium leading-none transition duration-300 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-11 sm:gap-2 sm:px-5 sm:py-3 sm:text-[13px] ${variants[variant]} ${className}`}
+      className={`inline-flex min-h-10 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-1.5 text-[13px] font-medium leading-none transition duration-300 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-11 sm:gap-2 sm:px-5 sm:py-3 sm:text-[13px] ${variants[variant]} ${className}`}
       {...props}
     >
       {loading ? (
@@ -46,16 +46,17 @@ export function Button({
 // in the class, not in the tag.
 // `compact` is the admin size: one short line, so the work starts near the top.
 // On a phone the admin top bar already names the page, so the eyebrow goes.
+// The storefront shows no eyebrow at all: it only repeated the title beneath it.
 export function SectionHeading({ eyebrow, title, description, action, as = 'h2', compact = false }) {
   const Heading = as;
 
   return (
     <div className={`flex flex-col gap-3 md:flex-row md:items-end md:justify-between ${compact ? 'mb-1 sm:mb-2' : 'mb-5 sm:mb-8 sm:gap-4'}`}>
       <div className="max-w-2xl">
-        {eyebrow ? <p className={`lux-label mb-2 text-[11px] sm:mb-3 sm:text-xs ${compact ? 'max-lg:hidden' : ''}`}>{eyebrow}</p> : null}
-        <Heading className={`lux-heading ${compact ? 'text-2xl sm:text-3xl' : 'text-2xl sm:text-4xl md:text-6xl'}`}>{title}</Heading>
+        {eyebrow && compact ? <p className="lux-label mb-2 sm:mb-3 max-lg:hidden">{eyebrow}</p> : null}
+        <Heading className={`lux-heading ${compact ? 'text-2xl sm:text-3xl' : 'text-[1.75rem] sm:text-4xl md:text-5xl'}`}>{title}</Heading>
         {description ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-sm md:text-base">
+          <p className={`mt-2 sm:mt-3 ${compact ? 'text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:text-sm md:text-base' : 'text-base leading-relaxed text-[var(--color-text)]'}`}>
             {description}
           </p>
         ) : null}
