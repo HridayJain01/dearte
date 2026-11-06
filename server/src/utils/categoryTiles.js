@@ -9,7 +9,10 @@ function internalPath(link) {
   if (!/^\/(?![/\\])/.test(link) || /[\u0000-\u001F\\]/.test(link)) return null;
   try {
     const url = new URL(link, BASE);
-    return url.origin === BASE ? `${url.pathname}${url.search}${url.hash}` : null;
+    if (url.origin !== BASE) return null;
+    // Resolving "/.//evil.com" leaves "//evil.com", so the result is checked too.
+    const path = `${url.pathname}${url.search}${url.hash}`;
+    return /^\/(?![/\\])/.test(path) ? path : null;
   } catch {
     return null;
   }
