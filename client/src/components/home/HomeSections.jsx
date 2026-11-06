@@ -104,13 +104,15 @@ export function BrandExpressionFrame() {
 
 export function ProcessImageFrame() {
   return (
-    <section className="pb-10 pt-2 sm:pb-16 sm:pt-8">
-      <Reveal className="page-shell mb-5 sm:mb-10">
-        <h2 className="lux-heading max-w-4xl text-[1.75rem] sm:text-4xl md:text-5xl">
+    // Heading and diagram share one crimson field, so they read as one section;
+    // the diagram is drawn on the same crimson and carries its own top margin.
+    <section className="bg-[var(--color-primary)] pt-10 sm:pt-16">
+      <Reveal className="page-shell text-center">
+        <h2 className="lux-heading mx-auto max-w-4xl text-[1.75rem] text-white! sm:text-4xl md:text-5xl">
           From rough brilliance to finished radiance.
         </h2>
       </Reveal>
-      <Reveal delay={100} className="bg-[var(--color-primary)]">
+      <Reveal delay={100}>
         <img
           src={processImage}
           alt="How a piece is made: your vision, responsible materials, the atelier, your creation."
