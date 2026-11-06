@@ -1,0 +1,77 @@
+# Nightly backup of the database, Cloudinary images and the git repo to a
+# private Backblaze B2 bucket. Setup and restore steps: docs/backups.md.
+#
+# This repo is PUBLIC, so these logs are public: never echo data or secrets,
+# and never upload backups as workflow artifacts.
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: '0 21 * * *' # 02:30 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      BUCKET: ${{ secrets.B2_BUCKET }}
+      B2_ENDPOINT: ${{ secrets.B2_ENDPOINT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+      # Newer AWS CLIs send checksums B2 rejects.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # every branch and tag, for the bundle
+
+      - name: Point the AWS CLI at B2
+        run: |
+          # https://s3.us-west-004.backblazeb2.com -> us-west-004
+          echo "AWS_DEFAULT_REGION=$(echo "$B2_ENDPOINT" | sed -E 's#https://s3\.([^.]+)\..*#\1#')" >> "$GITHUB_ENV"
+          echo "STAMP=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
+      - name: Install mongodump
+        run: |
+          curl -fsSL https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-x86_64-100.20.1.tgz | tar xz
+          echo "$PWD/mongodb-database-tools-ubuntu2404-x86_64-100.20.1/bin" >> "$GITHUB_PATH"
+
+      - name: Dump database
+        env:
+          MONGODB_BACKUP_URI: ${{ secrets.MONGODB_BACKUP_URI }}
+        run: mongodump --uri "$MONGODB_BACKUP_URI" --gzip --archive="db-$STAMP.archive.gz" --quiet
+
+      - name: Bundle git repo
+        run: git bundle create "code-$STAMP.bundle" --all
+
+      - name: Upload database and code
+        run: |
+          for f in "db-$STAMP.archive.gz" "code-$STAMP.bundle"; do
+            aws s3 cp "$f" "s3://$BUCKET/daily/$f" --endpoint-url "$B2_ENDPOINT" --only-show-errors
+            # The 1st of each month is also kept long-term.
+            if [ "$(date -u +%d)" = "01" ]; then
+              aws s3 cp "$f" "s3://$BUCKET/monthly/$f" --endpoint-url "$B2_ENDPOINT" --only-show-errors
+            fi
+          done
+
+      - name: Copy new Cloudinary images
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: |
+          aws s3api list-objects-v2 --bucket "$BUCKET" --prefix images/ \
+            --query 'Contents[].Key' --output json --endpoint-url "$B2_ENDPOINT" > existing.json
+          mkdir -p images
+          node .github/scripts/backup-images.mjs existing.json images "cloudinary-$STAMP.json"
+          aws s3 cp images "s3://$BUCKET/images/" --recursive --endpoint-url "$B2_ENDPOINT" --only-show-errors
+          aws s3 cp "cloudinary-$STAMP.json" "s3://$BUCKET/daily/cloudinary-$STAMP.json" --endpoint-url "$B2_ENDPOINT" --only-show-errors
