@@ -97,6 +97,8 @@ const SEARCH_SIDE_BUTTON =
 export function SmartSearchButton({ query, onApply }) {
   const features = useAiFeatures();
   const [busy, setBusy] = useState(false);
+  const [matches, setMatches] = useState(null);
+  const close = useCallback(() => setMatches(null), []);
   if (!features.smartSearch) return null;
 
   const text = query.trim();
@@ -107,6 +109,8 @@ export function SmartSearchButton({ query, onApply }) {
     try {
       const result = await aiService.smartSearch(text);
       onApply(result.params);
+      // Styles ranked by how closely their photo matches the description.
+      if (result.items?.length) setMatches({ items: result.items, seen: result.understood || [] });
       toast.success(result.understood?.length ? `Showing ${result.understood.join(' · ')}` : 'Showing everything that matches');
     } catch (error) {
       toast.error(aiErrorMessage(error, 'Smart search is unavailable right now. The filters still work.'));
@@ -116,6 +120,7 @@ export function SmartSearchButton({ query, onApply }) {
   };
 
   return (
+    <>
     <button
       type="button"
       onClick={run}
@@ -127,6 +132,8 @@ export function SmartSearchButton({ query, onApply }) {
       {busy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
       <span className="max-sm:sr-only">Smart search</span>
     </button>
+    {matches ? <PhotoResults result={matches} label="Smart search" title="Closest to your description" onClose={close} /> : null}
+    </>
   );
 }
 
@@ -143,7 +150,7 @@ async function shrinkPhoto(file, maxSide = 768) {
   return canvas.toDataURL('image/jpeg', 0.85);
 }
 
-function PhotoResults({ result, preview, onClose }) {
+function PhotoResults({ result, preview, onClose, label = 'Shop by photo', title = 'Closest pieces in the catalogue' }) {
   const closeRef = useRef(null);
 
   useEffect(() => {
@@ -158,15 +165,15 @@ function PhotoResults({ result, preview, onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Pieces similar to your photo"
+        aria-label={title}
         className="w-full max-w-6xl border border-[var(--color-border)] bg-[var(--color-primary-bg)] p-4 sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start gap-4">
           {preview ? <img src={preview} alt="Your photo" className="h-16 w-16 flex-none border border-[var(--color-border)] object-cover sm:h-20 sm:w-20" /> : null}
           <div className="min-w-0 flex-1">
-            <p className="lux-label text-[11px] sm:text-xs">Shop by photo</p>
-            <h2 className="lux-heading mt-1 text-xl sm:text-3xl">{result.items.length ? 'Closest pieces in the catalogue' : 'No close match yet'}</h2>
+            <p className="lux-label text-[11px] sm:text-xs">{label}</p>
+            <h2 className="lux-heading mt-1 text-xl sm:text-3xl">{result.items.length ? title : 'No close match yet'}</h2>
             {result.seen?.length ? (
               <p className="mt-1 text-[12px] text-[var(--color-text-muted)] sm:text-sm">We saw: {result.seen.join(' · ')}</p>
             ) : null}

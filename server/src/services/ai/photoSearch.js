@@ -18,10 +18,12 @@ import { getAiSettings } from './settings.js';
 import { deadlineIn, runJob, timeLeft } from './jobs.js';
 import { accessFilterFor, primaryImage, productPopulate, withAccess } from './catalogue.js';
 import { facetsFor } from './search.js';
+import { embedPhotos, embeddingsReady, pendingEmbedCount, similarProducts } from './embeddings.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const RETRY_AFTER_DAYS = 7;
-const BATCH_LIMIT = 60;
+// The deadline and the model's rate limit end a run long before this does.
+const BATCH_LIMIT = 200;
 // ponytail: candidates are scored in memory; fine for a few thousand styles,
 // move the category filter and tag overlap into an aggregation beyond that.
 const MAX_CANDIDATES = 600;
@@ -131,19 +133,27 @@ export async function indexPhotos({ deadline = deadlineIn(), queue } = {}) {
 
 // Runs several times a night (see server/vercel.json). Once every style is
 // tagged, a run ends here without logging, so AI Studio's list stays readable.
+// Embeddings go first: a whole batch is one fast call, while tags are ~3 a minute.
 export async function runPhotoIndexCron() {
   const settings = await getAiSettings({ fresh: true });
   if (!settings.photoIndex.enabled) return { skipped: 'The photo index is off.' };
-  if (!aiStatus().vision) return { skipped: 'The vision model is not configured.' };
   const deadline = deadlineIn();
-  const queue = await pendingProducts();
-  if (!queue.length) return { skipped: 'Every style is indexed.' };
-  return runJob('photo-index', 'cron', () => indexPhotos({ deadline, queue }));
+  const embeds = await pendingEmbedCount();
+  const queue = aiStatus().vision ? await pendingProducts() : [];
+  if (!embeds && !queue.length) return { skipped: 'Every style is indexed.' };
+  return runJob('photo-index', 'cron', () => indexAll({ deadline, queue }));
 }
 
 export function runPhotoIndexNow() {
   const deadline = deadlineIn();
-  return runJob('photo-index', 'admin', () => indexPhotos({ deadline }));
+  return runJob('photo-index', 'admin', () => indexAll({ deadline }));
+}
+
+async function indexAll({ deadline, queue }) {
+  const parts = [];
+  if (embeddingsReady()) parts.push(await embedPhotos({ deadline }));
+  if (aiStatus().vision && timeLeft(deadline) > 15_000) parts.push(await indexPhotos({ deadline, queue }));
+  return parts.join(' ') || 'Nothing is configured to index photos.';
 }
 
 /** Rank serialized products against what the model saw; best first. */
@@ -161,6 +171,18 @@ export async function searchByPhoto(image, user) {
   const dataUrl = typeof image === 'string' ? image : '';
   if (!DATA_URL.test(dataUrl) || dataUrl.length > MAX_IMAGE_CHARS) {
     throw Object.assign(new Error('Send a JPEG, PNG or WebP photo under about 700 KB.'), { status: 400 });
+  }
+
+  // Embeddings find the same design; the tag matcher below is the fallback
+  // when they are off or the service fails.
+  if (embeddingsReady()) {
+    try {
+      const items = await similarProducts({ image: dataUrl, user });
+      if (items.length) return { seen: [], items, message: '' };
+    } catch (error) {
+      if (!aiStatus().vision) throw error;
+      console.warn('[photo-search] embeddings failed, using tags:', error?.message);
+    }
   }
 
   const { access, facets } = await facetsFor(user);

@@ -9,6 +9,7 @@ import { AiSettings } from '../../models/index.js';
 import { BLOG_TOPICS } from '../../data/blogTopics.js';
 import { asString } from '../../utils/validation.js';
 import { aiStatus } from './llm.js';
+import { embeddingsReady } from './embeddings.js';
 
 const MODES = ['off', 'staff', 'everyone'];
 const FEATURE_KEYS = ['smartSearch', 'photoSearch', 'restock', 'catalogueBuilder'];
@@ -141,7 +142,7 @@ export async function featuresFor(user) {
   const mode = settings.features;
   return {
     smartSearch: text && allowed(mode.smartSearch, user),
-    photoSearch: vision && Boolean(user) && allowed(mode.photoSearch, user),
+    photoSearch: (vision || embeddingsReady()) && Boolean(user) && allowed(mode.photoSearch, user),
     // Restock suggestions are arithmetic over order history; no model needed.
     restock: Boolean(user) && allowed(mode.restock, user),
     catalogueBuilder: text && Boolean(user) && allowed(mode.catalogueBuilder, user),

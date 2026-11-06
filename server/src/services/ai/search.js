@@ -9,6 +9,7 @@ import { asString } from '../../utils/validation.js';
 import { chatJson } from './llm.js';
 import { clampNumber, clampText, matchNames } from './guards.js';
 import { accessFilterFor, withAccess } from './catalogue.js';
+import { embeddingsReady, similarProducts } from './embeddings.js';
 
 export const SORTS = ['', 'best-sellers', 'new-arrivals', 'diamond-asc', 'diamond-desc', 'gold-asc', 'gold-desc'];
 const STYLE_CODE = /^[a-z]{2,6}[-\s]?\d{3,}[a-z]?$/i;
@@ -175,5 +176,14 @@ export async function parseSearch(query, user) {
   });
 
   const params = sanitizeParsed({ ...raw, keywords: list(raw.keywords).length ? raw.keywords : [text] }, facets);
-  return remember(cacheKey, { params, understood: describeParams(params), usedAi: true });
+  // Hybrid: the parsed category / metal are hard filters, and inside them
+  // styles are ranked by how closely their photo matches the description.
+  // Optional — the filters alone still work if embeddings are off or fail.
+  const items = embeddingsReady()
+    ? await similarProducts({ text, filters: params, user }).catch((error) => {
+        console.warn('[search] embeddings failed:', error?.message);
+        return [];
+      })
+    : [];
+  return remember(cacheKey, { params, understood: describeParams(params), usedAi: true, items });
 }

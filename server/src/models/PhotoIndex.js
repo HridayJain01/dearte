@@ -13,6 +13,12 @@ const photoIndexSchema = new mongoose.Schema(
     // weekly instead of every night.
     attemptedAt: { type: Date, default: null, index: true },
     error: { type: String, default: '' },
+    // Visual-search vector (embeddings.js) for the photo at embeddedImage; a
+    // new main photo is re-embedded. Not selected unless asked for.
+    embedding: { type: [Number], default: undefined, select: false },
+    embeddedImage: { type: String, default: '' },
+    embedModel: { type: String, default: '' },
+    embeddedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
