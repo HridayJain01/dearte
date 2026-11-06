@@ -10,6 +10,8 @@ test('keeps internal links, rewrites outside or blank ones, drops incomplete til
     { label: ' Rings ', link: '/products?category=Rings', image: photo },
     { label: 'Studs', link: 'https://evil.example', image: photo },
     { label: 'Bands', link: '//evil.example', image: photo },
+    { label: 'Hoops', link: '/\\evil.example', image: photo },
+    { label: 'Studs2', link: '/products\tx', image: photo },
     { label: 'No photo', link: '/x', image: {} },
     { label: '', link: '/x', image: photo },
   ]);
@@ -17,6 +19,8 @@ test('keeps internal links, rewrites outside or blank ones, drops incomplete til
     ['Rings', '/products?category=Rings'],
     ['Studs', '/products?category=Studs'],
     ['Bands', '/products?category=Bands'],
+    ['Hoops', '/products?category=Hoops'],
+    ['Studs2', '/products?category=Studs2'],
   ]);
 });
 
