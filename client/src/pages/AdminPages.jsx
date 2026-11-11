@@ -2082,6 +2082,19 @@ export function AdminProductsPage() {
                 Update Values (Excel)
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={updateValuesFromSheet} />
               </label>
+              <Button
+                variant="secondary"
+                icon={Download}
+                disabled={!products.length}
+                onClick={() => {
+                  // "Style No" so the file can go straight back into the upload buttons.
+                  const book = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(products.map((product) => ({ 'Style No': product.styleCode }))), 'Style Codes');
+                  XLSX.writeFile(book, 'dearte-style-codes.xlsx');
+                }}
+              >
+                Download Style Codes
+              </Button>
             </div>
           </div>
           <div className="relative">
