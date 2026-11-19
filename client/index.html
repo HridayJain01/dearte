@@ -99,6 +99,17 @@
         ]
       }
     </script>
+
+    <!-- Vercel Web Analytics: cookieless page views, switched on per project in
+         the Vercel dashboard (Analytics tab). The script follows SPA route
+         changes itself. Admin pages are dropped so staff visits don't count. -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+      window.va('beforeSend', function (event) {
+        return new URL(event.url).pathname.startsWith('/admin') ? null : event;
+      });
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <div id="root"></div>
