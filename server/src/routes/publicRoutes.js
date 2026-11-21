@@ -550,26 +550,42 @@ router.get('/education/:slug', (req, res) => {
   return sendSuccess(res, seedData.education[slug]);
 });
 
-// Latest Instagram posts for the home page. INSTAGRAM_ACCESS_TOKEN is a
-// long-lived token from "Instagram API with Instagram Login". Unset or failing
-// means an empty list, so the rail just hides.
-// ponytail: per-instance memory cache (1h) and token refresh (daily, in memory
-// only); move the token into Mongo if instances live long enough to outlast it.
-const instagram = { at: 0, items: [], token: process.env.INSTAGRAM_ACCESS_TOKEN, refreshedAt: Date.now() };
+// Latest Instagram posts for the home page. INSTAGRAM_ACCESS_TOKEN is either an
+// "IG..." token (Instagram Login) or an "EAA..." Facebook token with
+// instagram_basic + pages_show_list, whose Page is linked to the Instagram
+// business account. Unset or failing means an empty list, so the rail hides.
+// ponytail: per-instance memory cache (1h); IG tokens refresh daily in memory
+// only. EAA tokens are not refreshed: use a long-lived (60-day) or never-expiring one.
+const instagram = { at: 0, items: [], token: (process.env.INSTAGRAM_ACCESS_TOKEN || '').trim(), refreshedAt: Date.now(), igUserId: '' };
+const graphJson = async (url) => {
+  const r = await fetch(url);
+  const j = await r.json();
+  if (!r.ok || j.error) throw new Error(j.error?.message || `Instagram ${r.status}`);
+  return j;
+};
+const instagramMediaUrl = async () => {
+  const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink';
+  const t = encodeURIComponent(instagram.token);
+  if (!instagram.token.startsWith('EAA')) {
+    return `https://graph.instagram.com/me/media?fields=${fields}&limit=8&access_token=${t}`;
+  }
+  if (!instagram.igUserId) {
+    const pages = await graphJson(`https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account&access_token=${t}`);
+    instagram.igUserId = pages.data?.find((p) => p.instagram_business_account)?.instagram_business_account.id || '';
+    if (!instagram.igUserId) throw new Error('No Facebook Page with a linked Instagram business account (needs pages_show_list)');
+  }
+  return `https://graph.facebook.com/v21.0/${instagram.igUserId}/media?fields=${fields}&limit=8&access_token=${t}`;
+};
 router.get('/instagram', async (_req, res) => {
   if (!instagram.token) return sendSuccess(res, []);
   if (Date.now() - instagram.at < 60 * 60 * 1000) return sendSuccess(res, instagram.items);
   try {
-    if (Date.now() - instagram.refreshedAt > 24 * 60 * 60 * 1000) {
+    if (!instagram.token.startsWith('EAA') && Date.now() - instagram.refreshedAt > 24 * 60 * 60 * 1000) {
       instagram.refreshedAt = Date.now();
-      const r = await fetch(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${instagram.token}`);
-      const j = await r.json();
+      const j = await graphJson(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(instagram.token)}`).catch(() => ({}));
       if (j.access_token) instagram.token = j.access_token;
     }
-    const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink';
-    const r = await fetch(`https://graph.instagram.com/me/media?fields=${fields}&limit=8&access_token=${instagram.token}`);
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error?.message || `Instagram ${r.status}`);
+    const j = await graphJson(await instagramMediaUrl());
     instagram.items = (j.data || []).map((m) => ({
       id: m.id,
       image: m.media_type === 'VIDEO' ? m.thumbnail_url : m.media_url,
