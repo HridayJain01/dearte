@@ -553,10 +553,10 @@ router.get('/education/:slug', (req, res) => {
 // Latest Instagram posts for the home page. INSTAGRAM_ACCESS_TOKEN is either an
 // "IG..." token (Instagram Login) or an "EAA..." Facebook token with
 // instagram_basic + pages_show_list, whose Page is linked to the Instagram
-// business account. Unset or failing means an empty list, so the rail hides.
+// business account (or set INSTAGRAM_USER_ID to skip the Page lookup). Unset or failing means an empty list, so the rail hides.
 // ponytail: per-instance memory cache (1h); IG tokens refresh daily in memory
 // only. EAA tokens are not refreshed: use a long-lived (60-day) or never-expiring one.
-const instagram = { at: 0, items: [], token: (process.env.INSTAGRAM_ACCESS_TOKEN || '').trim(), refreshedAt: Date.now(), igUserId: '' };
+const instagram = { at: 0, items: [], token: (process.env.INSTAGRAM_ACCESS_TOKEN || '').trim(), refreshedAt: Date.now(), igUserId: (process.env.INSTAGRAM_USER_ID || '').trim() };
 const graphJson = async (url) => {
   const r = await fetch(url);
   const j = await r.json();
@@ -572,7 +572,7 @@ const instagramMediaUrl = async () => {
   if (!instagram.igUserId) {
     const pages = await graphJson(`https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account&access_token=${t}`);
     instagram.igUserId = pages.data?.find((p) => p.instagram_business_account)?.instagram_business_account.id || '';
-    if (!instagram.igUserId) throw new Error('No Facebook Page with a linked Instagram business account (needs pages_show_list)');
+    if (!instagram.igUserId) throw new Error('No Facebook Page with a linked Instagram business account (needs pages_show_list, or set INSTAGRAM_USER_ID)');
   }
   return `https://graph.facebook.com/v21.0/${instagram.igUserId}/media?fields=${fields}&limit=8&access_token=${t}`;
 };
