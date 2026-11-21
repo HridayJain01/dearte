@@ -16,6 +16,7 @@ import {
 } from '../components/home/HomeSections';
 import { PopupPromo } from '../components/home/PopupPromo';
 import { JournalRail } from '../components/blog/JournalRail';
+import { InstagramRail } from '../components/home/InstagramRail';
 import { Seo } from '../components/seo/Seo';
 import { routeSeo } from '../utils/seoRoutes';
 import { recentlyViewed } from '../utils/recentlyViewed';
@@ -136,6 +137,7 @@ export function HomePage() {
       )}
       {/* Renders nothing until the blog has posts. */}
       <JournalRail />
+      <InstagramRail profileUrl={siteSettings.instagram} />
       {show('showCTABanner') && <CTABanner />}
     </>
   );
