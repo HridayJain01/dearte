@@ -550,6 +550,39 @@ router.get('/education/:slug', (req, res) => {
   return sendSuccess(res, seedData.education[slug]);
 });
 
+// Latest Instagram posts for the home page. INSTAGRAM_ACCESS_TOKEN is a
+// long-lived token from "Instagram API with Instagram Login". Unset or failing
+// means an empty list, so the rail just hides.
+// ponytail: per-instance memory cache (1h) and token refresh (daily, in memory
+// only); move the token into Mongo if instances live long enough to outlast it.
+const instagram = { at: 0, items: [], token: process.env.INSTAGRAM_ACCESS_TOKEN, refreshedAt: Date.now() };
+router.get('/instagram', async (_req, res) => {
+  if (!instagram.token) return sendSuccess(res, []);
+  if (Date.now() - instagram.at < 60 * 60 * 1000) return sendSuccess(res, instagram.items);
+  try {
+    if (Date.now() - instagram.refreshedAt > 24 * 60 * 60 * 1000) {
+      instagram.refreshedAt = Date.now();
+      const r = await fetch(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${instagram.token}`);
+      const j = await r.json();
+      if (j.access_token) instagram.token = j.access_token;
+    }
+    const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink';
+    const r = await fetch(`https://graph.instagram.com/me/media?fields=${fields}&limit=8&access_token=${instagram.token}`);
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error?.message || `Instagram ${r.status}`);
+    instagram.items = (j.data || []).map((m) => ({
+      id: m.id,
+      image: m.media_type === 'VIDEO' ? m.thumbnail_url : m.media_url,
+      caption: (m.caption || '').slice(0, 200),
+      permalink: m.permalink,
+    })).filter((m) => m.image);
+  } catch (error) {
+    console.error('Instagram feed failed:', error.message);
+  }
+  instagram.at = Date.now();
+  return sendSuccess(res, instagram.items);
+});
+
 // Notifications for the installed app (services/webPush.js). The key is public by
 // design: the phone needs it to subscribe. Blank means push is not set up yet.
 router.get('/push/key', (_req, res) => sendSuccess(res, { publicKey: getPushConfigStatus().publicKey }));
