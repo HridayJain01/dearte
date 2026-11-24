@@ -47,6 +47,21 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 );
 
+// Google Analytics 4. VITE_GA_ID is set for Production only, so previews and
+// local dev send nothing. Enhanced measurement counts SPA route changes from
+// history events, so no per-route page_view call is needed.
+const GA_ID = import.meta.env.VITE_GA_ID;
+if (GA_ID) {
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() { window.dataLayer.push(arguments); };
+  window.gtag('js', new Date());
+  window.gtag('config', GA_ID);
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+  document.head.appendChild(script);
+}
+
 // Production only: a service worker in dev would cache Vite's modules and fight HMR.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
