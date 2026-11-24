@@ -52,6 +52,24 @@ createRoot(document.getElementById('root')).render(
 // history events, so no per-route page_view call is needed.
 const GA_ID = import.meta.env.VITE_GA_ID;
 if (GA_ID) {
+  // Staff use of /admin shouldn't count (Vercel Analytics in index.html drops
+  // it too). gtag reads this flag before every hit, so keep it in step with the
+  // URL. These hooks are installed before gtag wraps pushState, so the flag is
+  // already updated when gtag fires its page_view for the new route.
+  const syncAdminOptOut = () => {
+    window[`ga-disable-${GA_ID}`] = window.location.pathname.startsWith('/admin');
+  };
+  for (const method of ['pushState', 'replaceState']) {
+    const original = window.history[method];
+    window.history[method] = function patched(...args) {
+      const result = original.apply(this, args);
+      syncAdminOptOut();
+      return result;
+    };
+  }
+  window.addEventListener('popstate', syncAdminOptOut);
+  syncAdminOptOut();
+
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag() { window.dataLayer.push(arguments); };
   window.gtag('js', new Date());
