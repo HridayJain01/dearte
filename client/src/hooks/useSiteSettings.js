@@ -24,5 +24,7 @@ export function useCategoryTiles() {
 // number: a placeholder would route buyers' chats to a stranger's phone.
 export function whatsappHref(value) {
   if (/^https?:\/\//i.test(value)) return value;
-  return `https://wa.me/${value.replace(/\D/g, '')}`;
+  const digits = String(value).replace(/\D/g, '');
+  // A bare 10-digit Indian mobile needs the 91 country code or wa.me opens a dead chat.
+  return `https://wa.me/${digits.length === 10 ? `91${digits}` : digits}`;
 }

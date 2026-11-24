@@ -2288,11 +2288,7 @@ const NEXT_STEP_LABEL = {
   Fulfilled: 'Mark fulfilled',
 };
 
-// Buyers register with a 10-digit Indian mobile; wa.me needs the country code.
-const buyerWhatsapp = (mobile) => {
-  const digits = String(mobile || '').replace(/\D/g, '');
-  return whatsappHref(digits.length === 10 ? `91${digits}` : digits);
-};
+const buyerWhatsapp = (mobile) => whatsappHref(String(mobile || ''));
 
 function OrderDetail({ order }) {
   const queryClient = useQueryClient();

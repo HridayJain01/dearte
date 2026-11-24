@@ -597,6 +597,24 @@ export function ProductListPage() {
               </div>
             ) : null}
 
+            {!data.items.length ? (
+              <EmptyState
+                title={isAuthenticated ? 'No pieces here yet' : 'Part of the full catalogue'}
+                description={
+                  isAuthenticated
+                    ? 'Nothing in the catalogue matches this selection right now. Browse the full range, or ask us on WhatsApp for a custom piece.'
+                    : 'These pieces are shown to registered buyers. Sign in or open a buyer account to see the full range.'
+                }
+                action={
+                  isAuthenticated ? (
+                    <Button onClick={clearAll}>View all pieces</Button>
+                  ) : (
+                    <Button as={Link} to="/register">Open a buyer account</Button>
+                  )
+                }
+              />
+            ) : null}
+
             <div
               className={`grid grid-cols-2 gap-3 transition-opacity duration-200 sm:gap-5 lg:grid-cols-3 2xl:grid-cols-4 ${
                 isRefreshing ? 'pointer-events-none opacity-60' : 'opacity-100'
@@ -610,7 +628,7 @@ export function ProductListPage() {
 
             {/* One row at every width — stacked full-width pagers wasted three
                 screens' worth of height on a phone. */}
-            <div className="flex items-center justify-between gap-3">
+            <div className={`${data.totalPages > 1 ? 'flex' : 'hidden'} items-center justify-between gap-3`}>
               <Button variant="secondary" onClick={() => setPage(page - 1)} disabled={page === 1}>
                 Previous
               </Button>
