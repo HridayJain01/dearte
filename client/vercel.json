@@ -3,6 +3,26 @@
 
   "trailingSlash": false,
 
+  "redirects": [
+    { "source": "/contacts", "destination": "/contact", "permanent": true },
+    { "source": "/about-us", "destination": "/about", "permanent": true },
+    { "source": "/refund_returns", "destination": "/return-policy", "permanent": true },
+    { "source": "/my-account/lost-password", "destination": "/forgot-password", "permanent": true },
+    { "source": "/my-account/:path*", "destination": "/profile", "permanent": true },
+    { "source": "/(home-\\d+|maintenance-mode|wp-admin|wp-login.php)", "destination": "/", "permanent": true },
+
+    { "source": "/shop/ear-ring-:code", "destination": "/products?category=Earring", "permanent": true },
+    { "source": "/product-category/(rings|cocktail-ring)", "destination": "/products?category=Rings", "permanent": true },
+    { "source": "/product-category/(earrings|hoops)", "destination": "/products?category=Earring", "permanent": true },
+    { "source": "/product-category/pendant-set", "destination": "/products?category=Pendant", "permanent": true },
+    { "source": "/(shop|product-category|product-tag|brand|shape)/:path*", "destination": "/products", "permanent": true },
+    { "source": "/(shop|sale|newest|popular|featured|brands-1|brands-2|earrings|rings|necklaces|bracelets|gifts)", "destination": "/products", "permanent": true },
+
+    { "source": "/blog/page/:n", "destination": "/blog", "permanent": true },
+    { "source": "/(category|tag|type|author)/:path*", "destination": "/blog", "permanent": true },
+    { "source": "/(best-gifts-for-holidays|follow-our-instagram|gallery-post|new-trends-in-jewelry-industry-in-2021|our-art-director-working-on-new-luxury-collection|our-items-in-london-museum|video-presentation-new-collection|we-win-jewelry-competiton-2021)", "destination": "/blog", "permanent": true }
+  ],
+
   "headers": [
     {
       "source": "/assets/(.*)",
